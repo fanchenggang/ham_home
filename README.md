@@ -24,22 +24,19 @@
 
 ## What is HamHome?
 
-HamHome is a browser extension that helps you collect, organize, and retrieve web content intelligently. It uses AI to automatically categorize pages, generate summaries, and suggest tags—while keeping your data local and private.
+HamHome is an AI-powered bookmark manager for modern browsers. It uses AI to automatically categorize saved pages, generate summaries, and suggest tags. It also supports semantic search for your bookmarks while keeping your data local and private.
 
 👉 **[View Product Introduction](https://bingoyb.github.io/ham_home/)** - Learn more about features and capabilities
 
 ## Screenshots
 
-| |
-|:---:|
-| **Save Panel** |
-| ![Save Panel](docs/screenshot/compressed/en/save-panel.png) |
-| **Side Panel** |
-| ![Side Panel](docs/screenshot/compressed/en/side-panel.png) |
-| **Management Page** |
-| ![Management Page](docs/screenshot/compressed/en/mng-page.png) |
-| **Settings Page** |
-| ![Settings Page](docs/screenshot/compressed/en/setting-page.png) |
+| **Side Panel** | **Save Panel** |
+|:---:|:---:|
+| ![Side Panel](docs/screenshot/compressed/en/side-panel.png) | ![Save Panel](docs/screenshot/compressed/en/save-panel.png) |
+| **Semantic Search** | **Preset Categories** |
+| ![Semantic Search](https://i.imgur.com/8HHRTb9.png) | ![Preset Categories](https://i.imgur.com/0Qku5cx.png) |
+| **Management Page** | **Settings Page** |
+| ![Management Page](docs/screenshot/compressed/en/mng-page.png) | ![Settings Page](docs/screenshot/compressed/en/setting-page.png) |
 
 ## Features
 
@@ -65,6 +62,7 @@ HamHome is a browser extension that helps you collect, organize, and retrieve we
 ### 🔍 Powerful Search & Filtering
 
 - Full-text search across titles, descriptions, and content
+- Semantic search
 - Filter by category, tags, and time range
 - Create custom filter presets for complex queries
 

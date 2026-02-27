@@ -24,22 +24,20 @@
 
 ## 什么是 HamHome？
 
-HamHome 是一款浏览器扩展，帮助你智能地收集、整理和检索网页内容。它使用 AI 自动分类页面、生成摘要、推荐标签——同时将数据完全保存在本地，保护你的隐私。
+HamHome 是一款 AI 驱动的现代浏览器书签管理插件。它使用 AI 自动对收藏的网站进行分类、打标签、生成摘要。支持语义化搜索收藏的网站。
 
 👉 **[查看产品介绍](https://bingoyb.github.io/ham_home/)** - 了解更多功能和特性
 
 ## 产品截图
 
-| |
-|:---:|
-| **侧边面板** |
-| ![侧边面板](screenshot/compressed/ch/side-panel.png) |
-| **保存面板** |
-| ![保存面板](screenshot/compressed/ch/save-panel.png) |
-| **管理页面** |
-| ![管理页面](screenshot/compressed/ch/mng-page.png) |
-| **设置页面** |
-| ![设置页面](screenshot/compressed/ch/setting-page.png) |
+| **侧边面板** | **保存面板** |
+|:---:|:---:|
+| ![侧边面板](screenshot/compressed/ch/side-panel.png) | ![保存面板](screenshot/compressed/ch/save-panel.png) |
+| **语义化搜索** | **预设分类** |
+| ![语义化搜索](https://i.imgur.com/8HHRTb9.png) | ![预设分类](https://i.imgur.com/0Qku5cx.png) |
+| **管理页面** | **设置页面** |
+| ![管理页面](screenshot/compressed/ch/mng-page.png) | ![设置页面](screenshot/compressed/ch/setting-page.png) |
+
 
 ## 功能特性
 
@@ -63,6 +61,7 @@ HamHome 是一款浏览器扩展，帮助你智能地收集、整理和检索网
 - 全文搜索：标题、描述和内容
 - 按分类、标签和时间范围筛选
 - 创建自定义筛选预设，保存复杂查询条件
+- 语义化搜索
 
 ### 🎯 隐私优先设计
 - 所有数据存储在本地（Chrome Storage + IndexedDB）
