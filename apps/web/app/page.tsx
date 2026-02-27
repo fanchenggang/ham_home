@@ -5,6 +5,7 @@ import { Button, cn } from '@hamhome/ui';
 import { Github, Star } from 'lucide-react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { FeatureHeroBanner } from './components/FeatureHeroBanner';
 import { FeatureShowcase } from './components/FeatureShowcase';
 import {
   mockBookmarks,
@@ -160,6 +161,8 @@ export default function HomePage() {
 
       {/* 主内容 */}
       <main className="container mx-auto px-4 py-8">
+        <FeatureHeroBanner isEn={isEn} isDark={isDark} />
+
         {/* Hero 区块 */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-4">{texts.heroTitle}</h2>

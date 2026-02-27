@@ -14,6 +14,14 @@ import {
 import chromeIcon from './icon/chrome.svg';
 import edgeIcon from './icon/edge.svg';
 import firefoxIcon from './icon/firefox.svg';
+import {
+  getDownloadChannels,
+  getRecommendedDownloadChannel,
+  openDownloadUrl,
+  resolveDownloadUrl,
+  type DownloadChannel,
+  type DownloadChannelId,
+} from '@/app/lib/download';
 
 interface HeaderProps {
   isDark: boolean;
@@ -22,68 +30,25 @@ interface HeaderProps {
   onToggleLanguage: () => void;
 }
 
-// Browser detection
-function detectBrowser(): 'chrome' | 'edge' | 'firefox' | 'other' {
-  if (typeof navigator === 'undefined') return 'chrome';
-  const ua = navigator.userAgent;
-  if (ua.includes('Edg')) return 'edge';
-  if (ua.includes('Firefox')) return 'firefox';
-  if (ua.includes('Chrome')) return 'chrome';
-  return 'other';
+function renderChannelIcon(channelId: DownloadChannelId) {
+  switch (channelId) {
+    case 'chrome':
+      return <Image src={chromeIcon} alt="Chrome" width={16} height={16} />;
+    case 'edge':
+      return <Image src={edgeIcon} alt="Edge" width={16} height={16} />;
+    case 'firefox':
+      return <Image src={firefoxIcon} alt="Firefox" width={16} height={16} />;
+    default:
+      return <Package className="h-4 w-4" />;
+  }
 }
-
-// Download channels config
-const GITHUB_RELEASE_URL = 'https://github.com/bingoYB/ham_home/releases';
-
-interface DownloadChannel {
-  id: 'chrome' | 'edge' | 'firefox' | 'offline';
-  label: { en: string; zh: string };
-  icon: React.ReactNode;
-  url: string | null; // null means not published
-  published: boolean;
-}
-
-const getDownloadChannels = (): DownloadChannel[] => [
-  {
-    id: 'chrome',
-    label: { en: 'Chrome Web Store', zh: 'Chrome 商店' },
-    icon: <Image src={chromeIcon} alt="Chrome" width={16} height={16} />,
-    url: null,
-    published: false,
-  },
-  {
-    id: 'edge',
-    label: { en: 'Edge Add-ons', zh: 'Edge 扩展商店' },
-    icon: <Image src={edgeIcon} alt="Edge" width={16} height={16} />,
-    url: 'https://microsoftedge.microsoft.com/addons/detail/hamhome-smart-bookmark-/nmbdgbicgagmokdmohgngcbhkaicfnpi',
-    published: true,
-  },
-  {
-    id: 'firefox',
-    label: { en: 'Firefox Add-ons', zh: 'Firefox 扩展商店' },
-    icon: <Image src={firefoxIcon} alt="Firefox" width={16} height={16} />,
-    url: 'https://addons.mozilla.org/zh-CN/firefox/addon/hamhome-%E6%99%BA%E8%83%BD%E4%B9%A6%E7%AD%BE%E5%8A%A9%E6%89%8B/',
-    published: true,
-  },
-  {
-    id: 'offline',
-    label: { en: 'Offline Package', zh: '离线安装包' },
-    icon: <Package className="h-4 w-4" />,
-    url: GITHUB_RELEASE_URL,
-    published: true,
-  },
-];
 
 function DownloadDropdown({ isEn }: { isEn: boolean }) {
   const channels = getDownloadChannels();
-  const currentBrowser = detectBrowser();
-
-  // Find recommended channel based on browser
-  const recommendedChannel = channels.find(c => c.id === currentBrowser) || channels[0];
+  const recommendedChannel = getRecommendedDownloadChannel(channels);
 
   const handleDownload = (channel: DownloadChannel) => {
-    const url = channel.published && channel.url ? channel.url : GITHUB_RELEASE_URL;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openDownloadUrl(resolveDownloadUrl(channel));
   };
 
   return (
@@ -105,7 +70,7 @@ function DownloadDropdown({ isEn }: { isEn: boolean }) {
               className="flex items-center justify-between gap-2 cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                {channel.icon}
+                {renderChannelIcon(channel.id)}
                 <span>{isEn ? channel.label.en : channel.label.zh}</span>
               </div>
               <div className="flex items-center gap-1">
