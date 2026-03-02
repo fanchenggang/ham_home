@@ -16,7 +16,9 @@
 
 <p>
   <a href="https://bingoyb.github.io/ham_home/">Product Introduction</a> •
+  <a href="./docs/USAGE_en.md">Usage</a> •
   <a href="./docs/README_zh.md">中文文档</a> •
+  <a href="./docs/USAGE_zh.md">使用文档</a> •
   <a href="#features">Features</a> •
   <a href="#development">Development</a> •
   <a href="#contributing">Contributing</a>
