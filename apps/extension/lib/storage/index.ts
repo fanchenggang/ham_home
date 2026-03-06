@@ -7,4 +7,5 @@ export { configStorage, DEFAULT_AI_CONFIG, DEFAULT_SETTINGS, DEFAULT_EMBEDDING_C
 export { aiCacheStorage } from './ai-cache-storage';
 export { vectorStore } from './vector-store';
 export { importTaskStorage } from './import-task-storage';
+export { aiTaskStorage } from './ai-task-storage';
 export type { VectorStoreStats } from './vector-store';
