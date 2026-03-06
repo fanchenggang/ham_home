@@ -16,6 +16,7 @@ import {
   Filter,
   FolderOpen,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import {
   Button,
@@ -37,6 +38,7 @@ import {
   MasonryRef,
   cn,
   toast,
+  Progress,
 } from '@hamhome/ui';
 import { useBookmarks } from '@/contexts/BookmarkContext';
 import { bookmarkStorage } from '@/lib/storage/bookmark-storage';
@@ -51,6 +53,7 @@ import { useBookmarkSelection } from '@/hooks/useBookmarkSelection';
 import { useMasonryLayout } from '@/hooks/useMasonryLayout';
 import { useConversationalSearch } from '@/hooks/useConversationalSearch';
 import { useVirtualBookmarkList } from '@/hooks/useVirtualBookmarkList';
+import { useBatchAITask } from '@/hooks/useBatchAITask';
 import { getCategoryPath, formatDate } from '@/utils/bookmark-utils';
 import { configStorage } from '@/lib/storage/config-storage';
 import type { LocalBookmark, CustomFilter, FilterCondition, Suggestion } from '@/types';
@@ -168,6 +171,13 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
     removeFromSelection,
     deselectAll,
   } = useBookmarkSelection();
+
+  // 批量 AI 任务
+  const {
+    isProcessing: isBatchAIProcessing,
+    progress: batchAIProgress,
+    startTask: startBatchAITask,
+  } = useBatchAITask();
 
   // 瀑布流布局
   const { containerRef: masonryContainerRef, config: masonryConfig } = useMasonryLayout();
@@ -677,9 +687,23 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     variant="secondary"
                     size="sm"
                     onClick={() => setShowBatchMoveCategoryDialog(true)}
+                    disabled={isBatchAIProcessing}
                   >
                     <FolderOpen className="h-4 w-4 mr-1" />
                     {t('bookmark:bookmark.batch.moveCategory')}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => startBatchAITask(Array.from(selectedIds))}
+                    disabled={isBatchAIProcessing}
+                  >
+                    {isBatchAIProcessing ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-1" />
+                    )}
+                    {t('ai:batchOrganize')}
                   </Button>
                   <Button
                     variant="destructive"
@@ -692,6 +716,24 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   </Button>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 批量 AI 整理进度条 */}
+        {isBatchAIProcessing && batchAIProgress && (
+          <div className="mt-3 px-4 py-3 bg-muted/30 border border-border rounded-lg flex items-center gap-4">
+            <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
+            <div className="flex-1 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">{t('ai:batchOrganizeProgress')}</span>
+                <span className="text-muted-foreground">{Math.round((batchAIProgress.processed / (batchAIProgress.total || 1)) * 100)}% ({batchAIProgress.processed}/{batchAIProgress.total})</span>
+              </div>
+              <Progress value={(batchAIProgress.processed / (batchAIProgress.total || 1)) * 100} className="h-2" />
+              <div className="text-xs text-muted-foreground flex gap-3">
+                <span className="text-green-500">{t('common:common.success')}: {batchAIProgress.success}</span>
+                {batchAIProgress.failed > 0 && <span className="text-destructive">{t('common:common.failed')}: {batchAIProgress.failed}</span>}
+              </div>
             </div>
           </div>
         )}
@@ -747,6 +789,8 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   onEdit={() => setEditingBookmark(bm)}
                   onDelete={() => handleDelete(bm)}
                   onViewSnapshot={bm.hasSnapshot ? () => handleViewSnapshot(bm) : undefined}
+                  onReanalyzeAI={() => startBatchAITask([bm.id])}
+                  isProcessingAI={isBatchAIProcessing}
                   columnSize={masonryConfig.columnSize}
                   t={t}
                 />
@@ -786,6 +830,8 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     onEdit={() => setEditingBookmark(bookmark)}
                     onDelete={() => handleDelete(bookmark)}
                     onViewSnapshot={bookmark.hasSnapshot ? () => handleViewSnapshot(bookmark) : undefined}
+                    onReanalyzeAI={() => startBatchAITask([bookmark.id])}
+                    isProcessingAI={isBatchAIProcessing}
                     t={t}
                   />
                 </div>

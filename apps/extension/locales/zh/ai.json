@@ -92,5 +92,8 @@
   "suggestion": {
     "copySuccess": "复制成功",
     "copySuccessDesc": "已复制 {{count}} 个链接到剪贴板"
-  }
+  },
+  "batchOrganize": "批量 AI 整理",
+  "batchOrganizeProgress": "AI 正在重新整理书签...",
+  "reanalyze": "AI 重新分析"
 }

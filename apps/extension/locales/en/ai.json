@@ -92,5 +92,8 @@
   "suggestion": {
     "copySuccess": "Copied successfully",
     "copySuccessDesc": "Copied {{count}} links to clipboard"
-  }
+  },
+  "batchOrganize": "Batch AI Organize",
+  "batchOrganizeProgress": "AI is organizing bookmarks...",
+  "reanalyze": "AI Re-analyze"
 }

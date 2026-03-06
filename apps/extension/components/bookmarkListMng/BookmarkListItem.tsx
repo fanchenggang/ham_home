@@ -10,6 +10,7 @@ import {
   Share2,
   Trash2,
   Camera,
+  Sparkles,
 } from 'lucide-react';
 import {
   Badge,
@@ -34,6 +35,8 @@ export interface BookmarkListItemProps {
   onEdit: () => void;
   onDelete: () => void;
   onViewSnapshot?: () => void;
+  onReanalyzeAI?: () => void;
+  isProcessingAI?: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -48,6 +51,8 @@ export function BookmarkListItem({
   onEdit,
   onDelete,
   onViewSnapshot,
+  onReanalyzeAI,
+  isProcessingAI,
   t,
 }: BookmarkListItemProps) {
   const hostname = new URL(bookmark.url).hostname;
@@ -169,6 +174,18 @@ export function BookmarkListItem({
                 <DropdownMenuItem onClick={onViewSnapshot}>
                   <Camera className="h-4 w-4 mr-2" />
                   {t('bookmark:bookmark.viewSnapshot')}
+                </DropdownMenuItem>
+              </>
+            )}
+            {onReanalyzeAI && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={onReanalyzeAI}
+                  disabled={isProcessingAI}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('ai:reanalyze')}
                 </DropdownMenuItem>
               </>
             )}
