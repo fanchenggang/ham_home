@@ -12,13 +12,14 @@
 
 1. 自动读取最近一次 GitHub Release 或最近 tag（如 v1.2.0）
 2. 获取从该版本到当前 HEAD 之间的所有 commit diff
-3. 通过语义理解，将变更分类为：
+3. 只获取插件的改动内容，忽略与插件无关的改动
+4. 通过语义理解，将变更分类为：
    - ✨ 新功能（Features）
    - 🐛 修复（Bug Fixes）
    - ⚡ 优化（Performance）
 
-4. 生成专业级 Release Notes（中英双语）
-5. 自动读取 `apps/extension/wxt.config.ts` 的 version 作为新版本号
+5. 生成专业级 Release Notes（中英双语）
+6. 自动读取 `apps/extension/wxt.config.ts` 的 version 作为新版本号
    - 如果版本号与上一个版本号一致，则修改文件中的 version 自动更新版本号
      - 版本号更新规则：最后一个数字加 1
    - 如果版本号比上一个版本号小，则提醒用户更新版本号
