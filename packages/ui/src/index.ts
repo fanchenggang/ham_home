@@ -19,6 +19,7 @@ export * from "./components/dropdown-menu";
 export * from "./components/tabs";
 export * from "./components/collapsible";
 export * from "./components/alert-dialog";
+export { ConfirmDialog, confirm, type ConfirmDialogProps, type ConfirmOptions } from "./components/confirm-dialog";
 export * from "./components/scroll-area";
 export * from "./components/checkbox";
 export * from "./components/command";
@@ -49,6 +50,7 @@ export {
 
 // 工具函数导出
 export { cn } from "./lib/utils";
+export { createDialogOpener, type DialogHandle } from "./lib/dialog-opener";
 export { masonryCompute, MasonryComputeMode } from "./lib/masonryCompute";
 export { createIntervalTree, type IIntervalTree } from "./lib/interval-tree";
 export { createPositioner, type IPositioner, type PositionerItem } from "./lib/positioner";
