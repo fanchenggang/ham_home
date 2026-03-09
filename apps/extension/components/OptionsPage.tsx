@@ -80,7 +80,7 @@ import {
   getDefaultEmbeddingModel,
   PROVIDER_DEFAULTS,
   EMBEDDING_PROVIDER_DEFAULTS,
-} from "@hamhome/ai";
+} from "@hamhome/ai/providers";
 import { aiClient } from "@/lib/ai/client";
 import { getBackgroundService } from "@/lib/services";
 import type { QueueProgress } from "@/lib/embedding/embedding-queue";
@@ -151,8 +151,10 @@ export function OptionsPage() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showClearBookmarkDialog, setShowClearBookmarkDialog] = useState(false);
   const [showClearSnapshotDialog, setShowClearSnapshotDialog] = useState(false);
+  const [showClearRemoteDialog, setShowClearRemoteDialog] = useState(false);
   const [isClearingBookmarks, setIsClearingBookmarks] = useState(false);
   const [isClearingSnapshots, setIsClearingSnapshots] = useState(false);
+  const [isClearingRemote, setIsClearingRemote] = useState(false);
   const [showCustomFilters, setShowCustomFilters] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<CustomFilter | null>(
     null,
@@ -411,6 +413,18 @@ export function OptionsPage() {
       console.error("[OptionsPage] Failed to clear snapshots:", error);
     } finally {
       setIsClearingSnapshots(false);
+    }
+  };
+
+  const handleClearRemoteData = async () => {
+    setShowClearRemoteDialog(false);
+    setIsClearingRemote(true);
+    try {
+      await syncEngine.clearRemoteData();
+    } catch (error) {
+      console.error("[OptionsPage] Failed to clear remote data:", error);
+    } finally {
+      setIsClearingRemote(false);
     }
   };
 
@@ -1999,6 +2013,37 @@ export function OptionsPage() {
                         </>
                       )}
                     </Button>
+
+                    <Button
+                      onClick={() => setShowClearRemoteDialog(true)}
+                      variant="destructive"
+                      disabled={
+                        isClearingRemote ||
+                        isSyncing ||
+                        syncStatus.status === "syncing" ||
+                        !syncConfig.url ||
+                        !syncConfig.username ||
+                        !syncConfig.password
+                      }
+                    >
+                      {isClearingRemote ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t(
+                            "settings:settings.sync.config.clearingRemoteBtn",
+                            "清除中...",
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          {t(
+                            "settings:settings.sync.config.clearRemoteBtn",
+                            "清除远端数据",
+                          )}
+                        </>
+                      )}
+                    </Button>
                   </div>
 
                   {/* 同步状态展示 */}
@@ -2136,6 +2181,40 @@ export function OptionsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 清除远端数据确认对话框 */}
+      <AlertDialog
+        open={showClearRemoteDialog}
+        onOpenChange={setShowClearRemoteDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t(
+                "settings:settings.sync.config.clearRemoteConfirmTitle",
+                "清除远端数据",
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "settings:settings.sync.config.clearRemoteConfirmDesc",
+                "确定要清除 WebDAV 远端的所有同步数据吗？此操作无法撤销。清除后如有需要可以再重新同步。",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("settings:settings.dialogs.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearRemoteData}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {t("settings:settings.dialogs.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 删除筛选器确认对话框 */}
       <AlertDialog
         open={!!deleteFilterTarget}
@@ -2234,35 +2313,6 @@ export function OptionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Floating Sync Status Widget */}
-      {syncConfig.enabled && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-background/95 backdrop-blur-sm shadow-lg border border-border rounded-full px-4 py-2 transition-all hover:shadow-xl">
-          <div className="flex items-center justify-center">
-            {syncStatus.status === "syncing" || isSyncing ? (
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-            ) : syncStatus.status === "error" ? (
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            ) : (
-              <Cloud className="h-4 w-4 text-green-600" />
-            )}
-          </div>
-          <div className="flex flex-col text-xs">
-            <span className="font-medium text-foreground">
-              {syncStatus.status === "syncing" || isSyncing
-                ? t("settings:settings.sync.config.statusSyncing")
-                : syncStatus.status === "error"
-                  ? t("settings:settings.sync.config.statusError")
-                  : t("settings:settings.sync.config.statusIdle")}
-            </span>
-            <span className="text-muted-foreground opacity-80">
-              {syncStatus.lastSyncTime > 0
-                ? relativeSyncTime
-                : t("settings:settings.sync.config.neverSynced")}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

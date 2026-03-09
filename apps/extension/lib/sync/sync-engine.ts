@@ -424,6 +424,45 @@ export class SyncEngine {
     }
   }
 
+  /**
+   * Clear all remote sync data
+   */
+  async clearRemoteData(): Promise<void> {
+    if (this.isSyncing) {
+      throw new Error('Sync is currently in progress, cannot clear remote data');
+    }
+    
+    const config = await syncConfigStorage.getConfig();
+    if (!config.enabled || !config.url) {
+      throw new Error('WebDAV is not configured');
+    }
+    
+    if (!webdavClientAdapter.isInitialized) {
+      webdavClientAdapter.init(config);
+    }
+    
+    try {
+      this.isSyncing = true;
+      const success = await webdavClientAdapter.deleteFile(SYNC_ROOT);
+      if (!success) {
+        throw new Error('Failed to delete remote directory');
+      }
+      
+      // Reset local sync status
+      await syncConfigStorage.setStatus({ 
+        status: 'idle', 
+        lastSyncTime: 0, 
+        syncVersion: '',
+        errorMessage: ''
+      });
+    } catch (err: any) {
+      console.error('Failed to clear remote WebDAV data:', err);
+      throw new Error(`Failed to clear remote data: ${err.message || String(err)}`);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
 }
 
 export const syncEngine = new SyncEngine();
