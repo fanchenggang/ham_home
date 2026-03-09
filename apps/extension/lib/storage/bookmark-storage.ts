@@ -296,7 +296,8 @@ class BookmarkStorage {
    */
   async createCategory(
     name: string,
-    parentId: string | null = null
+    parentId: string | null = null,
+    icon?: string
   ): Promise<LocalCategory> {
     const categories: LocalCategory[] = await categoriesItem.getValue();
 
@@ -311,6 +312,7 @@ class BookmarkStorage {
       parentId,
       order: categories.length,
       createdAt: Date.now(),
+      icon,
     };
 
     await categoriesItem.setValue([...categories, category]);

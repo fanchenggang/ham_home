@@ -60,12 +60,18 @@ interface BookmarkContextType {
   addCategory: (
     name: string,
     parentId?: string | null,
+    icon?: string,
   ) => Promise<LocalCategory>;
   updateCategory: (id: string, data: Partial<LocalCategory>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   refreshCategories: () => Promise<void>;
   bulkAddCategories: (
-    categories: Array<{ id?: string; name: string; parentId: string | null }>,
+    categories: Array<{
+      id?: string;
+      name: string;
+      parentId: string | null;
+      icon?: string;
+    }>,
   ) => Promise<void>;
 
   // 配置操作
@@ -244,8 +250,12 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
   };
 
   // 分类操作
-  const addCategory = async (name: string, parentId: string | null = null) => {
-    const category = await bookmarkStorage.createCategory(name, parentId);
+  const addCategory = async (
+    name: string,
+    parentId: string | null = null,
+    icon?: string,
+  ) => {
+    const category = await bookmarkStorage.createCategory(name, parentId, icon);
     await refreshCategories();
     return category;
   };
@@ -267,6 +277,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       id?: string;
       name: string;
       parentId: string | null;
+      icon?: string;
     }>,
   ) => {
     // 创建 ID 映射表（用于处理层级关系）
@@ -276,7 +287,11 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     const rootCategories = newCategories.filter((c) => !c.parentId);
     for (const cat of rootCategories) {
       try {
-        const created = await bookmarkStorage.createCategory(cat.name, null);
+        const created = await bookmarkStorage.createCategory(
+          cat.name,
+          null,
+          cat.icon,
+        );
         if (cat.id) {
           idMap.set(cat.id, created.id);
         }
@@ -301,6 +316,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
             const created = await bookmarkStorage.createCategory(
               cat.name,
               mappedParentId || null,
+              cat.icon,
             );
             if (cat.id) {
               idMap.set(cat.id, created.id);

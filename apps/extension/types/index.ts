@@ -50,6 +50,7 @@ export type UpdateBookmarkInput = Partial<
 export interface LocalCategory {
   id: string;
   name: string;
+  icon?: string; // emoji icon
   parentId: string | null;
   order: number;
   createdAt: number; // 时间戳
@@ -312,6 +313,7 @@ export interface HierarchicalCategory {
  */
 export interface AIGeneratedCategory {
   name: string;
+  icon?: string; // emoji icon
   children?: AIGeneratedCategory[];
 }
 
