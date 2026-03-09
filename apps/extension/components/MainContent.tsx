@@ -2,8 +2,8 @@
  * MainContent 主内容区组件
  * 展示书签列表，支持筛选、视图切换和批量操作
  */
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   LayoutGrid,
   List,
@@ -17,7 +17,9 @@ import {
   FolderOpen,
   Sparkles,
   Loader2,
-} from 'lucide-react';
+  Download,
+  Cloud,
+} from "lucide-react";
 import {
   Button,
   Badge,
@@ -26,39 +28,44 @@ import {
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  confirm,
   Masonry,
   MasonryRef,
   cn,
   toast,
   Progress,
-} from '@hamhome/ui';
-import { useBookmarks } from '@/contexts/BookmarkContext';
-import { bookmarkStorage } from '@/lib/storage/bookmark-storage';
-import { CategoryFilterDropdown } from '@/components/common/CategoryTree';
-import { BookmarkCard, BookmarkListItem, EditBookmarkDialog, SnapshotViewer, BatchTagDialog, BatchMoveCategoryDialog } from '@/components/bookmarkListMng';
-import { SearchInputArea, AIChatPanel } from '@/components/aiSearch';
-import { useSnapshot } from '@/hooks/useSnapshot';
-import { FilterDropdownMenu } from '@/components/bookmarkPanel/FilterPopover';
-import { CustomFilterDialog } from '@/components/bookmarkPanel/CustomFilterDialog';
-import { useBookmarkSearch } from '@/hooks/useBookmarkSearch';
-import { useBookmarkSelection } from '@/hooks/useBookmarkSelection';
-import { useMasonryLayout } from '@/hooks/useMasonryLayout';
-import { useConversationalSearch } from '@/hooks/useConversationalSearch';
-import { useVirtualBookmarkList } from '@/hooks/useVirtualBookmarkList';
-import { useBatchAITask } from '@/hooks/useBatchAITask';
-import { getCategoryPath, formatDate } from '@/utils/bookmark-utils';
-import { configStorage } from '@/lib/storage/config-storage';
-import type { LocalBookmark, CustomFilter, FilterCondition, Suggestion } from '@/types';
+} from "@hamhome/ui";
+import { useBookmarks } from "@/contexts/BookmarkContext";
+import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
+import { CategoryFilterDropdown } from "@/components/common/CategoryTree";
+import {
+  BookmarkCard,
+  BookmarkListItem,
+  EditBookmarkDialog,
+  SnapshotViewer,
+  BatchTagDialog,
+  BatchMoveCategoryDialog,
+} from "@/components/bookmarkListMng";
+import { SearchInputArea, AIChatPanel } from "@/components/aiSearch";
+import { useSnapshot } from "@/hooks/useSnapshot";
+import { FilterDropdownMenu } from "@/components/bookmarkPanel/FilterPopover";
+import { CustomFilterDialog } from "@/components/bookmarkPanel/CustomFilterDialog";
+import { useBookmarkSearch } from "@/hooks/useBookmarkSearch";
+import { useBookmarkSelection } from "@/hooks/useBookmarkSelection";
+import { useMasonryLayout } from "@/hooks/useMasonryLayout";
+import { useConversationalSearch } from "@/hooks/useConversationalSearch";
+import { useVirtualBookmarkList } from "@/hooks/useVirtualBookmarkList";
+import { useBatchAITask } from "@/hooks/useBatchAITask";
+import { getCategoryPath, formatDate } from "@/utils/bookmark-utils";
+import { configStorage } from "@/lib/storage/config-storage";
+import type {
+  LocalBookmark,
+  CustomFilter,
+  FilterCondition,
+  Suggestion,
+} from "@/types";
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = "grid" | "list";
 
 interface MainContentProps {
   currentView: string;
@@ -66,12 +73,15 @@ interface MainContentProps {
 }
 
 export function MainContent({ currentView, onViewChange }: MainContentProps) {
-  const { t, i18n } = useTranslation(['common', 'bookmark', 'ai']);
-  const { bookmarks, categories, allTags, deleteBookmark, refreshBookmarks } = useBookmarks();
+  const { t, i18n } = useTranslation(["common", "bookmark", "ai"]);
+  const { bookmarks, categories, allTags, deleteBookmark, refreshBookmarks } =
+    useBookmarks();
 
   // 自定义筛选器状态
   const [customFilters, setCustomFilters] = useState<CustomFilter[]>([]);
-  const [selectedCustomFilterId, setSelectedCustomFilterId] = useState<string | undefined>();
+  const [selectedCustomFilterId, setSelectedCustomFilterId] = useState<
+    string | undefined
+  >();
   const [customFilterDialogOpen, setCustomFilterDialogOpen] = useState(false);
 
   // 书签卡片引用（用于滚动定位）- grid 视图使用
@@ -105,7 +115,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
         const filters = await configStorage.getCustomFilters();
         setCustomFilters(filters);
       } catch (error) {
-        console.error('[MainContent] Failed to load custom filters:', error);
+        console.error("[MainContent] Failed to load custom filters:", error);
       }
     };
     loadCustomFilters();
@@ -139,15 +149,17 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   });
 
   // 视图模式
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // 根据 AI 对话是否打开决定显示的书签列表
   const filteredBookmarks = useMemo(() => {
     if (isAIChatOpen && aiResults.length > 0) {
       // AI 对话模式下，在 AI 结果的基础上应用其他筛选条件
       // 创建一个已筛选书签的 Set，用于快速查找
-      const filteredBookmarkIds = new Set(keywordFilteredBookmarks.map((b) => b.id));
-      
+      const filteredBookmarkIds = new Set(
+        keywordFilteredBookmarks.map((b) => b.id),
+      );
+
       // 保持 AI 结果的相关性排序，只保留满足其他筛选条件的书签
       return aiResults
         .map((r) => r.bookmarkId)
@@ -159,9 +171,12 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   }, [isAIChatOpen, aiResults, keywordFilteredBookmarks, bookmarks]);
 
   // 处理关键词搜索查询变化
-  const handleKeywordQueryChange = useCallback((query: string) => {
-    setSearchQuery(query);
-  }, [setSearchQuery]);
+  const handleKeywordQueryChange = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+    },
+    [setSearchQuery],
+  );
 
   // 批量选择逻辑
   const {
@@ -183,18 +198,22 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   // 批量 AI 任务完成时显示错误提示
   useEffect(() => {
     if (!isBatchAIProcessing && batchAIResult && batchAIResult.failed > 0) {
-      toast.error(t('ai:batchOrganizeFailed', { 
-        failed: batchAIResult.failed,
-        success: batchAIResult.success 
-      }), {
-        position: 'top-center',
-        duration: 5000,
-      });
+      toast.error(
+        t("ai:batchOrganizeFailed", {
+          failed: batchAIResult.failed,
+          success: batchAIResult.success,
+        }),
+        {
+          position: "top-center",
+          duration: 5000,
+        },
+      );
     }
   }, [isBatchAIProcessing, batchAIResult, t]);
 
   // 瀑布流布局
-  const { containerRef: masonryContainerRef, config: masonryConfig } = useMasonryLayout();
+  const { containerRef: masonryContainerRef, config: masonryConfig } =
+    useMasonryLayout();
 
   // 虚拟列表（列表视图）
   const {
@@ -210,104 +229,119 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   });
 
   // 处理引用点击 - 滚动到对应书签
-  const handleSourceClick = useCallback((bookmarkId: string) => {
-    setHighlightedBookmarkId(bookmarkId);
-    if (viewMode === 'list') {
-      // 列表视图使用虚拟列表滚动
-      scrollToBookmark(bookmarkId);
-    } else {
-      // 网格视图使用 ref 滚动
-      const element = bookmarkRefsForGrid.current.get(bookmarkId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const handleSourceClick = useCallback(
+    (bookmarkId: string) => {
+      setHighlightedBookmarkId(bookmarkId);
+      if (viewMode === "list") {
+        // 列表视图使用虚拟列表滚动
+        scrollToBookmark(bookmarkId);
+      } else {
+        // 网格视图使用 ref 滚动
+        const element = bookmarkRefsForGrid.current.get(bookmarkId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
-    }
-    // 3秒后清除高亮
-    setTimeout(() => setHighlightedBookmarkId(null), 3000);
-  }, [setHighlightedBookmarkId, viewMode, scrollToBookmark]);
+      // 3秒后清除高亮
+      setTimeout(() => setHighlightedBookmarkId(null), 3000);
+    },
+    [setHighlightedBookmarkId, viewMode, scrollToBookmark],
+  );
 
   // 处理 AI 建议点击
-  const handleAISuggestionClick = useCallback(async (suggestion: Suggestion) => {
-    const { action, payload, label } = suggestion;
+  const handleAISuggestionClick = useCallback(
+    async (suggestion: Suggestion) => {
+      const { action, payload, label } = suggestion;
 
-    switch (action) {
-      case 'navigate': {
-        if (payload?.view && typeof payload.view === 'string') {
-          onViewChange?.(payload.view);
-        }
-        break;
-      }
-
-      case 'copyAllLinks': {
-        // 复制所有链接
-        const links = aiResultBookmarkIds
-          .map((id) => bookmarks.find((b) => b.id === id)?.url)
-          .filter(Boolean)
-          .join('\n');
-
-        if (links) {
-          await navigator.clipboard.writeText(links);
-          toast.success(t('ai:suggestion.copySuccess'), {
-            position: "top-center"
-          });
-        }
-        break;
-      }
-
-      case 'batchAddTags': {
-        // 批量打标签 - 先选中所有 AI 结果书签，再打开弹窗
-        for (const id of aiResultBookmarkIds) {
-          if (!selectedIds.has(id)) {
-            toggleSelect(id);
+      switch (action) {
+        case "navigate": {
+          if (payload?.view && typeof payload.view === "string") {
+            onViewChange?.(payload.view);
           }
+          break;
         }
-        setShowBatchTagDialog(true);
-        break;
-      }
 
-      case 'batchMoveCategory': {
-        // 批量移动分类 - 先选中所有 AI 结果书签，再打开弹窗
-        for (const id of aiResultBookmarkIds) {
-          if (!selectedIds.has(id)) {
-            toggleSelect(id);
+        case "copyAllLinks": {
+          // 复制所有链接
+          const links = aiResultBookmarkIds
+            .map((id) => bookmarks.find((b) => b.id === id)?.url)
+            .filter(Boolean)
+            .join("\n");
+
+          if (links) {
+            await navigator.clipboard.writeText(links);
+            toast.success(t("ai:suggestion.copySuccess"), {
+              position: "top-center",
+            });
           }
+          break;
         }
-        setShowBatchMoveCategoryDialog(true);
-        break;
-      }
 
-      case 'showMore':
-      case 'timeFilter':
-      case 'domainFilter':
-      case 'categoryFilter':
-      case 'semanticOnly':
-      case 'keywordOnly':
-      case 'findDuplicates':
-      case 'text':
-      default: {
-        // 文本类建议 - 放入输入框并搜索
-        setAIQuery(label);
-        handleAISearch();
-        break;
-      }
-    }
-  }, [aiResultBookmarkIds, bookmarks, selectedIds, toggleSelect, setAIQuery, handleAISearch, toast, t]);
+        case "batchAddTags": {
+          // 批量打标签 - 先选中所有 AI 结果书签，再打开弹窗
+          for (const id of aiResultBookmarkIds) {
+            if (!selectedIds.has(id)) {
+              toggleSelect(id);
+            }
+          }
+          setShowBatchTagDialog(true);
+          break;
+        }
 
-  // 删除确认弹窗状态
-  const [deleteTarget, setDeleteTarget] = useState<LocalBookmark | null>(null);
-  const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
+        case "batchMoveCategory": {
+          // 批量移动分类 - 先选中所有 AI 结果书签，再打开弹窗
+          for (const id of aiResultBookmarkIds) {
+            if (!selectedIds.has(id)) {
+              toggleSelect(id);
+            }
+          }
+          setShowBatchMoveCategoryDialog(true);
+          break;
+        }
+
+        case "showMore":
+        case "timeFilter":
+        case "domainFilter":
+        case "categoryFilter":
+        case "semanticOnly":
+        case "keywordOnly":
+        case "findDuplicates":
+        case "text":
+        default: {
+          // 文本类建议 - 放入输入框并搜索
+          setAIQuery(label);
+          handleAISearch();
+          break;
+        }
+      }
+    },
+    [
+      aiResultBookmarkIds,
+      bookmarks,
+      selectedIds,
+      toggleSelect,
+      setAIQuery,
+      handleAISearch,
+      toast,
+      t,
+    ],
+  );
 
   // 批量打标签弹窗状态
   const [showBatchTagDialog, setShowBatchTagDialog] = useState(false);
 
   // 批量迁移分类弹窗状态
-  const [showBatchMoveCategoryDialog, setShowBatchMoveCategoryDialog] = useState(false);
+  const [showBatchMoveCategoryDialog, setShowBatchMoveCategoryDialog] =
+    useState(false);
 
   // 编辑弹窗状态
-  const [editingBookmark, setEditingBookmark] = useState<LocalBookmark | null>(null);
+  const [editingBookmark, setEditingBookmark] = useState<LocalBookmark | null>(
+    null,
+  );
 
   // 快照查看状态
-  const [snapshotBookmark, setSnapshotBookmark] = useState<LocalBookmark | null>(null);
+  const [snapshotBookmark, setSnapshotBookmark] =
+    useState<LocalBookmark | null>(null);
   const {
     snapshotUrl,
     loading: snapshotLoading,
@@ -318,22 +352,25 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   } = useSnapshot();
 
   // 保存自定义筛选器
-  const handleSaveCustomFilter = useCallback(async (name: string, conditions: FilterCondition[]) => {
-    const newFilter: CustomFilter = {
-      id: `filter_${Date.now()}`,
-      name,
-      conditions,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    try {
-      await configStorage.addCustomFilter(newFilter);
-      setCustomFilters((prev) => [...prev, newFilter]);
-      setSelectedCustomFilterId(newFilter.id);
-    } catch (error) {
-      console.error('[MainContent] Failed to save custom filter:', error);
-    }
-  }, []);
+  const handleSaveCustomFilter = useCallback(
+    async (name: string, conditions: FilterCondition[]) => {
+      const newFilter: CustomFilter = {
+        id: `filter_${Date.now()}`,
+        name,
+        conditions,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      try {
+        await configStorage.addCustomFilter(newFilter);
+        setCustomFilters((prev) => [...prev, newFilter]);
+        setSelectedCustomFilterId(newFilter.id);
+      } catch (error) {
+        console.error("[MainContent] Failed to save custom filter:", error);
+      }
+    },
+    [],
+  );
 
   // 选择自定义筛选器
   const handleSelectCustomFilter = useCallback((filterId: string | null) => {
@@ -347,13 +384,18 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   }, [clearTimeFilter, handleSelectCustomFilter]);
 
   // 判断是否有筛选器（时间筛选或自定义筛选器）
-  const hasTimeOrCustomFilter = timeRange.type !== 'all' || !!selectedCustomFilterId;
+  const hasTimeOrCustomFilter =
+    timeRange.type !== "all" || !!selectedCustomFilterId;
 
   // 获取分类路径的包装函数
   const getBookmarkCategoryPath = useCallback(
     (categoryId: string | null) =>
-      getCategoryPath(categoryId, categories, t('bookmark:bookmark.uncategorized')),
-    [categories, t]
+      getCategoryPath(
+        categoryId,
+        categories,
+        t("bookmark:bookmark.uncategorized"),
+      ),
+    [categories, t],
   );
 
   // 格式化日期的包装函数
@@ -362,15 +404,15 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       formatDate(
         timestamp,
         i18n.language,
-        t('common:common.today') || '今天',
-        t('common:common.yesterday') || '昨天'
+        t("common:common.today") || "今天",
+        t("common:common.yesterday") || "昨天",
       ),
-    [i18n.language, t]
+    [i18n.language, t],
   );
 
   // 打开书签
   const openBookmark = (url: string) => {
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
 
   // 处理编辑完成
@@ -394,43 +436,59 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   // 删除快照
   const handleDeleteSnapshot = async () => {
     if (!snapshotBookmark) return;
-    if (!confirm(t('bookmark:bookmark.snapshot.deleteConfirm'))) return;
+    const confirmed = await confirm({
+      title: t("bookmark:bookmark.snapshot.deleteConfirm"),
+      description: t("bookmark:bookmark.snapshot.deleteConfirm"),
+      confirmText: t("common:common.delete"),
+      cancelText: t("common:common.cancel"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
 
     try {
       await deleteSnapshot(snapshotBookmark.id);
       refreshBookmarks();
       handleCloseSnapshot();
     } catch (err) {
-      console.error('[MainContent] Failed to delete snapshot:', err);
+      console.error("[MainContent] Failed to delete snapshot:", err);
     }
   };
 
-  // 删除书签 - 打开确认弹窗
-  const handleDelete = (bookmark: LocalBookmark) => {
-    setDeleteTarget(bookmark);
+  // 删除书签 - 命令式确认弹窗
+  const handleDelete = async (bookmark: LocalBookmark) => {
+    const confirmed = await confirm({
+      title: t("bookmark:bookmark.deleteTitle"),
+      description: t("bookmark:bookmark.deleteConfirm", {
+        title: bookmark.title,
+      }),
+      confirmText: t("common:common.delete"),
+      cancelText: t("common:common.cancel"),
+      variant: "destructive",
+    });
+    if (confirmed) {
+      await deleteBookmark(bookmark.id);
+      removeFromSelection(bookmark.id);
+    }
   };
 
-  // 确认删除单个书签
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    await deleteBookmark(deleteTarget.id);
-    removeFromSelection(deleteTarget.id);
-    setDeleteTarget(null);
-  };
-
-  // 批量删除 - 打开确认弹窗
-  const handleBatchDelete = () => {
+  // 批量删除 - 命令式确认弹窗
+  const handleBatchDelete = async () => {
     if (selectedIds.size === 0) return;
-    setShowBatchDeleteDialog(true);
-  };
-
-  // 确认批量删除
-  const confirmBatchDelete = async () => {
-    for (const id of selectedIds) {
-      await deleteBookmark(id);
+    const confirmed = await confirm({
+      title: t("bookmark:bookmark.batch.deleteTitle"),
+      description: t("bookmark:bookmark.batch.deleteConfirm", {
+        count: selectedIds.size,
+      }),
+      confirmText: t("common:common.delete"),
+      cancelText: t("common:common.cancel"),
+      variant: "destructive",
+    });
+    if (confirmed) {
+      for (const id of selectedIds) {
+        await deleteBookmark(id);
+      }
+      deselectAll();
     }
-    deselectAll();
-    setShowBatchDeleteDialog(false);
   };
 
   // 批量打标签
@@ -440,14 +498,14 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       await bookmarkStorage.batchAddTags(Array.from(selectedIds), tags);
       await refreshBookmarks();
       // 瀑布流视图需要重排
-      if (viewMode === 'grid' && masonryRef.current) {
+      if (viewMode === "grid" && masonryRef.current) {
         // 延迟一下确保 DOM 更新完成
         setTimeout(() => {
           masonryRef.current?.relayout();
         }, 100);
       }
     } catch (error) {
-      console.error('[MainContent] Failed to batch add tags:', error);
+      console.error("[MainContent] Failed to batch add tags:", error);
       throw error;
     }
   };
@@ -456,17 +514,20 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   const handleBatchMoveCategory = async (categoryId: string | null) => {
     if (selectedIds.size === 0) return;
     try {
-      await bookmarkStorage.batchChangeCategory(Array.from(selectedIds), categoryId);
+      await bookmarkStorage.batchChangeCategory(
+        Array.from(selectedIds),
+        categoryId,
+      );
       await refreshBookmarks();
       // 瀑布流视图需要重排
-      if (viewMode === 'grid' && masonryRef.current) {
+      if (viewMode === "grid" && masonryRef.current) {
         // 延迟一下确保 DOM 更新完成
         setTimeout(() => {
           masonryRef.current?.relayout();
         }, 100);
       }
     } catch (error) {
-      console.error('[MainContent] Failed to batch move category:', error);
+      console.error("[MainContent] Failed to batch move category:", error);
       throw error;
     }
   };
@@ -490,16 +551,16 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant={selectedTags.length > 0 ? 'secondary' : 'outline'}
+                  variant={selectedTags.length > 0 ? "secondary" : "outline"}
                   size="sm"
-                  className={cn(
-                    'gap-2',
-                  )}
+                  className={cn("gap-2")}
                 >
                   <Tag className="h-4 w-4" />
                   {selectedTags.length > 0
-                    ? t('bookmark:bookmark.filter.selectedTags', { count: selectedTags.length })
-                    : t('bookmark:bookmark.filter.tags')}
+                    ? t("bookmark:bookmark.filter.selectedTags", {
+                        count: selectedTags.length,
+                      })
+                    : t("bookmark:bookmark.filter.tags")}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </PopoverTrigger>
@@ -507,7 +568,9 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                 <ScrollArea className="h-64">
                   <div className="space-y-1">
                     {allTags.length === 0 ? (
-                      <p className="text-sm text-muted-foreground p-2">{t('bookmark:tags.empty')}</p>
+                      <p className="text-sm text-muted-foreground p-2">
+                        {t("bookmark:tags.empty")}
+                      </p>
                     ) : (
                       allTags.map((tag) => (
                         <div
@@ -530,7 +593,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                       className="w-full"
                       onClick={clearTagFilters}
                     >
-                      {t('bookmark:bookmark.filter.clearFilter')}
+                      {t("bookmark:bookmark.filter.clearFilter")}
                     </Button>
                   </div>
                 )}
@@ -558,10 +621,10 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-9 w-9 border border-border',
-                  hasTimeOrCustomFilter && 'text-primary bg-primary/10'
+                  "h-9 w-9 border border-border",
+                  hasTimeOrCustomFilter && "text-primary bg-primary/10",
                 )}
-                title={t('bookmark:contentPanel.filter')}
+                title={t("bookmark:contentPanel.filter")}
               >
                 <Filter className="h-4 w-4" />
               </Button>
@@ -570,20 +633,20 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
             {/* 视图切换 */}
             <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
               <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setViewMode('grid')}
-                title={t('bookmark:bookmark.view.grid')}
+                onClick={() => setViewMode("grid")}
+                title={t("bookmark:bookmark.view.grid")}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setViewMode('list')}
-                title={t('bookmark:bookmark.view.list')}
+                onClick={() => setViewMode("list")}
+                title={t("bookmark:bookmark.view.list")}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -592,7 +655,9 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
         </div>
 
         {/* 筛选状态和批量操作 */}
-        {(hasFilters || selectedIds.size > 0 || (isAIChatOpen && aiResults.length > 0)) && (
+        {(hasFilters ||
+          selectedIds.size > 0 ||
+          (isAIChatOpen && aiResults.length > 0)) && (
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
             {/* 左侧：当前分类和筛选标签 */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -603,10 +668,10 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   className="text-xs px-2 py-1 gap-1.5 cursor-pointer bg-linear-to-r from-blue-500/90 to-cyan-500/90 dark:from-blue-600/80 dark:to-cyan-600/80 text-white border-0 shadow-sm group/ai"
                 >
                   <Sparkles className="h-3 w-3" />
-                  {t('ai:search.aiFiltered', { count: aiResults.length })}
+                  {t("ai:search.aiFiltered", { count: aiResults.length })}
                   <X
                     className="h-3 w-3 hover:bg-white/20 rounded-full cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: "auto" }}
                     onClick={(e) => {
                       e.stopPropagation();
                       closeAIChat();
@@ -615,25 +680,26 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   />
                 </Badge>
               )}
-              {selectedCategory !== 'all' && (
+              {selectedCategory !== "all" && (
                 <Badge
                   variant="secondary"
                   className="text-xs px-2 py-1 gap-1.5 cursor-pointer group/cat border"
                 >
-                  {selectedCategory === 'uncategorized' ? (
+                  {selectedCategory === "uncategorized" ? (
                     <FolderX className="h-3 w-3" />
                   ) : (
                     <Folder className="h-3 w-3" />
                   )}
-                  {selectedCategory === 'uncategorized'
-                    ? t('bookmark:bookmark.uncategorized')
-                    : categories.find((c) => c.id === selectedCategory)?.name || selectedCategory}
+                  {selectedCategory === "uncategorized"
+                    ? t("bookmark:bookmark.uncategorized")
+                    : categories.find((c) => c.id === selectedCategory)?.name ||
+                      selectedCategory}
                   <X
                     className="h-3 w-3 opacity-0 group-hover/cat:opacity-100 transition-opacity hover:text-foreground cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: "auto" }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedCategory('all');
+                      setSelectedCategory("all");
                     }}
                   />
                 </Badge>
@@ -647,7 +713,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   {tag}
                   <X
                     className="h-3 w-3 hover:bg-white/20 rounded-full cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: "auto" }}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleTagSelection(tag);
@@ -663,11 +729,11 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   className="text-muted-foreground hover:text-foreground h-6 px-2"
                 >
                   <X className="h-3 w-3 mr-1" />
-                  {t('bookmark:bookmark.filter.clearFilter')}
+                  {t("bookmark:bookmark.filter.clearFilter")}
                 </Button>
               )}
               <span className="text-sm text-muted-foreground">
-                {filteredBookmarks.length} {t('bookmark:bookmark.title')}
+                {filteredBookmarks.length} {t("bookmark:bookmark.title")}
               </span>
             </div>
 
@@ -676,18 +742,22 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleSelectAll(filteredBookmarks.map((b) => b.id))}
+                  onClick={() =>
+                    toggleSelectAll(filteredBookmarks.map((b) => b.id))
+                  }
                   className="text-muted-foreground"
                 >
                   {selectedIds.size === filteredBookmarks.length
-                    ? t('bookmark:bookmark.batch.deselectAll')
-                    : t('bookmark:bookmark.batch.selectAll')}
+                    ? t("bookmark:bookmark.batch.deselectAll")
+                    : t("bookmark:bookmark.batch.selectAll")}
                 </Button>
               )}
               {selectedIds.size > 0 && (
                 <>
                   <span className="text-sm text-muted-foreground">
-                    {t('bookmark:bookmark.batch.selected', { count: selectedIds.size })}
+                    {t("bookmark:bookmark.batch.selected", {
+                      count: selectedIds.size,
+                    })}
                   </span>
                   <Button
                     variant="secondary"
@@ -695,7 +765,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     onClick={() => setShowBatchTagDialog(true)}
                   >
                     <Tag className="h-4 w-4 mr-1" />
-                    {t('bookmark:bookmark.batch.addTags')}
+                    {t("bookmark:bookmark.batch.addTags")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -704,7 +774,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     disabled={isBatchAIProcessing}
                   >
                     <FolderOpen className="h-4 w-4 mr-1" />
-                    {t('bookmark:bookmark.batch.moveCategory')}
+                    {t("bookmark:bookmark.batch.moveCategory")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -717,7 +787,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     ) : (
                       <Sparkles className="h-4 w-4 mr-1" />
                     )}
-                    {t('ai:batchOrganize')}
+                    {t("ai:batchOrganize")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -726,7 +796,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     className="bg-red-500 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-700 dark:text-white"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
-                    {t('bookmark:bookmark.batch.delete')}
+                    {t("bookmark:bookmark.batch.delete")}
                   </Button>
                 </>
               )}
@@ -740,13 +810,33 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
             <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
             <div className="flex-1 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="font-medium">{t('ai:batchOrganizeProgress')}</span>
-                <span className="text-muted-foreground">{Math.round((batchAIProgress.processed / (batchAIProgress.total || 1)) * 100)}% ({batchAIProgress.processed}/{batchAIProgress.total})</span>
+                <span className="font-medium">
+                  {t("ai:batchOrganizeProgress")}
+                </span>
+                <span className="text-muted-foreground">
+                  {Math.round(
+                    (batchAIProgress.processed / (batchAIProgress.total || 1)) *
+                      100,
+                  )}
+                  % ({batchAIProgress.processed}/{batchAIProgress.total})
+                </span>
               </div>
-              <Progress value={(batchAIProgress.processed / (batchAIProgress.total || 1)) * 100} className="h-2" />
+              <Progress
+                value={
+                  (batchAIProgress.processed / (batchAIProgress.total || 1)) *
+                  100
+                }
+                className="h-2"
+              />
               <div className="text-xs text-muted-foreground flex gap-3">
-                <span className="text-green-500">{t('common:common.success')}: {batchAIProgress.success}</span>
-                {batchAIProgress.failed > 0 && <span className="text-destructive">{t('common:common.failed')}: {batchAIProgress.failed}</span>}
+                <span className="text-green-500">
+                  {t("common:common.success")}: {batchAIProgress.success}
+                </span>
+                {batchAIProgress.failed > 0 && (
+                  <span className="text-destructive">
+                    {t("common:common.failed")}: {batchAIProgress.failed}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -755,24 +845,67 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
 
       {/* 书签列表 */}
       <div
-        ref={viewMode === 'grid' ? masonryContainerRef : virtualListParentRef}
+        ref={viewMode === "grid" ? masonryContainerRef : virtualListParentRef}
         className={cn(
-          'flex-1 overflow-auto',
-          viewMode === 'grid' ? 'p-6' : 'p-6'
+          "flex-1 overflow-auto",
+          viewMode === "grid" ? "p-6" : "p-6",
         )}
       >
         {filteredBookmarks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <p className="text-lg">
-              {hasFilters ? t('bookmark:bookmark.emptyFilter') : t('bookmark:bookmark.empty')}
-            </p>
-            {hasFilters && (
-              <Button variant="link" onClick={clearFilters} className="mt-2">
-                {t('bookmark:bookmark.filter.clearFilter')}
-              </Button>
-            )}
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+            <div className="flex flex-col items-center max-w-md text-center space-y-4">
+              <FolderOpen className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <p className="text-lg font-medium text-foreground">
+                {hasFilters
+                  ? t("bookmark:bookmark.emptyFilter")
+                  : t("bookmark:bookmark.empty")}
+              </p>
+
+              {!hasFilters && bookmarks.length === 0 ? (
+                <>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {t("bookmark:bookmark.emptyGuide", {
+                      defaultValue:
+                        "您还没有任何书签。您可以从浏览器或其他文件导入书签，或者通过 WebDAV 同步已有的数据。",
+                    })}
+                  </p>
+                  <div className="flex items-center justify-center gap-3 mt-6 pt-4">
+                    <Button
+                      variant="default"
+                      onClick={() => onViewChange?.("import-export")}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      {t("settings:settings.importExport.title", {
+                        defaultValue: "导入书签",
+                      })}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => onViewChange?.("settings?tab=storage")}
+                      className="gap-2"
+                    >
+                      <Cloud className="h-4 w-4" />
+                      {t("settings:settings.sync.title", {
+                        defaultValue: "WebDAV 同步",
+                      })}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                hasFilters && (
+                  <Button
+                    variant="link"
+                    onClick={clearFilters}
+                    className="mt-2"
+                  >
+                    {t("bookmark:bookmark.filter.clearFilter")}
+                  </Button>
+                )
+              )}
+            </div>
           </div>
-        ) : viewMode === 'grid' ? (
+        ) : viewMode === "grid" ? (
           <Masonry
             ref={masonryRef}
             brickId="id"
@@ -781,35 +914,37 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
             columnSize={masonryConfig.columnSize}
             columnNum={masonryConfig.cols}
             scrollElement={() => {
-              return document.querySelector('#main-content>div');
+              return document.querySelector("#main-content>div");
             }}
             render={(bookmark) => {
               const bm = bookmark as LocalBookmark;
               return (
-              <div
-                key={bm.id}
-                ref={(el) => {
-                  if (el) bookmarkRefsForGrid.current.set(bm.id, el);
-                }}
-              >
-                <BookmarkCard
-                  bookmark={bm}
-                  categoryName={getBookmarkCategoryPath(bm.categoryId)}
-                  formattedDate={formatBookmarkDate(bm.createdAt)}
-                  isSelected={selectedIds.has(bm.id)}
-                  isHighlighted={highlightedBookmarkId === bm.id}
-                  onToggleSelect={() => toggleSelect(bm.id)}
-                  onOpen={() => openBookmark(bm.url)}
-                  onEdit={() => setEditingBookmark(bm)}
-                  onDelete={() => handleDelete(bm)}
-                  onViewSnapshot={bm.hasSnapshot ? () => handleViewSnapshot(bm) : undefined}
-                  onReanalyzeAI={() => startBatchAITask([bm.id])}
-                  isProcessingAI={isBatchAIProcessing}
-                  columnSize={masonryConfig.columnSize}
-                  t={t}
-                />
-              </div>
-            );
+                <div
+                  key={bm.id}
+                  ref={(el) => {
+                    if (el) bookmarkRefsForGrid.current.set(bm.id, el);
+                  }}
+                >
+                  <BookmarkCard
+                    bookmark={bm}
+                    categoryName={getBookmarkCategoryPath(bm.categoryId)}
+                    formattedDate={formatBookmarkDate(bm.createdAt)}
+                    isSelected={selectedIds.has(bm.id)}
+                    isHighlighted={highlightedBookmarkId === bm.id}
+                    onToggleSelect={() => toggleSelect(bm.id)}
+                    onOpen={() => openBookmark(bm.url)}
+                    onEdit={() => setEditingBookmark(bm)}
+                    onDelete={() => handleDelete(bm)}
+                    onViewSnapshot={
+                      bm.hasSnapshot ? () => handleViewSnapshot(bm) : undefined
+                    }
+                    onReanalyzeAI={() => startBatchAITask([bm.id])}
+                    isProcessingAI={isBatchAIProcessing}
+                    columnSize={masonryConfig.columnSize}
+                    t={t}
+                  />
+                </div>
+              );
             }}
           />
         ) : (
@@ -843,7 +978,11 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     onOpen={() => openBookmark(bookmark.url)}
                     onEdit={() => setEditingBookmark(bookmark)}
                     onDelete={() => handleDelete(bookmark)}
-                    onViewSnapshot={bookmark.hasSnapshot ? () => handleViewSnapshot(bookmark) : undefined}
+                    onViewSnapshot={
+                      bookmark.hasSnapshot
+                        ? () => handleViewSnapshot(bookmark)
+                        : undefined
+                    }
                     onReanalyzeAI={() => startBatchAITask([bookmark.id])}
                     isProcessingAI={isBatchAIProcessing}
                     t={t}
@@ -864,48 +1003,6 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
         />
       )}
 
-      {/* 单个删除确认弹窗 */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('bookmark:bookmark.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('bookmark:bookmark.deleteConfirm', { title: deleteTarget?.title })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('common:common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 批量删除确认弹窗 */}
-      <AlertDialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('bookmark:bookmark.batch.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('bookmark:bookmark.batch.deleteConfirm', { count: selectedIds.size })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBatchDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('common:common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* 自定义筛选器弹窗 */}
       <CustomFilterDialog
         open={customFilterDialogOpen}
@@ -917,7 +1014,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       <SnapshotViewer
         open={!!snapshotBookmark}
         snapshotUrl={snapshotUrl}
-        title={snapshotBookmark?.title || ''}
+        title={snapshotBookmark?.title || ""}
         loading={snapshotLoading}
         error={snapshotError}
         onClose={handleCloseSnapshot}
