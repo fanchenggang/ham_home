@@ -32,12 +32,12 @@ HamHome is an AI-powered bookmark manager for modern browsers. It uses AI to aut
 
 ## Screenshots
 
-| **Side Panel** | **Save Panel** |
-|:---:|:---:|
-| ![Side Panel](docs/screenshot/compressed/en/side-panel.png) | ![Save Panel](docs/screenshot/compressed/en/save-panel.png) |
-| **Semantic Search** | **Preset Categories** |
-| ![Semantic Search](https://i.imgur.com/8HHRTb9.png) | ![Preset Categories](https://i.imgur.com/0Qku5cx.png) |
-| **Management Page** | **Settings Page** |
+|                         **Side Panel**                         |                          **Save Panel**                          |
+| :------------------------------------------------------------: | :--------------------------------------------------------------: |
+|  ![Side Panel](docs/screenshot/compressed/en/side-panel.png)   |   ![Save Panel](docs/screenshot/compressed/en/save-panel.png)    |
+|                      **Semantic Search**                       |                      **Preset Categories**                       |
+|      ![Semantic Search](https://i.imgur.com/8HHRTb9.png)       |      ![Preset Categories](https://i.imgur.com/0Qku5cx.png)       |
+|                      **Management Page**                       |                        **Settings Page**                         |
 | ![Management Page](docs/screenshot/compressed/en/mng-page.png) | ![Settings Page](docs/screenshot/compressed/en/setting-page.png) |
 
 ## Features
@@ -47,32 +47,41 @@ HamHome is an AI-powered bookmark manager for modern browsers. It uses AI to aut
 - Auto-categorization based on page content
 - Smart tag suggestions with configurable presets
 - AI-generated summaries for quick reference
-- BYOK (Bring Your Own Key) support for OpenAI, Anthropic, Ollama, and custom endpoints
+- BYOK (Bring Your Own Key) support for OpenAI, Anthropic, Claude, Ollama, and custom endpoints
+
+### 🔄 Multi-Device Sync (WebDAV)
+
+- Support synchronization via WebDAV (e.g., Nextcloud, InfiniCLOUD, etc.)
+- End-to-end encrypted or plain data sync options
+- Real-time sync status widget in the header
+- Granular control over remote data (clear remote data anytime)
 
 ### 🗂️ Category Management
 
+- **Icon Support**: Add emoji icons to your categories for better visual identification.
 - **Preset Schemes**: Two built-in category templates—"General" and "Professional Creator"—with one-click import
 - **AI-Generated Categories**: Describe your use case and let AI create a tailored category structure
 - Unlimited hierarchical category tree
 
 ### 📸 Page Snapshots
 
-- Save complete HTML snapshots locally
+- Save complete HTML snapshots locally (IndexedDB)
 - Access content even when the original page goes offline
 - Powered by [Mozilla Readability](https://github.com/mozilla/readability) for clean extraction
 
 ### 🔍 Powerful Search & Filtering
 
 - Full-text search across titles, descriptions, and content
-- Semantic search
+- Semantic search (vector-based)
 - Filter by category, tags, and time range
 - Create custom filter presets for complex queries
 
-### 🎯 Privacy-First Design
+### 🎯 Privacy-First Design & Storage
 
-- All data stored locally in Chrome Storage + IndexedDB
-- Configure privacy domains to exclude sensitive sites from AI analysis
-- Export/import your data anytime (JSON format)
+- **Local-First**: All data stored locally in Chrome Storage + IndexedDB
+- **Granular Storage Management**: View and manage space used by bookmarks, snapshots, and vector data separately.
+- **Selective Deletion**: Delete specific data types (e.g., only snapshots) while keeping your categories and configurations.
+- **Privacy Domains**: Configure domains to exclude sensitive sites from AI analysis
 
 ### 🖥️ Modern UI
 
@@ -83,8 +92,8 @@ HamHome is an AI-powered bookmark manager for modern browsers. It uses AI to aut
 
 ## Browser Support
 
-| Browser           | Status            |
-| ----------------- | ----------------- |
+| Browser           | Status           |
+| ----------------- | ---------------- |
 | Chrome / Chromium | ✅ Manifest V3    |
 | Microsoft Edge    | ✅ Manifest V3    |
 | Firefox           | ✅ Manifest V2/V3 |
