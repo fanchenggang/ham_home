@@ -8,7 +8,7 @@ import { configStorage } from "@/lib/storage";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import {
   safeOpenPopup,
-  safeBroadcastToTabs,
+  safeSendMessageToActiveTab,
   safeCreateTab,
   getExtensionURL,
 } from "@/utils/browser-api";
@@ -137,8 +137,8 @@ export default defineBackground(() => {
       // 打开 Popup（兼容不同浏览器）
       await safeOpenPopup();
     } else if (command === "toggle-bookmark-panel") {
-      // 切换书签面板 - 广播消息给所有 content script（兼容 Firefox）
-      await safeBroadcastToTabs({ type: "TOGGLE_BOOKMARK_PANEL" });
+      // 仅切换当前活动 tab 的书签面板
+      await safeSendMessageToActiveTab({ type: "TOGGLE_BOOKMARK_PANEL" });
     }
   });
 

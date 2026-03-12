@@ -23,10 +23,10 @@ export function EdgeTrigger({ position, visible, onClick }: EdgeTriggerProps) {
         'transition-all duration-300 ease-out',
         position === 'left' ? 'left-0' : 'right-0',
         visible
-          ? 'opacity-100 translate-x-0'
+          ? 'pointer-events-auto opacity-100 translate-x-0'
           : position === 'left'
-            ? 'opacity-0 -translate-x-full'
-            : 'opacity-0 translate-x-full'
+            ? 'pointer-events-none opacity-0 -translate-x-full'
+            : 'pointer-events-none opacity-0 translate-x-full'
       )}
     >
       <button

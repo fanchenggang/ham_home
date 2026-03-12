@@ -39,6 +39,18 @@ export function useEdgeTrigger({
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearTimers = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+  }, []);
+
   // 检测鼠标是否在边缘区域
   const checkEdgeProximity = useCallback(
     (mouseX: number) => {
@@ -56,7 +68,13 @@ export function useEdgeTrigger({
 
   // 鼠标移动处理
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      clearTimers();
+      setIsNearEdge(false);
+      setIsTriggerVisible(false);
+      setIsPanelOpen(false);
+      return;
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       const nearEdge = checkEdgeProximity(e.clientX);
@@ -96,16 +114,16 @@ export function useEdgeTrigger({
     document.addEventListener('mousemove', handleMouseMove);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+      clearTimers();
     };
-  }, [enabled, checkEdgeProximity, isPanelOpen, isTriggerVisible, hoverDelay]);
+  }, [enabled, checkEdgeProximity, isPanelOpen, isTriggerVisible, hoverDelay, clearTimers]);
 
   // 打开面板
   const openPanel = useCallback(() => {
+    if (!enabled) return;
     setIsPanelOpen(true);
     setIsTriggerVisible(false);
-  }, []);
+  }, [enabled]);
 
   // 关闭面板
   const closePanel = useCallback(() => {
@@ -114,13 +132,14 @@ export function useEdgeTrigger({
 
   // 切换面板
   const togglePanel = useCallback(() => {
+    if (!enabled) return;
     setIsPanelOpen((prev) => {
       if (!prev) {
         setIsTriggerVisible(false);
       }
       return !prev;
     });
-  }, []);
+  }, [enabled]);
 
   return {
     isNearEdge,

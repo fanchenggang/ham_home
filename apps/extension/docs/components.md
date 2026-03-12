@@ -18,6 +18,13 @@
 | onOpenBookmark | `(url: string) => void` | -        | -       | 打开书签回调           |
 | onOpenSettings | `() => void`            | -        | -       | 打开设置回调           |
 
+**行为说明：**
+
+- 面板始终按当前视口左右边缘定位，不依赖挂载容器宽度
+- 监听 `settings.panelPosition` 变化，内容页无需刷新即可在左/右侧间切换
+- 面板关闭时禁用 pointer events，避免隐藏态遮挡页面交互
+- 当前页面不可见或失去活跃状态时，content UI 不响应打开指令并自动收起面板
+
 ---
 
 ### BookmarkHeader
@@ -1232,6 +1239,16 @@ import { safeSendMessageToTab } from "@/utils/browser-api";
 const content = await safeSendMessageToTab<PageContent>(tabId, {
   type: "EXTRACT_CONTENT",
 });
+```
+
+#### safeSendMessageToActiveTab
+
+安全地向当前活动 tab 的 content script 发送消息。
+
+```ts
+import { safeSendMessageToActiveTab } from "@/utils/browser-api";
+
+await safeSendMessageToActiveTab({ type: "TOGGLE_BOOKMARK_PANEL" });
 ```
 
 #### safeBroadcastToTabs

@@ -11,9 +11,14 @@ import { useContentUI } from '@/utils/ContentUIContext';
 import { getBackgroundService } from '@/lib/services';
 import type { LocalBookmark, LocalCategory, PanelPosition, ThemeMode } from '@/types';
 import { bookmarkStorage } from '@/lib/storage/bookmark-storage';
+import { configStorage } from '@/lib/storage/config-storage';
 
 // 默认面板位置
 const DEFAULT_PANEL_POSITION: PanelPosition = 'left';
+
+function getIsPageInteractive(): boolean {
+  return document.visibilityState === 'visible' && document.hasFocus();
+}
 
 /**
  * 应用主题到指定元素
@@ -43,6 +48,7 @@ export function App() {
   const [categories, setCategories] = useState<LocalCategory[]>([]);
   const [panelPosition, setPanelPosition] = useState<PanelPosition>(DEFAULT_PANEL_POSITION);
   const [theme, setTheme] = useState<ThemeMode>('system');
+  const [isPageInteractive, setIsPageInteractive] = useState<boolean>(getIsPageInteractive);
   const [loading, setLoading] = useState(true);
 
   // 边缘触发 hook
@@ -57,7 +63,7 @@ export function App() {
     position: panelPosition,
     triggerZoneWidth: 15,
     hoverDelay: 150,
-    enabled: true,
+    enabled: isPageInteractive,
   });
 
   // 从 background 获取数据（使用 proxy-service）
@@ -116,38 +122,61 @@ export function App() {
 
   // 监听 storage 变化（使用 WXT Storage watch）
   useEffect(() => {
-    
     const unwatch = bookmarkStorage.watchBookmarks(() => {
       fetchData();
     });
     return unwatch;
   }, [fetchData]);
 
-  // 监听快捷键
+  // 监听设置变化，实时同步主题和侧边栏位置
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+L 或 Cmd+Shift+L
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
-        e.preventDefault();
-        togglePanel();
+    const unwatch = configStorage.watchSettings((settings) => {
+      if (settings.panelPosition) {
+        setPanelPosition(settings.panelPosition);
       }
+
+      if (settings.theme) {
+        setTheme(settings.theme);
+      }
+    });
+
+    return unwatch;
+  }, []);
+
+  // 仅在页面可见且处于活跃状态时响应 content UI 交互
+  useEffect(() => {
+    const updatePageInteractiveState = () => {
+      setIsPageInteractive(getIsPageInteractive());
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [togglePanel]);
+    document.addEventListener('visibilitychange', updatePageInteractiveState);
+    window.addEventListener('focus', updatePageInteractiveState);
+    window.addEventListener('blur', updatePageInteractiveState);
+
+    return () => {
+      document.removeEventListener('visibilitychange', updatePageInteractiveState);
+      window.removeEventListener('focus', updatePageInteractiveState);
+      window.removeEventListener('blur', updatePageInteractiveState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPageInteractive) {
+      closePanel();
+    }
+  }, [isPageInteractive, closePanel]);
 
   // 监听来自 background 的消息（如快捷键触发）
   useEffect(() => {
     const handleMessage = (message: { type: string }) => {
-      if (message.type === 'TOGGLE_BOOKMARK_PANEL') {
+      if (message.type === 'TOGGLE_BOOKMARK_PANEL' && isPageInteractive) {
         togglePanel();
       }
     };
 
     browser.runtime.onMessage.addListener(handleMessage);
     return () => browser.runtime.onMessage.removeListener(handleMessage);
-  }, [togglePanel]);
+  }, [isPageInteractive, togglePanel]);
 
   // 打开书签
   const handleOpenBookmark = useCallback((url: string) => {
@@ -162,7 +191,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="hamhome-content-root antialiased">
+    <div className="hamhome-content-root relative h-full w-full antialiased">
       {/* 边缘触发器 */}
       <EdgeTrigger
         position={position}

@@ -179,6 +179,33 @@ export async function safeSendMessageToTab<T = unknown>(
 }
 
 /**
+ * 安全地向当前活动 tab 的 content script 发送消息
+ *
+ * @param message 消息内容
+ * @returns 响应或 null（发送失败或无活动 tab 时）
+ */
+export async function safeSendMessageToActiveTab<T = unknown>(
+  message: unknown,
+): Promise<T | null> {
+  try {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    const activeTab = tabs.find((tab) => tab.id !== undefined);
+    if (!activeTab?.id) {
+      return null;
+    }
+
+    return await safeSendMessageToTab<T>(activeTab.id, message);
+  } catch (error) {
+    console.error("[BrowserAPI] sendMessageToActiveTab failed:", error);
+    return null;
+  }
+}
+
+/**
  * 安全地向所有 tab 广播消息
  * 用于 background -> content script 的广播场景
  *

@@ -241,7 +241,7 @@ export function BookmarkPanel({
         className={cn(
           'absolute inset-0 z-1 bg-black/20 backdrop-blur-[2px] w-screen',
           'transition-opacity duration-300',
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={handleOverlayClick}
       />
@@ -255,15 +255,15 @@ export function BookmarkPanel({
           'bg-background border-border shadow-2xl',
           'flex flex-col overflow-hidden',
           'transition-transform duration-300 ease-out',
-          "rounded-lg",
+          'pointer-events-auto rounded-lg',
           position === 'left'
             ? 'left-1 border-r'
             : 'right-1 border-l',
           isOpen
             ? 'translate-x-0'
             : position === 'left'
-              ? '-translate-x-full -left-2'
-              : 'translate-x-full -right-2'
+              ? 'pointer-events-none -translate-x-full -left-2'
+              : 'pointer-events-none translate-x-full -right-2'
         )}
       >
         {/* 头部 */}
