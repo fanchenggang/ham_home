@@ -19,6 +19,8 @@
    - ⚡ 优化（Performance）
 
 5. 生成专业级 Release Notes（中英双语）
+   - 每一条内容必须使用“中文一行 + 英文一行”的顺序输出
+   - 中英文内容需要逐条对应，不能分成独立的中英文两个大段
 6. 自动读取 `apps/extension/wxt.config.ts` 的 version 作为新版本号
    - 如果版本号与上一个版本号一致，则修改文件中的 version 自动更新版本号
      - 版本号更新规则：最后一个数字加 1
@@ -49,10 +51,12 @@
 ## 输出格式
 
 1. 先展示生成的 Release Notes（markdown）
+   - 所有条目必须按“中文一行、英文一行”交替排列
 2. 再展示即将执行的 shell 命令
 3. 最后询问用户确认（yes/no），确认后执行
 
 ## 约束
 - 所有命令必须可直接在 mac/linux shell 执行
 - 生成的 Release Notes 必须结构清晰、可复制
+- Release Notes 中中英文必须逐条一一对应，按相邻两行展示
 - 不允许伪造功能，必须基于真实 commit
