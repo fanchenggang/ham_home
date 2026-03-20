@@ -75,7 +75,7 @@ export default function HomePage() {
         {/* GitHub Star 引导 */}
         <section className="mt-12">
           <div className="mx-auto max-w-3xl rounded-2xl border bg-card/60 p-6 text-center shadow-sm sm:p-8">
-            <h3 className="text-2xl font-bold tracking-tight">{texts.starTitle}</h3>
+            <h2 className="text-2xl font-bold tracking-tight">{texts.starTitle}</h2>
             <p className="mt-3 text-muted-foreground">{texts.starDesc}</p>
             <Button asChild size="lg" className="mt-6 gap-2">
               <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
