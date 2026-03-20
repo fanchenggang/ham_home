@@ -15,8 +15,8 @@ const DOWNLOAD_CHANNELS: DownloadChannel[] = [
   {
     id: 'chrome',
     label: { en: 'Chrome Web Store', zh: 'Chrome 商店' },
-    url: null,
-    published: false,
+    url: 'https://chromewebstore.google.com/detail/hamhome-%E6%99%BA%E8%83%BD%E4%B9%A6%E7%AD%BE%E5%8A%A9%E6%89%8B/mkdokbchcfegdkgoiikagecikldbkbmg',
+    published: true,
   },
   {
     id: 'edge',

@@ -42,9 +42,9 @@ export function FeatureHeroBanner({ isEn, isDark }: FeatureHeroBannerProps) {
               />
               <p className="text-5xl font-black tracking-tight text-[#ff5b24]">{texts.brand}</p>
             </div>
-            <h2 className="mt-4 text-3xl font-bold leading-tight text-foreground sm:text-5xl">
+            <h1 className="mt-4 text-3xl font-bold leading-tight text-foreground sm:text-5xl">
               {texts.title}
-            </h2>
+            </h1>
             <p className="mt-5 text-lg text-muted-foreground sm:text-2xl">{texts.desc}</p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">

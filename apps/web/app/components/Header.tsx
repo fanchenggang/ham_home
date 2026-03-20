@@ -114,7 +114,7 @@ export function Header({ isDark, isEn, onToggleTheme, onToggleLanguage }: Header
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 mx-auto">
         {/* Logo + 品牌 */}
         <div className="flex items-center gap-3">
@@ -126,10 +126,10 @@ export function Header({ isDark, isEn, onToggleTheme, onToggleLanguage }: Header
             className="rounded-lg"
           />
           <div>
-            <h1 className="text-xl font-bold">HamHome</h1>
-            <p className="text-xs text-muted-foreground">
+            <span className="text-xl font-bold block">HamHome</span>
+            <span className="text-xs text-muted-foreground block">
               {isEn ? 'Smart Bookmark Assistant' : '智能书签助手'}
-            </p>
+            </span>
           </div>
         </div>
 
