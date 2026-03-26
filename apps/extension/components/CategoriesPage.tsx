@@ -56,6 +56,9 @@ import {
   Textarea,
   Checkbox,
   ScrollArea,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
   cn,
 } from "@hamhome/ui";
 import { useBookmarks } from "@/contexts/BookmarkContext";
@@ -71,6 +74,87 @@ import type {
   AIGeneratedCategory,
   HierarchicalCategory,
 } from "@/types";
+
+// prettier-ignore
+const PRESET_EMOJIS = [
+  "📁", "📚", "🎨", "💻", "💼", "📝", 
+  "🛠️", "🎮", "🎵", "📷", "💡", "🌟", 
+  "🔥", "✨", "🚀", "🎯", "📌", "✅",
+  "❤️", "😄", "🤔", "📅", "💰", "🏠",
+  "🤖", "🧠", "🌐", "🛒", "🛍️", "🔖",
+  "📦", "🔔", "⭐", "🏆", "✏️", "📊",
+  "🍔", "☕", "🍺", "🌍", "✈️", "🚗",
+  "🌈", "🌞", "🌙", "☁️", "⚡", "❄️"
+];
+
+function IconPicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full px-0 h-9">
+          {value ? (
+            <span className="text-xl">{value}</span>
+          ) : (
+            <span className="text-muted-foreground text-sm font-normal">
+              留空
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[280px] p-3" align="start">
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder || "自定义..."}
+              className="text-center text-lg h-9 flex-1"
+              maxLength={2}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              title="清空"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <ScrollArea className="h-[200px] w-full border-t pt-3">
+            <div className="grid grid-cols-6 gap-1 pr-3">
+              {PRESET_EMOJIS.map((emoji) => (
+                <Button
+                  key={emoji}
+                  variant="ghost"
+                  className="h-10 w-10 p-0 text-xl"
+                  onClick={() => {
+                    onChange(emoji);
+                    setOpen(false);
+                  }}
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // 带子分类的分类节点
 interface CategoryTreeNode {
@@ -462,13 +546,10 @@ export function CategoriesPage() {
                 <Label htmlFor="icon">
                   {t("settings:settings.categories.categoryIcon", "图标")}
                 </Label>
-                <Input
-                  id="icon"
+                <IconPicker
                   value={categoryIcon}
-                  onChange={(e) => setCategoryIcon(e.target.value)}
+                  onChange={setCategoryIcon}
                   placeholder="😀"
-                  className="text-center"
-                  maxLength={2}
                 />
               </div>
               <div className="space-y-2 col-span-4">
@@ -512,13 +593,10 @@ export function CategoriesPage() {
                 <Label htmlFor="editIcon">
                   {t("settings:settings.categories.categoryIcon", "图标")}
                 </Label>
-                <Input
-                  id="editIcon"
+                <IconPicker
                   value={categoryIcon}
-                  onChange={(e) => setCategoryIcon(e.target.value)}
+                  onChange={setCategoryIcon}
                   placeholder="😀"
-                  className="text-center"
-                  maxLength={2}
                 />
               </div>
               <div className="space-y-2 col-span-4">
