@@ -97,14 +97,21 @@ export default defineConfig({
       128: "icon/128.png",
     },
 
+    // 接管浏览器新标签页 (仅 Chrome/Edge，Firefox 不支持)
+    ...(browser !== "firefox" && {
+      chrome_url_overrides: {
+        newtab: "app.html",
+      },
+    }),
+
     // Firefox 特定的清单配置扩展选项
     // 如果当前构建目标(browser)是 firefox，则将此对象展开合入 manifest 中
     ...(browser === "firefox" && {
       browser_specific_settings: {
         gecko: {
-          id: "hamhome@example.com",     // 必须提供的 Firefox 扩展唯一 ID 标识
-          strict_min_version: "109.0",   // 指定能够运行该扩展的 Firefox 最低版本要求
-          data_collection_permissions: { // 声明隐私权有关收集权限要求
+          id: "hamhome@example.com",
+          strict_min_version: "109.0",
+          data_collection_permissions: {
             required: ["none"],
           },
         },

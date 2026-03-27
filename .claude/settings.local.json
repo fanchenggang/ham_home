@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(pnpm:*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(ls apps/extension/.output/chrome-mv3/*.html)",
+      "Bash(ls apps/extension/entrypoints/*/index.html)",
+      "Bash(git add:*)"
+    ]
+  }
+}
