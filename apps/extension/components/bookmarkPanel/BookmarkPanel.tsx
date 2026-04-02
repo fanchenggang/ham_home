@@ -2,17 +2,24 @@
  * BookmarkPanel - 书签面板主容器
  * 整合 Header + List，管理面板展开/收起
  */
-import { useEffect, useCallback, useMemo, useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { cn, toast } from '@hamhome/ui';
-import { BookmarkHeader } from './BookmarkHeader';
-import { BookmarkListView } from './BookmarkListView';
-import { AIChatPanel } from '@/components/aiSearch';
-import { useBookmarkSearch } from '@/hooks/useBookmarkSearch';
-import { useConversationalSearch } from '@/hooks/useConversationalSearch';
-import { nanoid } from 'nanoid';
-import { configStorage } from '@/lib/storage/config-storage';
-import type { LocalBookmark, LocalCategory, PanelPosition, FilterCondition, CustomFilter, Suggestion } from '@/types';
+import { useEffect, useCallback, useMemo, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { cn, toast } from "@hamhome/ui";
+import { BookmarkHeader } from "./BookmarkHeader";
+import { BookmarkListView } from "./BookmarkListView";
+import { AIChatPanel } from "@/components/aiSearch";
+import { useBookmarkSearch } from "@/hooks/useBookmarkSearch";
+import { useConversationalSearch } from "@/hooks/useConversationalSearch";
+import { nanoid } from "nanoid";
+import { configStorage } from "@/lib/storage/config-storage";
+import type {
+  LocalBookmark,
+  LocalCategory,
+  PanelPosition,
+  FilterCondition,
+  CustomFilter,
+  Suggestion,
+} from "@/types";
 
 export interface BookmarkPanelProps {
   bookmarks: LocalBookmark[];
@@ -35,11 +42,13 @@ export function BookmarkPanel({
 }: BookmarkPanelProps) {
   // 自定义筛选器管理
   const [customFilters, setCustomFilters] = useState<CustomFilter[]>([]);
-  const [selectedCustomFilterId, setSelectedCustomFilterId] = useState<string | undefined>();
+  const [selectedCustomFilterId, setSelectedCustomFilterId] = useState<
+    string | undefined
+  >();
 
   const bookmarkRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-  const { t } = useTranslation(['bookmark', 'ai']);
+  const { t } = useTranslation(["bookmark", "ai"]);
 
   // AI 对话式搜索
   const {
@@ -66,7 +75,10 @@ export function BookmarkPanel({
         const filters = await configStorage.getCustomFilters();
         setCustomFilters(filters);
       } catch (error) {
-        console.error(t('bookmark:contentPanel.loadCustomFiltersFailed'), error);
+        console.error(
+          t("bookmark:contentPanel.loadCustomFiltersFailed"),
+          error,
+        );
       }
     };
     loadCustomFilters();
@@ -107,15 +119,18 @@ export function BookmarkPanel({
   }, [isAIChatOpen, aiResults, bookmarks, keywordFilteredBookmarks]);
 
   // 处理引用点击 - 滚动到对应书签
-  const handleSourceClick = useCallback((bookmarkId: string) => {
-    setHighlightedBookmarkId(bookmarkId);
-    const element = bookmarkRefs.current.get(bookmarkId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // 3秒后清除高亮
-      setTimeout(() => setHighlightedBookmarkId(null), 3000);
-    }
-  }, [setHighlightedBookmarkId]);
+  const handleSourceClick = useCallback(
+    (bookmarkId: string) => {
+      setHighlightedBookmarkId(bookmarkId);
+      const element = bookmarkRefs.current.get(bookmarkId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 3秒后清除高亮
+        setTimeout(() => setHighlightedBookmarkId(null), 3000);
+      }
+    },
+    [setHighlightedBookmarkId],
+  );
 
   // 提取所有唯一标签
   const allTags = useMemo(() => {
@@ -129,29 +144,35 @@ export function BookmarkPanel({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   // 打开书签
-  const handleOpenBookmark = useCallback((url: string) => {
-    if (onOpenBookmark) {
-      onOpenBookmark(url);
-    } else {
-      window.open(url, '_blank');
-    }
-  }, [onOpenBookmark]);
+  const handleOpenBookmark = useCallback(
+    (url: string) => {
+      if (onOpenBookmark) {
+        onOpenBookmark(url);
+      } else {
+        window.open(url, "_blank");
+      }
+    },
+    [onOpenBookmark],
+  );
 
   // 处理遮罩点击 - 阻止事件冒泡到面板
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onClose();
-  }, [onClose]);
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onClose();
+    },
+    [onClose],
+  );
 
   // 阻止面板内部点击冒泡到遮罩
   const handlePanelClick = useCallback((e: React.MouseEvent) => {
@@ -159,23 +180,26 @@ export function BookmarkPanel({
   }, []);
 
   // 保存自定义筛选器
-  const handleSaveCustomFilter = useCallback(async (name: string, conditions: FilterCondition[]) => {
-    const newFilter: CustomFilter = {
-      id: nanoid(),
-      name,
-      conditions,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    try {
-      await configStorage.addCustomFilter(newFilter);
-      setCustomFilters((prev) => [...prev, newFilter]);
-      // 自动应用新创建的筛选器
-      setSelectedCustomFilterId(newFilter.id);
-    } catch (error) {
-      console.error(t('bookmark:contentPanel.saveCustomFilterFailed'), error);
-    }
-  }, [t]);
+  const handleSaveCustomFilter = useCallback(
+    async (name: string, conditions: FilterCondition[]) => {
+      const newFilter: CustomFilter = {
+        id: nanoid(),
+        name,
+        conditions,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      try {
+        await configStorage.addCustomFilter(newFilter);
+        setCustomFilters((prev) => [...prev, newFilter]);
+        // 自动应用新创建的筛选器
+        setSelectedCustomFilterId(newFilter.id);
+      } catch (error) {
+        console.error(t("bookmark:contentPanel.saveCustomFilterFailed"), error);
+      }
+    },
+    [t],
+  );
 
   // 选择自定义筛选器
   const handleSelectCustomFilter = useCallback((filterId: string | null) => {
@@ -183,65 +207,77 @@ export function BookmarkPanel({
   }, []);
 
   // 处理 AI 建议点击
-  const handleAISuggestionClick = useCallback(async (suggestion: Suggestion) => {
-    const { action, payload, label } = suggestion;
+  const handleAISuggestionClick = useCallback(
+    async (suggestion: Suggestion) => {
+      const { action, payload, label } = suggestion;
 
-    switch (action) {
-      case 'navigate': {
-        if (payload?.view && typeof payload.view === 'string') {
-          onOpenSettings?.(payload.view);
+      switch (action) {
+        case "navigate": {
+          if (payload?.view && typeof payload.view === "string") {
+            onOpenSettings?.(payload.view);
+          }
+          break;
         }
-        break;
-      }
 
-      case 'copyAllLinks': {
-        const links = aiResultBookmarkIds
-          .map((id) => bookmarks.find((b) => b.id === id)?.url)
-          .filter(Boolean)
-          .join('\n');
+        case "copyAllLinks": {
+          const links = aiResultBookmarkIds
+            .map((id) => bookmarks.find((b) => b.id === id)?.url)
+            .filter(Boolean)
+            .join("\n");
 
-        if (links) {
-          await navigator.clipboard.writeText(links);
-          toast.success(t('ai:suggestion.copySuccess'), {
-            duration: 2000,
+          if (links) {
+            await navigator.clipboard.writeText(links);
+            toast.success(t("ai:suggestion.copySuccess"), {
+              duration: 2000,
+            });
+          }
+          break;
+        }
+
+        case "batchAddTags":
+        case "batchMoveCategory": {
+          // 侧边栏目前暂不支持批量操作，提示用户去设置页面
+          toast.info(t("ai:search.suggestions.narrowSearch"), {
+            duration: 3000,
           });
+          break;
         }
-        break;
-      }
 
-      case 'batchAddTags':
-      case 'batchMoveCategory': {
-        // 侧边栏目前暂不支持批量操作，提示用户去设置页面
-        toast.info(t('ai:search.suggestions.narrowSearch'), {
-          duration: 3000,
-        });
-        break;
+        case "showMore":
+        case "timeFilter":
+        case "domainFilter":
+        case "categoryFilter":
+        case "semanticOnly":
+        case "keywordOnly":
+        case "findDuplicates":
+        case "text":
+        default: {
+          setAIQuery(label);
+          handleAISearch();
+          break;
+        }
       }
-
-      case 'showMore':
-      case 'timeFilter':
-      case 'domainFilter':
-      case 'categoryFilter':
-      case 'semanticOnly':
-      case 'keywordOnly':
-      case 'findDuplicates':
-      case 'text':
-      default: {
-        setAIQuery(label);
-        handleAISearch();
-        break;
-      }
-    }
-  }, [aiResultBookmarkIds, bookmarks, setAIQuery, handleAISearch, onOpenSettings, t]);
+    },
+    [
+      aiResultBookmarkIds,
+      bookmarks,
+      setAIQuery,
+      handleAISearch,
+      onOpenSettings,
+      t,
+    ],
+  );
 
   return (
     <>
       {/* 背景遮罩 - 覆盖整个屏幕 */}
       <div
         className={cn(
-          'absolute inset-0 z-1 bg-black/20 backdrop-blur-[2px] w-screen',
-          'transition-opacity duration-300',
-          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+          "absolute inset-0 z-1 bg-black/20 backdrop-blur-[2px] w-screen",
+          "transition-opacity duration-300",
+          isOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
         )}
         onClick={handleOverlayClick}
       />
@@ -250,20 +286,18 @@ export function BookmarkPanel({
       <div
         onClick={handlePanelClick}
         className={cn(
-          'absolute top-1 bottom-1 z-2',
-          'w-[360px] max-w-[90vw]',
-          'bg-background border-border shadow-2xl',
-          'flex flex-col overflow-hidden',
-          'transition-transform duration-300 ease-out',
-          'pointer-events-auto rounded-lg',
-          position === 'left'
-            ? 'left-1 border-r'
-            : 'right-1 border-l',
+          "absolute top-1 bottom-1 z-2",
+          "w-[360px] max-w-[90vw]",
+          "bg-background border-border shadow-2xl",
+          "flex flex-col overflow-hidden",
+          "transition-transform duration-300 ease-out",
+          "pointer-events-auto rounded-lg",
+          position === "left" ? "left-1 border-r" : "right-1 border-l",
           isOpen
-            ? 'translate-x-0'
-            : position === 'left'
-              ? 'pointer-events-none -translate-x-full -left-2'
-              : 'pointer-events-none translate-x-full -right-2'
+            ? "translate-x-0"
+            : position === "left"
+              ? "pointer-events-none -translate-x-full -left-2"
+              : "pointer-events-none translate-x-full -right-2",
         )}
       >
         {/* 头部 */}
@@ -299,7 +333,7 @@ export function BookmarkPanel({
 
         {/* AI 对话面板（合并搜索栏和对话窗口） */}
         <AIChatPanel
-          className='px-2 w-full'
+          className="px-2 w-full"
           isOpen={isAIChatOpen}
           onClose={closeAIChat}
           query={aiQuery}

@@ -1595,6 +1595,23 @@ export function OptionsPage() {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
+                  <Label>
+                    {t("settings:settings.general.enableOmniboxSearch")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("settings:settings.general.enableOmniboxSearchDesc")}
+                  </p>
+                </div>
+                <Switch
+                  checked={appSettings.enableOmniboxSearch}
+                  onCheckedChange={(checked) =>
+                    updateAppSettings({ enableOmniboxSearch: checked })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
                   <Label htmlFor="theme">{t("settings:settings.theme")}</Label>
                   <p className="text-sm text-muted-foreground">
                     {t("settings:settings.descriptions.theme")}

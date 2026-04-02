@@ -42,3 +42,5 @@ coverage/
 tsconfig.tsbuildinfo
 
 docs/blog/
+
+temp  

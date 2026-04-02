@@ -2,15 +2,17 @@
  * ContentUI Context
  * 提供 React Root 实例和容器元素给子组件使用
  */
-import React, { createContext, useContext } from 'react';
-import type { Root } from 'react-dom/client';
+import React, { createContext, useContext } from "react";
+import type { Root } from "react-dom/client";
 
 interface ContentUIContextValue {
   root: Root;
   container: HTMLElement;
 }
 
-export const ContentUIContext = createContext<ContentUIContextValue | null>(null);
+export const ContentUIContext = createContext<ContentUIContextValue | null>(
+  null,
+);
 
 interface ContentUIProviderProps {
   root: Root;
@@ -18,7 +20,11 @@ interface ContentUIProviderProps {
   children: React.ReactNode;
 }
 
-export function ContentUIProvider({ root, container, children }: ContentUIProviderProps) {
+export function ContentUIProvider({
+  root,
+  container,
+  children,
+}: ContentUIProviderProps) {
   return (
     <ContentUIContext.Provider value={{ root, container }}>
       {children}
@@ -29,7 +35,11 @@ export function ContentUIProvider({ root, container, children }: ContentUIProvid
 export function useContentUI() {
   const context = useContext(ContentUIContext);
   if (!context) {
-    throw new Error('useContentUI must be used within ContentUIProvider');
+    console.warn("useContentUI must be used within ContentUIProvider");
+    // throw new Error('useContentUI must be used within ContentUIProvider');
+    return {
+      container: document.body,
+    };
   }
   return context;
 }
