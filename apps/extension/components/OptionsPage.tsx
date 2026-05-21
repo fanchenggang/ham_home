@@ -20,7 +20,6 @@ import {
   Search,
   RefreshCw,
   AlertTriangle,
-  Cloud,
 } from "lucide-react";
 import {
   Button,
@@ -77,14 +76,14 @@ import {
 } from "@/utils/browser-api";
 import { snapshotStorage } from "@/lib/storage/snapshot-storage";
 import {
+  agentConfigService,
   getDefaultModel,
   getProviderModels,
   isEmbeddingSupported,
   getDefaultEmbeddingModel,
   PROVIDER_DEFAULTS,
   EMBEDDING_PROVIDER_DEFAULTS,
-} from "@hamhome/ai/providers";
-import { aiClient } from "@/lib/ai/client";
+} from "@/lib/agent";
 import { getBackgroundService } from "@/lib/services";
 import type { QueueProgress } from "@/lib/embedding/embedding-queue";
 import type { VectorStoreStats } from "@/lib/storage/vector-store";
@@ -222,6 +221,12 @@ export function OptionsPage() {
     count: number;
     totalSize: number;
   } | null>(null);
+
+  const handleAutoSaveSnapshotChange = (checked: boolean) => {
+    updateAppSettings({
+      autoSaveSnapshot: checked,
+    });
+  };
 
   // 辅助函数：格式化字节大小
   const formatBytes = (bytes: number) => {
@@ -365,11 +370,8 @@ export function OptionsPage() {
       // 确保最新配置已保存到 storage
       await updateAIConfig({});
 
-      // 重置 AI 客户端以加载最新配置
-      aiClient.reset();
-
       // 执行真实连接测试
-      const result = await aiClient.testConnection();
+      const result = await agentConfigService.testConnection();
 
       if (result.success) {
         setTestResult({ status: "success", message: result.message });
@@ -391,7 +393,7 @@ export function OptionsPage() {
     setModelSelectorOpen(true);
 
     try {
-      const result = await aiClient.listAvailableModels({
+      const result = await agentConfigService.listAvailableModels({
         provider: aiConfig.provider,
         apiKey: localApiKey.trim(),
         baseUrl: localBaseUrl.trim(),
@@ -1587,9 +1589,7 @@ export function OptionsPage() {
                 </div>
                 <Switch
                   checked={appSettings.autoSaveSnapshot}
-                  onCheckedChange={(checked) =>
-                    updateAppSettings({ autoSaveSnapshot: checked })
-                  }
+                  onCheckedChange={handleAutoSaveSnapshotChange}
                 />
               </div>
 
@@ -1828,6 +1828,7 @@ export function OptionsPage() {
               </div>
             </CardContent>
           </Card>
+
         </TabsContent>
 
         {/* 存储管理标签页 */}

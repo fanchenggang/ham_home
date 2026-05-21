@@ -1,5 +1,603 @@
 # Extension 组件文档
 
+## SavePanel
+
+保存当前页面为 HamHome 书签的弹出面板，负责书签表单、AI 推荐入口和页面快照/Obsidian 保存开关。
+
+### SavePanelView
+
+保存面板展示组件。业务状态由 `useSavePanel` 注入，组件只负责渲染表单、快照开关和操作按钮。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| title | `string` | ✓ | - | 书签标题 |
+| description | `string` | ✓ | - | 书签摘要 |
+| categoryId | `string \| null` | ✓ | - | 当前分类 ID |
+| tags | `string[]` | ✓ | - | 当前标签列表 |
+| categories | `LocalCategory[]` | ✓ | - | 可选分类列表 |
+| allTags | `string[]` | ✓ | - | 标签建议列表 |
+| existingBookmark | `LocalBookmark \| null` | ✓ | - | 当前 URL 已存在的书签 |
+| aiRecommendedCategory | `string \| null` | ✓ | - | AI 推荐但未创建的分类 |
+| aiStatus | `AIStatusType` | ✓ | - | AI 推荐状态 |
+| aiError | `string \| null` | ✓ | - | AI 错误信息 |
+| saving | `boolean` | ✓ | - | 是否正在保存 |
+| saveSnapshot | `boolean` | ✓ | - | 本次保存是否保存快照 |
+| snapshotStatus | `SavePanelSnapshotStatus` | ✓ | - | 书签与快照保存状态 |
+| snapshotError | `string \| null` | ✓ | - | 快照保存错误信息 |
+| syncToObsidian | `boolean` | ✓ | - | 本次保存快照后是否将书签笔记发送到 Obsidian |
+| obsidianStatus | `SavePanelObsidianStatus` | ✓ | - | Obsidian 同步状态 |
+| obsidianError | `string \| null` | ✓ | - | Obsidian 同步错误信息 |
+| onTitleChange | `(value: string) => void` | ✓ | - | 标题变更回调 |
+| onDescriptionChange | `(value: string) => void` | ✓ | - | 摘要变更回调 |
+| onCategoryChange | `(value: string \| null) => void` | ✓ | - | 分类变更回调 |
+| onTagsChange | `(value: string[]) => void` | ✓ | - | 标签变更回调 |
+| onSaveSnapshotChange | `(value: boolean) => void` | ✓ | - | 快照开关变更回调 |
+| onSyncToObsidianChange | `(value: boolean) => void` | ✓ | - | Obsidian 同步开关变更回调 |
+| onLoadSuggestions | `() => void` | ✓ | - | 触发 AI 推荐 |
+| onApplyAICategory | `() => void` | ✓ | - | 应用 AI 推荐分类 |
+| onRetry | `() => void` | ✓ | - | 重试 AI 推荐 |
+| onConfigureAI | `() => void` | - | - | 打开 AI 设置 |
+| onSave | `() => void` | ✓ | - | 保存书签 |
+| onCancel | `() => void` | - | - | 取消保存 |
+| onDelete | `() => void` | - | - | 删除现有书签 |
+
+**用法示例：**
+
+```tsx
+<SavePanelView
+  title={title}
+  description={description}
+  categoryId={categoryId}
+  tags={tags}
+  categories={categories}
+  allTags={allTags}
+  existingBookmark={existingBookmark}
+  aiRecommendedCategory={aiRecommendedCategory}
+  aiStatus={aiStatus}
+  aiError={aiError}
+  saving={saving}
+  saveSnapshot={saveSnapshot}
+  snapshotStatus={snapshotStatus}
+  snapshotError={snapshotError}
+  syncToObsidian={syncToObsidian}
+  obsidianStatus={obsidianStatus}
+  obsidianError={obsidianError}
+  onTitleChange={setTitle}
+  onDescriptionChange={setDescription}
+  onCategoryChange={setCategoryId}
+  onTagsChange={setTags}
+  onSaveSnapshotChange={setSaveSnapshot}
+  onSyncToObsidianChange={setSyncToObsidian}
+  onLoadSuggestions={runAIAnalysis}
+  onApplyAICategory={applyAIRecommendedCategory}
+  onRetry={retryAnalysis}
+  onSave={save}
+/>
+```
+
+**行为说明：**
+
+- `saveSnapshot` 初始值跟随设置页的默认保存快照策略。
+- 保存面板内调整快照开关只影响本次保存，不反写设置页默认值。
+- 快照类型由系统自动决定：可阅读页面优先保存 Markdown，其他页面保存完整 HTML。
+- 勾选 `保存快照` 后，面板会显示 `保存后同步到 Obsidian` 开关。
+- Obsidian 保存与本地快照格式解耦，使用书签正文生成 Markdown 笔记；本地快照可自动保存为 Markdown 或 HTML。
+- Obsidian 保存使用 `obsidian://new` 协议，优先通过剪贴板传递笔记内容，剪贴板失败时回退到 URI 内容参数。
+- 快照保存失败不会回滚已保存书签，面板会保留错误状态，用户可稍后通过书签管理页重试。
+
+## WorkspacesPage
+
+工作空间管理页面，用于保存所有浏览器窗口（当前会话）、搜索筛选已保存工作空间、按分组网格查看已保存页面，并在右侧按窗口分组查看当前所有打开的 Tabs。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| - | - | - | - | 页面组件通过 `workspaceStorage`、`workspaceService` 和 `BookmarkContext` 自行加载工作空间、分类和标签数据 |
+
+**用法示例：**
+
+```tsx
+<WorkspacesPage />
+```
+
+**行为说明：**
+
+- 页面采用左侧工作空间内容流 + 右侧当前 Tabs 侧栏结构。
+- 左侧每个工作空间以保存时间作为分组头，页面以紧凑卡片网格展示。
+- 点击分组或卡片会选中工作空间，选中后在分组内展示选择、恢复、智能分析和转书签工具。
+- 右侧 Tabs 侧栏通过 `workspaceService.previewCurrentWindow(true)` 读取所有窗口可保存页面，并支持按窗口分组展示、刷新、标题排序和保存所有窗口。
+- 工作空间使用 `local:workspaces` 持久化，包含名称、描述、分类、标签、页面标题/URL/域名/图标、恢复状态和后续 AI 分析预留字段。
+- 工作空间分类使用独立的 `local:workspaceCategories` 持久化，不复用书签分类；转书签弹窗仍使用书签分类。
+- 分组头部提供编辑入口，可修改工作空间名称、描述、独立分类和标签。
+- 恢复页面数量超过阈值时会先弹出确认，恢复成功后更新 `restoredAt` 和 `isRestored`；若工作空间保存了浏览器原生 Tab Groups，会在恢复时重建分组，并短暂跳过插件自动分组规则，避免规则分组覆盖工作空间分组。
+- 转书签前会弹出确认框，允许统一设置分类和标签；已存在 URL 会标记并跳过。
+- AI 命令推荐只会更新候选页面选择，不会直接写入书签，仍需用户在确认框中提交。
+- 保存弹窗会提示重复 URL，默认去重保存；用户也可以选择保留全部页面。
+- 工作空间保存和分析完成后，会关闭本次保存预览中的浏览器 Tab；重复 URL 即使被去重未写入工作空间，也会一并关闭。
+
+## TabGroupsPage
+
+浏览器 Tab 分组规则管理页面，用于创建、编辑、启停和删除自动 Tab 分组规则，并控制 AI 自动分组开关。页面通过 `useTabGroupRules` 读取 `sync:tabGroupRules` 和 `sync:tabGroupAutoGroupSettings`，按分组配置聚合展示已保存规则，并通过弹窗维护规则条件；后台监听新建/更新 Tab 后执行同一套匹配规则。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| - | - | - | - | 页面组件自行组合规则弹窗和规则列表，不接收外部 props |
+
+**用法示例：**
+
+```tsx
+<TabGroupsPage />
+```
+
+**行为说明：**
+
+- 规则匹配对象支持域名部分、URL、页面标题和页面标题忽略大小写。
+- 匹配条件支持包含、完全相等、前缀为、后缀为和正则匹配。
+- 同一分组可以配置多条匹配条件，底层仍按多条 `TabGroupRule` 保存以兼容已有数据。
+- 规则保存到 `sync:tabGroupRules`，会跟随浏览器账号同步。
+- AI 自动分组开关保存到 `sync:tabGroupAutoGroupSettings`，默认关闭。
+- AI 自动分组结果按归一化 URL 缓存在 `local:tabGroupAIGroupCache`，再次打开相同页面时优先使用缓存，避免重复调用 AI。
+- Chromium 浏览器命中规则后使用 `chrome.tabs.group` 分组，并用 `chrome.tabGroups.update` 设置组名、颜色和折叠状态。
+- 已存在同名分组时，新 Tab 会加入同名分组；不存在时会创建新的浏览器原生分组。
+- AI 自动分组开启时，后台先执行规则匹配；未命中且页面加载完成后，读取 URL、标题和页面描述，调用已配置的 AI 服务选择已有分组或返回新分组名。
+- 当前浏览器不支持 `chrome.tabGroups` 时页面仍允许编辑规则，但会展示不支持提示，后台不会执行分组。
+
+### TabGroupRuleForm
+
+Tab 分组规则弹窗表单组件，负责渲染规则名称、目标分组名称、颜色、多条匹配对象与匹配条件、折叠和启用状态输入。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| form | `TabGroupRuleFormState` | ✓ | - | 当前弹窗表单状态，包含 `matchers` 条件列表，每条条件包含 `matchType`、`matchCondition` 和 `pattern` |
+| editing | `boolean` | ✓ | - | 是否处于编辑已有规则分组状态 |
+| saving | `boolean` | ✓ | - | 保存按钮 loading/disabled 状态 |
+| onChange | `(form: TabGroupRuleFormState) => void` | ✓ | - | 表单字段变更回调 |
+| onSave | `() => void \| Promise<void>` | ✓ | - | 保存或创建规则 |
+| onCancel | `() => void` | ✓ | - | 关闭弹窗并重置表单 |
+
+**用法示例：**
+
+```tsx
+<TabGroupRuleForm
+  form={form}
+  editing={editingGroupKey != null}
+  saving={saving}
+  onChange={setForm}
+  onSave={saveRule}
+  onCancel={resetForm}
+/>
+```
+
+**行为说明：**
+
+- 组件不直接访问存储层，字段校验和保存由 `useTabGroupRules` 处理。
+- 新建规则默认启用，默认颜色为 `blue`，默认不折叠目标分组。
+- 匹配对象下拉项包含域名部分、URL、页面标题和页面标题(忽略大小写)，不展示旧版正则对象。
+- 匹配条件下拉项包含包含、完全相等、前缀为、后缀为和正则匹配。
+- 点击加号会在当前条件后新增一条匹配条件；点击减号删除该条件，至少保留一条条件。
+
+### TabGroupRuleList
+
+Tab 分组规则列表组件，按规则名称、目标分组、颜色和折叠状态聚合展示已保存规则，展示匹配方式、匹配内容和目标分组，并提供启停、编辑、删除操作入口。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| groups | `TabGroupRuleGroup[]` | ✓ | - | 已聚合的规则分组列表 |
+| loading | `boolean` | ✓ | - | 是否正在加载规则 |
+| onEdit | `(group: TabGroupRuleGroup) => void` | ✓ | - | 编辑规则分组回调 |
+| onDelete | `(group: TabGroupRuleGroup) => void` | ✓ | - | 删除规则分组回调 |
+| onToggle | `(group: TabGroupRuleGroup) => void` | ✓ | - | 启用/停用规则分组回调 |
+
+**用法示例：**
+
+```tsx
+<TabGroupRuleList
+  groups={groups}
+  loading={loading}
+  onEdit={editRuleGroup}
+  onDelete={deleteRuleGroup}
+  onToggle={toggleRuleGroup}
+/>
+```
+
+**行为说明：**
+
+- 空列表时显示空状态，引导用户创建第一条规则。
+- 每个分组面板显示该分组下的所有匹配条件，启停操作会同步更新该分组下的全部底层规则。
+- 列表组件只触发上层回调，不直接修改规则存储。
+
+### WorkspacePageDialogs
+
+工作空间页面弹窗组合组件，集中挂载保存、编辑和转书签弹窗，降低 `WorkspacesPage` 的组合复杂度。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| state | `ReturnType<typeof useWorkspacesPage>` | ✓ | - | 工作空间页面 hook 状态和操作集合 |
+| bookmarkCategories | `LocalCategory[]` | ✓ | - | 书签分类列表，仅传给转书签弹窗 |
+| bookmarkTags | `string[]` | ✓ | - | 书签标签列表，仅传给转书签弹窗 |
+
+**用法示例：**
+
+```tsx
+<WorkspacePageDialogs
+  state={state}
+  bookmarkCategories={bookmarkCategories}
+  bookmarkTags={bookmarkTags}
+/>
+```
+
+**行为说明：**
+
+- 保存和编辑弹窗使用 `state.workspaceCategories`，不读取 `bookmarkCategories`。
+- 转书签弹窗使用 `bookmarkCategories`，因为转书签目标仍是书签系统。
+
+### WorkspaceSection
+
+工作空间展示组件，负责渲染单个工作空间的分组头和页面卡片网格。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| workspace | `Workspace` | ✓ | - | 当前工作空间 |
+| pages | `WorkspaceTabPage[]` | ✓ | - | 当前要展示的页面列表 |
+| categoryName | `string` | ✓ | - | 展示用分类名称 |
+| onEdit | `(workspace: Workspace) => void` | ✓ | - | 打开工作空间编辑弹窗 |
+| onUpdateName | `(workspaceId: string, newName: string) => void` | - | - | 更新工作空间名称回调 |
+| onRestore | `(workspace: Workspace, mode: WorkspaceRestoreMode) => void` | ✓ | - | 恢复整个工作空间 |
+| onDelete | `(workspace: Workspace) => void` | ✓ | - | 删除工作空间 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceSection
+  workspace={workspace}
+  pages={workspace.pages}
+  categoryName="默认分类"
+  onEdit={openEditDialog}
+  onUpdateName={updateWorkspaceName}
+  onRestore={restoreWorkspace}
+  onDelete={deleteWorkspace}
+/>
+```
+
+**行为说明：**
+
+- 当 `workspace.tabGroups` 存在时，页面会按浏览器原生标签组关系插入分组 Header；组内页面仍使用外层同一套卡片布局。
+- 未选中时点击页面卡片只切换到对应工作空间，不直接改变页面选择。
+- 选中时页面卡片可切换选择状态，并展示转书签状态徽标。
+- 编辑按钮只打开编辑弹窗，不改变当前页面选择。
+
+### WorkspaceTabGroupList
+
+工作空间标签分组展示组件，按浏览器标签顺序渲染未分组页面和原生标签组 Header。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| pages | `WorkspaceTabPage[]` | ✓ | - | 要展示的页面列表 |
+| tabGroups | `WorkspaceTabGroup[]` | - | - | 已保存或当前会话中的浏览器标签组元信息 |
+| className | `string` | - | - | 外层容器样式 |
+| grid | `boolean` | - | `false` | 是否使用工作空间网格布局 |
+| renderPage | `(page: WorkspaceTabPage) => React.ReactNode` | ✓ | - | 页面卡片渲染函数 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceTabGroupList
+  pages={workspace.pages}
+  tabGroups={workspace.tabGroups}
+  grid
+  renderPage={(page) => <WorkspacePageTile page={page} />}
+/>
+```
+
+**行为说明：**
+
+- 分组键由 `windowId` 和 `tabGroupId` 共同确定，避免多窗口中原生分组 ID 冲突。
+- 分组标题、颜色、折叠状态来自保存会话时采集的浏览器 `tabGroups` 元信息。
+- 组件不为分组额外包裹卡片容器，组内页面和未分组页面保持相同列表或网格布局。
+
+### WorkspaceSectionHeader
+
+工作空间头部组件，展示名称、分类、页面数、创建/恢复时间及操作按钮。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| workspace | `Workspace` | ✓ | - | 当前工作空间 |
+| categoryName | `string` | ✓ | - | 展示用工作空间分类名称 |
+| onEdit | `(workspace: Workspace) => void` | ✓ | - | 打开编辑弹窗 |
+| onRestore | `(workspace: Workspace, mode: WorkspaceRestoreMode) => void` | ✓ | - | 恢复整个工作空间 |
+| onDelete | `(workspace: Workspace) => void` | ✓ | - | 删除工作空间 |
+| onUpdateName | `(workspaceId: string, newName: string) => void` | - | - | 更新工作空间名称 |
+| expanded | `boolean` | - | `true` | 是否展开内容网格 |
+| onToggle | `() => void` | - | - | 切换展开/收起 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceSectionHeader
+  workspace={workspace}
+  categoryName={categoryName}
+  onEdit={openEditDialog}
+  onRestore={restoreWorkspace}
+  onDelete={deleteWorkspace}
+  onUpdateName={updateWorkspaceName}
+  expanded={expanded}
+  onToggle={() => setExpanded(!expanded)}
+/>
+```
+
+**行为说明：**
+
+- 点击标题区域只切换当前工作空间。
+- 编辑、恢复和删除按钮各自触发上层回调，不直接访问存储层。
+
+### WorkspaceSaveDialog
+
+保存当前窗口为工作空间的确认弹窗，负责展示工作空间基础字段、独立分类创建入口、重复 URL 提示和页面预览。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| open | `boolean` | ✓ | - | 弹窗是否打开 |
+| preview | `WorkspacePreview \| null` | ✓ | - | 当前窗口预览 |
+| saving | `boolean` | ✓ | - | 是否正在保存 |
+| name | `string` | ✓ | - | 工作空间名称 |
+| description | `string` | ✓ | - | 工作空间描述 |
+| categoryId | `string \| null` | ✓ | - | 工作空间分类 ID，来自 `local:workspaceCategories` |
+| tags | `string[]` | ✓ | - | 工作空间标签 |
+| keepDuplicatePages | `boolean` | ✓ | - | 是否保留重复 URL 页面 |
+| categories | `WorkspaceCategory[]` | ✓ | - | 独立工作空间分类列表 |
+| allTags | `string[]` | ✓ | - | 工作空间标签建议 |
+| newCategoryName | `string` | ✓ | - | 待创建的工作空间分类名称 |
+| creatingCategory | `boolean` | ✓ | - | 是否正在创建工作空间分类 |
+| onOpenChange | `(open: boolean) => void` | ✓ | - | 弹窗开关回调 |
+| onNameChange | `(value: string) => void` | ✓ | - | 名称变更 |
+| onDescriptionChange | `(value: string) => void` | ✓ | - | 描述变更 |
+| onCategoryChange | `(value: string \| null) => void` | ✓ | - | 工作空间分类变更 |
+| onTagsChange | `(value: string[]) => void` | ✓ | - | 标签变更 |
+| onNewCategoryNameChange | `(value: string) => void` | ✓ | - | 新分类名称变更 |
+| onCreateCategory | `() => void` | ✓ | - | 创建工作空间分类 |
+| onKeepDuplicatePagesChange | `(value: boolean) => void` | ✓ | - | 重复 URL 保留策略变更 |
+| onSave | `() => void` | ✓ | - | 保存工作空间 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceSaveDialog
+  open={saveDialogOpen}
+  preview={preview}
+  saving={saving}
+  name={workspaceName}
+  description={workspaceDescription}
+  categoryId={workspaceCategoryId}
+  tags={workspaceTags}
+  keepDuplicatePages={keepDuplicatePages}
+  categories={workspaceCategories}
+  allTags={workspaceTagSuggestions}
+  newCategoryName={newWorkspaceCategoryName}
+  creatingCategory={creatingWorkspaceCategory}
+  onOpenChange={setSaveDialogOpen}
+  onNameChange={setWorkspaceName}
+  onDescriptionChange={setWorkspaceDescription}
+  onCategoryChange={setWorkspaceCategoryId}
+  onTagsChange={setWorkspaceTags}
+  onNewCategoryNameChange={setNewWorkspaceCategoryName}
+  onCreateCategory={createWorkspaceCategory}
+  onKeepDuplicatePagesChange={setKeepDuplicatePages}
+  onSave={saveWorkspace}
+/>
+```
+
+**行为说明：**
+
+- 分类选择和新建分类只读写工作空间分类，不访问书签分类。
+- 保存弹窗的标签建议来自已有工作空间标签。
+- 页面预览复用 `WorkspaceTabGroupList`，保存前即可确认浏览器原生标签组关系。
+
+### WorkspaceEditDialog
+
+编辑已保存工作空间的弹窗，复用 `WorkspaceSaveFields` 修改名称、描述、独立分类和标签。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| open | `boolean` | ✓ | - | 弹窗是否打开 |
+| saving | `boolean` | ✓ | - | 是否正在保存修改 |
+| name | `string` | ✓ | - | 工作空间名称 |
+| description | `string` | ✓ | - | 工作空间描述 |
+| categoryId | `string \| null` | ✓ | - | 工作空间分类 ID |
+| tags | `string[]` | ✓ | - | 工作空间标签 |
+| categories | `WorkspaceCategory[]` | ✓ | - | 独立工作空间分类列表 |
+| allTags | `string[]` | ✓ | - | 工作空间标签建议 |
+| newCategoryName | `string` | ✓ | - | 待创建的工作空间分类名称 |
+| creatingCategory | `boolean` | ✓ | - | 是否正在创建工作空间分类 |
+| onOpenChange | `(open: boolean) => void` | ✓ | - | 弹窗开关回调 |
+| onNameChange | `(value: string) => void` | ✓ | - | 名称变更 |
+| onDescriptionChange | `(value: string) => void` | ✓ | - | 描述变更 |
+| onCategoryChange | `(value: string \| null) => void` | ✓ | - | 工作空间分类变更 |
+| onTagsChange | `(value: string[]) => void` | ✓ | - | 标签变更 |
+| onNewCategoryNameChange | `(value: string) => void` | ✓ | - | 新分类名称变更 |
+| onCreateCategory | `() => void` | ✓ | - | 创建工作空间分类 |
+| onSave | `() => void` | ✓ | - | 保存修改 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceEditDialog
+  open={editDialogOpen}
+  saving={updatingWorkspace}
+  name={workspaceName}
+  description={workspaceDescription}
+  categoryId={workspaceCategoryId}
+  tags={workspaceTags}
+  categories={workspaceCategories}
+  allTags={workspaceTagSuggestions}
+  newCategoryName={newWorkspaceCategoryName}
+  creatingCategory={creatingWorkspaceCategory}
+  onOpenChange={setEditDialogOpen}
+  onNameChange={setWorkspaceName}
+  onDescriptionChange={setWorkspaceDescription}
+  onCategoryChange={setWorkspaceCategoryId}
+  onTagsChange={setWorkspaceTags}
+  onNewCategoryNameChange={setNewWorkspaceCategoryName}
+  onCreateCategory={createWorkspaceCategory}
+  onSave={updateWorkspace}
+/>
+```
+
+**行为说明：**
+
+- 保存修改调用 `workspaceStorage.updateWorkspace`，不改变工作空间页面列表。
+
+### WorkspaceSaveFields
+
+工作空间表单字段组件，渲染名称、描述、独立工作空间分类、新建分类和标签输入。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| name | `string` | ✓ | - | 工作空间名称 |
+| description | `string` | ✓ | - | 工作空间描述 |
+| categoryId | `string \| null` | ✓ | - | 当前工作空间分类 ID |
+| tags | `string[]` | ✓ | - | 当前标签 |
+| categories | `WorkspaceCategory[]` | ✓ | - | 独立工作空间分类列表 |
+| allTags | `string[]` | ✓ | - | 标签建议 |
+| newCategoryName | `string` | ✓ | - | 待创建分类名称 |
+| creatingCategory | `boolean` | ✓ | - | 是否正在创建分类 |
+| namePlaceholder | `string` | - | - | 名称占位符 |
+| onNameChange | `(value: string) => void` | ✓ | - | 名称变更 |
+| onDescriptionChange | `(value: string) => void` | ✓ | - | 描述变更 |
+| onCategoryChange | `(value: string \| null) => void` | ✓ | - | 分类变更 |
+| onTagsChange | `(value: string[]) => void` | ✓ | - | 标签变更 |
+| onNewCategoryNameChange | `(value: string) => void` | ✓ | - | 新分类名称变更 |
+| onCreateCategory | `() => void` | ✓ | - | 创建分类 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceSaveFields
+  name={workspaceName}
+  description={workspaceDescription}
+  categoryId={workspaceCategoryId}
+  tags={workspaceTags}
+  categories={workspaceCategories}
+  allTags={workspaceTagSuggestions}
+  newCategoryName={newWorkspaceCategoryName}
+  creatingCategory={creatingWorkspaceCategory}
+  onNameChange={setWorkspaceName}
+  onDescriptionChange={setWorkspaceDescription}
+  onCategoryChange={setWorkspaceCategoryId}
+  onTagsChange={setWorkspaceTags}
+  onNewCategoryNameChange={setNewWorkspaceCategoryName}
+  onCreateCategory={createWorkspaceCategory}
+/>
+```
+
+**行为说明：**
+
+- `categories` 必须来自工作空间分类存储，不能传入书签分类。
+- 在新分类输入框按 Enter 会触发 `onCreateCategory`。
+
+### WorkspaceCurrentTabsPanel
+
+当前会话 Tabs 侧栏组件，展示所有浏览器窗口可保存标签页，按窗口分组展示，并提供刷新、排序和保存入口。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| preview | `WorkspacePreview \| null` | ✓ | - | 当前窗口预览数据 |
+| loading | `boolean` | ✓ | - | 是否正在读取当前窗口 Tabs |
+| onRefresh | `() => void` | ✓ | - | 刷新当前窗口 Tabs |
+| onSaveCurrentWindow | `(customPreview?: WorkspacePreview) => void` | ✓ | - | 打开保存工作空间弹窗，可传入指定窗口预览 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceCurrentTabsPanel
+  preview={currentWindowPreview}
+  loading={currentWindowLoading}
+  onRefresh={refreshCurrentWindowPreview}
+  onSaveCurrentWindow={openSaveDialog}
+/>
+```
+
+**行为说明：**
+
+- 默认按浏览器标签页顺序展示；有浏览器原生标签组时，会在对应窗口内用分组 Header 分隔组内页面。
+- 无可保存页面时展示空状态，不触发保存。
+
+### WorkspaceSearchBar
+
+工作空间搜索和筛选条，负责关键词搜索、独立工作空间分类筛选和排序方式选择。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| searchQuery | `string` | ✓ | - | 搜索关键词 |
+| categoryFilter | `string` | ✓ | - | 当前分类筛选值 |
+| sortBy | `'createdAt' \| 'restoredAt'` | ✓ | - | 排序方式 |
+| categories | `WorkspaceCategory[]` | ✓ | - | 独立工作空间分类列表 |
+| onSearchChange | `(value: string) => void` | ✓ | - | 搜索变更 |
+| onCategoryFilterChange | `(value: string) => void` | ✓ | - | 分类筛选变更 |
+| onSortByChange | `(value: 'createdAt' \| 'restoredAt') => void` | ✓ | - | 排序变更 |
+
+**用法示例：**
+
+```tsx
+<WorkspaceSearchBar
+  searchQuery={searchQuery}
+  categoryFilter={categoryFilter}
+  sortBy={sortBy}
+  categories={workspaceCategories}
+  onSearchChange={setSearchQuery}
+  onCategoryFilterChange={setCategoryFilter}
+  onSortByChange={setSortBy}
+/>
+```
+
+**行为说明：**
+
+- `categories` 必须来自 `workspaceStorage.getCategories()`，不能传入 `BookmarkContext.categories`。
+
+### WorkspacePageTile
+
+工作空间页面卡片组件，用于在分组网格中展示单个已保存页面。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| page | `WorkspaceTabPage` | ✓ | - | 页面数据 |
+| selected | `boolean` | ✓ | - | 页面是否选中 |
+| status | `WorkspacePageBookmarkStatus` | - | - | 页面转书签状态 |
+| onClick | `(pageId: string) => void` | ✓ | - | 点击页面卡片 |
+
+**用法示例：**
+
+```tsx
+<WorkspacePageTile
+  page={page}
+  selected={selectedPageIds.has(page.id)}
+  status={pageStatusById[page.id]}
+  onClick={togglePage}
+/>
+```
+
+**行为说明：**
+
+- `status` 为 `not_bookmarked` 或未传入时不显示状态徽标。
+
+### WorkspacePageFavicon
+
+页面 favicon 展示组件，提供统一尺寸和无图标时的站点占位图标。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| favicon | `string` | - | - | favicon URL |
+| className | `string` | - | - | 自定义尺寸或样式 |
+
+**用法示例：**
+
+```tsx
+<WorkspacePageFavicon favicon={page.favicon} className="h-7 w-7" />
+```
+
+**行为说明：**
+
+- favicon 图片统一使用方形展示，不做圆形裁切。
+- `favicon` 为空时显示 `Globe` 占位图标，避免页面卡片布局跳动。
+
 ## bookmarkPanel
 
 书签面板相关组件，用于 Content UI 侧边书签浏览。
@@ -24,6 +622,41 @@
 - 监听 `settings.panelPosition` 变化，内容页无需刷新即可在左/右侧间切换
 - 面板关闭时禁用 pointer events，避免隐藏态遮挡页面交互
 - 当前页面不可见或失去活跃状态时，content UI 不响应打开指令并自动收起面板
+- 侧边栏头部下方展示 `PinnedSection`，用于快速访问置顶分类和置顶书签
+
+---
+
+### PinnedSection
+
+侧边栏置顶区组件，展示用户置顶的分类和书签，并支持展开/折叠和手动排序。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| bookmarks | `LocalBookmark[]` | ✓ | - | 当前书签列表 |
+| categories | `LocalCategory[]` | ✓ | - | 当前分类列表 |
+| onOpenBookmark | `(url: string) => void` | ✓ | - | 点击置顶书签时打开 URL |
+| onSelectCategory | `(categoryId: string) => void` | ✓ | - | 点击置顶分类时筛选该分类 |
+| t | `(key: string, options?: Record<string, unknown>) => string` | ✓ | - | i18n 翻译函数 |
+
+**用法示例：**
+
+```tsx
+<PinnedSection
+  bookmarks={bookmarks}
+  categories={categories}
+  onOpenBookmark={handleOpenBookmark}
+  onSelectCategory={handleSelectPinnedCategory}
+  t={t}
+/>
+```
+
+**行为说明：**
+
+- 无置顶内容时不渲染。
+- 默认展示前 5 条置顶内容，超过 5 条时可展开。
+- 点击置顶分类会清空搜索关键词，并将列表筛选到该分类。
+- 点击置顶书签会直接打开网页。
+- 鼠标悬停置顶项时展示上移/下移按钮，排序结果写入 `pinStorage`。
 
 ---
 
@@ -79,6 +712,7 @@
 - **语言切换按钮**：点击切换中文/英文语言
 - **更多菜单**（hover 触发下拉）：
   - 管理书签：打开书签管理页面（app.html）
+  - 保存当前窗口：通过后台服务保存当前窗口为工作空间
   - 查看快捷键：打开浏览器扩展快捷键设置页面
   - 设置：打开扩展设置页面
 
@@ -98,6 +732,29 @@ const { container: portalContainer } = useContentUI();
 - 更多菜单使用 hover 触发，鼠标移入按钮打开，移出菜单关闭
 - 在 content UI 环境中需要传入 portalContainer 确保 Portal 正确渲染
 - 使用 `useShortcuts` hook 获取快捷键信息并显示在菜单项中
+
+---
+
+### CategorySelect
+
+分类选择组件，用于书签保存/编辑场景，支持树形分类搜索、未分类选项和 AI 推荐分类映射。
+
+| Prop                  | Type                         | Required | Default | Description                      |
+| --------------------- | ---------------------------- | -------- | ------- | -------------------------------- |
+| value                 | `string \| null`             | ✓        | -       | 当前选中的分类 ID，`null` 表示未分类 |
+| onChange              | `(value: string \| null) => void` | ✓   | -       | 分类变更回调                     |
+| categories            | `LocalCategory[]`            | ✓        | -       | 分类列表                         |
+| aiRecommendedCategory | `string \| null`             | -        | -       | AI 推荐分类路径或名称            |
+| onApplyAICategory     | `() => void`                 | -        | -       | 应用 AI 推荐分类回调             |
+| placeholder           | `string`                     | -        | -       | 自定义占位文案                   |
+| className             | `string`                     | -        | -       | 自定义容器样式类                 |
+
+**行为说明：**
+
+- 触发器支持 `Enter`、`Space`、`ArrowUp`、`ArrowDown` 打开下拉
+- 下拉打开后支持 `↑/↓` 高亮切换、`Enter` 选择、`Esc` 关闭、`Home/End` 跳转到首尾项
+- 树节点在非搜索态下支持 `←/→` 收起或展开子分类
+- 打开下拉后会自动聚焦搜索框，输入字符可直接过滤分类结果
 
 ---
 
@@ -194,6 +851,121 @@ const { container: portalContainer } = useContentUI();
 ```tsx
 <BookmarkListItem bookmark={bookmark} />
 ```
+
+---
+
+## bookmarkListMng
+
+书签管理页面组件，用于主应用中的网格/列表展示、编辑和快照操作。
+
+### BookmarkCard
+
+网格视图书签卡片，展示书签摘要、分类、标签和更多操作菜单。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| bookmark | `LocalBookmark` | ✓ | - | 书签数据 |
+| categoryName | `string` | ✓ | - | 展示用分类路径 |
+| formattedDate | `string` | ✓ | - | 格式化后的创建时间 |
+| isSelected | `boolean` | ✓ | - | 是否被批量选中 |
+| isHighlighted | `boolean` | - | `false` | 是否高亮 |
+| columnSize | `number` | - | `356` | 瀑布流列宽 |
+| onToggleSelect | `() => void` | ✓ | - | 切换选中状态 |
+| onOpen | `() => void` | ✓ | - | 打开书签 |
+| onEdit | `() => void` | ✓ | - | 编辑书签 |
+| onDelete | `() => void` | ✓ | - | 删除书签 |
+| onViewSnapshot | `() => void` | - | - | 查看快照 |
+| onSaveSnapshot | `() => void` | - | - | 保存或更新快照 |
+| onDeleteSnapshot | `() => void` | - | - | 删除快照 |
+| onSyncToObsidian | `() => void` | - | - | 同步书签笔记到 Obsidian |
+| onTogglePin | `() => void` | - | - | 置顶或取消置顶书签 |
+| isPinned | `boolean` | - | `false` | 当前书签是否已置顶 |
+| onReanalyzeAI | `() => void` | - | - | 重新执行 AI 分析 |
+| isProcessingAI | `boolean` | - | - | AI 批处理是否运行中 |
+| t | `(key: string, options?: Record<string, unknown>) => string` | ✓ | - | i18n 翻译函数 |
+
+**用法示例：**
+
+```tsx
+<BookmarkCard
+  bookmark={bookmark}
+  categoryName={categoryName}
+  formattedDate={formattedDate}
+  isSelected={false}
+  onToggleSelect={toggleSelect}
+  onOpen={openBookmark}
+  onEdit={editBookmark}
+  onDelete={deleteBookmark}
+  onViewSnapshot={bookmark.hasSnapshot ? viewSnapshot : undefined}
+  onSaveSnapshot={saveSnapshot}
+  onDeleteSnapshot={bookmark.hasSnapshot ? deleteSnapshot : undefined}
+  onSyncToObsidian={syncToObsidian}
+  onTogglePin={togglePin}
+  isPinned={isPinned}
+  t={t}
+/>
+```
+
+**行为说明：**
+
+- 有快照时展示 `查看快照` 和 `删除快照`。
+- 始终可通过更多菜单触发 `保存快照` 或 `更新快照`。
+- 可通过更多菜单触发 `同步到 Obsidian`，同步行为由父组件注入。
+- 可通过更多菜单触发 `置顶` / `取消置顶`，置顶状态由父组件传入。
+- 快照操作由父组件注入，组件不直接访问存储或浏览器 API。
+
+### BookmarkListItem（管理列表）
+
+列表视图书签行，展示书签标题、域名、分类、时间、标签和更多操作菜单。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| bookmark | `LocalBookmark` | ✓ | - | 书签数据 |
+| categoryName | `string` | ✓ | - | 展示用分类路径 |
+| formattedDate | `string` | ✓ | - | 格式化后的创建时间 |
+| isSelected | `boolean` | ✓ | - | 是否被批量选中 |
+| isHighlighted | `boolean` | - | `false` | 是否高亮 |
+| onToggleSelect | `() => void` | ✓ | - | 切换选中状态 |
+| onOpen | `() => void` | ✓ | - | 打开书签 |
+| onEdit | `() => void` | ✓ | - | 编辑书签 |
+| onDelete | `() => void` | ✓ | - | 删除书签 |
+| onViewSnapshot | `() => void` | - | - | 查看快照 |
+| onSaveSnapshot | `() => void` | - | - | 保存或更新快照 |
+| onDeleteSnapshot | `() => void` | - | - | 删除快照 |
+| onSyncToObsidian | `() => void` | - | - | 同步书签笔记到 Obsidian |
+| onTogglePin | `() => void` | - | - | 置顶或取消置顶书签 |
+| isPinned | `boolean` | - | `false` | 当前书签是否已置顶 |
+| onReanalyzeAI | `() => void` | - | - | 重新执行 AI 分析 |
+| isProcessingAI | `boolean` | - | - | AI 批处理是否运行中 |
+| t | `(key: string, options?: Record<string, unknown>) => string` | ✓ | - | i18n 翻译函数 |
+
+**用法示例：**
+
+```tsx
+<BookmarkListItem
+  bookmark={bookmark}
+  categoryName={categoryName}
+  formattedDate={formattedDate}
+  isSelected={false}
+  onToggleSelect={toggleSelect}
+  onOpen={openBookmark}
+  onEdit={editBookmark}
+  onDelete={deleteBookmark}
+  onSaveSnapshot={saveSnapshot}
+  onSyncToObsidian={syncToObsidian}
+  onTogglePin={togglePin}
+  isPinned={isPinned}
+  t={t}
+/>
+```
+
+**行为说明：**
+
+- 快照菜单项与网格视图一致。
+- Obsidian 同步菜单项始终由父组件控制是否可用。
+- 置顶菜单项与网格视图一致。
+- 快照状态来自 `bookmark.hasSnapshot`，删除快照后父组件需要刷新书签列表。
+- 组件保持展示职责，不直接执行快照存储逻辑。
 
 ---
 
@@ -602,7 +1374,7 @@ const { snapshotUrl, loading, error, openSnapshot, closeSnapshot } =
 
 ### useConversationalSearch
 
-AI 对话式搜索 Hook，封装 AI 对话状态机与检索逻辑。内部集成 `chatSearchAgent` 进行完整的对话式搜索（意图解析 + 混合检索 + LLM 回答生成）。
+AI 对话式搜索 Hook，封装 AI 对话状态机与检索逻辑。内部通过 `chatSearchAgent` 调用统一的 extension agent 接入层，由 agent tool loop 负责搜索编排、帮助问答、统计和筛选。
 
 **返回值：**
 
@@ -615,10 +1387,11 @@ AI 对话式搜索 Hook，封装 AI 对话状态机与检索逻辑。内部集�
 | status                   | `AISearchStatus`                  | AI 状态                |
 | error                    | `string \| null`                  | 错误信息               |
 | results                  | `Source[]`                        | 当前回答的引用源       |
-| suggestions              | `string[]`                        | 后续建议               |
+| suggestions              | `Suggestion[]`                    | 后续建议               |
 | highlightedBookmarkId    | `string \| null`                  | 高亮的书签 ID          |
 | setHighlightedBookmarkId | `(id: string \| null) => void`    | 设置高亮书签           |
 | handleSearch             | `() => Promise<void>`             | 执行搜索               |
+| handleSuggestion         | `(suggestion: Suggestion) => Promise<void>` | 执行结构化建议动作 |
 | clearConversation        | `() => void`                      | 清除对话               |
 | closeChat                | `() => void`                      | 关闭对话窗口           |
 | isChatOpen               | `boolean`                         | 对话窗口是否打开       |
@@ -648,6 +1421,7 @@ const {
   highlightedBookmarkId,
   setHighlightedBookmarkId,
   handleSearch,
+  handleSuggestion,
   closeChat,
   isChatOpen,
 } = useConversationalSearch();
@@ -662,15 +1436,16 @@ const handleSourceClick = (bookmarkId: string) => {
 **行为说明：**
 
 - 调用 `handleSearch()` 打开对话窗口并执行 AI 搜索
-- AI 搜索调用 `chatSearchAgent.search()` 执行完整流程：
-  1. **Query Planner**: 使用 LLM 解析用户意图，提取筛选条件
-  2. **Hybrid Retriever**: 混合检索（关键词 + 语义向量）
-  3. **Answer Writer**: 使用 LLM 基于检索结果生成回答
-- 支持多轮对话，维护对话历史记录
+- `handleSearch()` 与 `handleSuggestion()` 都会进入统一的 `chatSearchAgent.runTurn()` 回合流程：
+  1. 将用户文本或 suggestion action 解析为当前回合输入
+  2. agent 读取搜索上下文、历史、过滤条件、分类、标签、快捷键等工具信息
+  3. agent 自主调用 `search_bookmarks`、`apply_filter`、`continue_search` 等工具完成检索编排
+  4. formatter 基于工具结果生成最终回答、引用源和下一步建议
+- 支持连续对话，过滤条件、已展示结果与最近几轮历史会持续保留
 - 支持流式输出动画
-- 自动生成后续建议操作
+- 搜索类 suggestion 会直接执行结构化动作，而不是仅把文案塞回输入框
 - 关闭对话窗口时自动清除对话状态
-- 若 AI 未配置，自动回退到基于规则的回答生成
+- AI 未配置或调用失败时直接返回错误，不再静默回退
 
 ---
 
@@ -1555,11 +2330,11 @@ await vectorStore.clearAll();
 
 ---
 
-### aiClient
+### Agent Services
 
-AI 客户端封装，提供统一的 AI 分析接口。
+插件内 AI 能力统一收敛到 `lib/agent/services/*`，UI 与 hooks 不再直接调用旧 `aiClient`。
 
-#### analyzeComplete
+#### bookmarkAnalysisService.analyzeBookmark
 
 一次性分析书签内容，生成标题、摘要、分类、标签。
 
@@ -1568,69 +2343,66 @@ AI 客户端封装，提供统一的 AI 分析接口。
 | Property       | Type              | Required | Description                                |
 | -------------- | ----------------- | -------- | ------------------------------------------ |
 | pageContent    | `PageContent`     | ✓        | 页面内容对象                               |
-| userCategories | `LocalCategory[]` | -        | 用户已有分类（用于智能匹配）               |
+| userCategories | `LocalCategory[]` | -        | 用户已有分类（用于优先复用分类）           |
 | existingTags   | `string[]`        | -        | 用户已有标签（避免生成语义相近的重复标签） |
 
 **行为说明：**
 
-- 传递 `existingTags` 后，AI 会避免生成与已有标签语义相近的标签
-- 例如：已有 "前端开发" 标签时，AI 不会生成 "前端"、"Web开发" 等相近标签
-- 优先复用已有标签，仅在确实需要新概念时才生成新标签
-
-**AI 配置项控制：**
-
-| 配置项                | 类型      | 默认值 | 作用                                                 |
-| --------------------- | --------- | ------ | ---------------------------------------------------- |
-| `enableSmartCategory` | `boolean` | `true` | 是否自动应用 AI 推荐的分类，关闭后 AI 分类建议不生效 |
-| `enableTagSuggestion` | `boolean` | `true` | 是否自动应用 AI 推荐的标签，关闭后 AI 标签建议不生效 |
-
-- 这两个配置在设置页面的 AI 设置区域可以开关
-- 关闭后 AI 仍会执行分析，但分析结果中的分类/标签不会自动填充到表单
+- 使用统一 agent 配置工厂初始化模型
+- 输出固定结构：`title`、`summary`、`category`、`tags`
+- AI 失败时直接抛出错误，由调用方决定 UI 提示
 
 **用法示例：**
 
 ```ts
-import { aiClient } from "@/lib/ai/client";
-import { bookmarkStorage } from "@/lib/storage";
+import { bookmarkAnalysisService } from "@/lib/agent";
 
-// 获取已有标签和分类
-const [categories, existingTags] = await Promise.all([
-  bookmarkStorage.getCategories(),
-  bookmarkStorage.getAllTags(),
-]);
-
-// AI 分析
-const result = await aiClient.analyzeComplete({
+const result = await bookmarkAnalysisService.analyzeBookmark({
   pageContent,
   userCategories: categories,
-  existingTags, // 传递已有标签避免重复
+  existingTags,
 });
 ```
 
-#### translate
+#### translationService.translate
 
 翻译文本（标签或摘要），目标语言由用户设置决定。
 
-**参数：**
-
-| Property   | Type           | Required | Default           | Description          |
-| ---------- | -------------- | -------- | ----------------- | -------------------- |
-| text       | `string`       | ✓        | -                 | 要翻译的文本         |
-| targetLang | `'zh' \| 'en'` | -        | 用户语言设置      | 目标语言             |
+| Property   | Type           | Required | Default      | Description  |
+| ---------- | -------------- | -------- | ------------ | ------------ |
+| text       | `string`       | ✓        | -            | 要翻译的文本 |
+| targetLang | `'zh' \| 'en'` | -        | `'zh'`       | 目标语言     |
 
 **行为说明：**
 
-- 仅在 `AIConfig.enableTranslation` 为 `true` 时执行翻译
-- 目标语言取自 `LocalSettings.language`，不再硬编码为中文
-- 未配置 AI 或未启用翻译时，直接返回原文
+- 由统一 agent 接入层发起模型请求
+- 保留 Markdown、列表和术语
+- 翻译失败时直接抛出错误，不回退原文
 
 **用法示例：**
 
 ```ts
-// 翻译到用户设置的语言
-const settings = await configStorage.getSettings();
-const translated = await aiClient.translate(text, settings.language);
+import { translationService } from "@/lib/agent";
+
+const translated = await translationService.translate(text, settings.language);
 ```
+
+#### categoryGenerationService.generateCategories
+
+根据用户描述生成层级分类方案。
+
+| Property      | Type       | Required | Description      |
+| ------------- | ---------- | -------- | ---------------- |
+| description   | `string`   | ✓        | 分类方案需求描述 |
+
+#### agentConfigService
+
+统一封装连接测试与可用模型拉取。
+
+| Method                  | Parameters                                 | Return                                   | Description      |
+| ----------------------- | ------------------------------------------ | ---------------------------------------- | ---------------- |
+| `testConnection`        | -                                          | `Promise<{ success: boolean; message: string }>` | 测试模型连通性   |
+| `listAvailableModels`   | `{ provider?, apiKey?, baseUrl? }`         | `Promise<{ models: string[]; endpoint: string }>` | 拉取远端模型列表 |
 
 ---
 
@@ -1681,7 +2453,7 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 
 ## ImportExportPage
 
-导入导出页面组件，支持书签和分类的导入导出功能。
+导入导出页面组件，支持书签、分类、工作空间和 Tab 分组配置的导入导出功能。
 
 | Prop | Type | Required | Default | Description |
 | ---- | ---- | -------- | ------- | ----------- |
@@ -1689,7 +2461,7 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 
 ### 导出功能
 
-- **JSON 格式**：导出完整数据（书签、分类、标签），适合插件间迁移
+- **JSON 格式**：导出完整数据（书签、分类、工作空间、工作空间分类、Tab 分组规则、Tab 自动分组设置），适合插件间迁移
 - **HTML 格式**：导出标准浏览器书签格式，可导入到其他浏览器
 
 ### 导入功能
@@ -1700,6 +2472,8 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
    - 自动建立分类 ID 映射表，确保导入后关联关系正确
    - 按层级顺序处理分类，先创建父分类再创建子分类
    - 书签的 `categoryId` 自动转换为新系统中的对应 ID
+   - 工作空间分类会建立独立 ID 映射，工作空间的 `categoryId` 会同步转换
+   - Tab 分组规则按原始 ID 导入，已存在规则会被更新，自动分组设置会一并恢复
 
 2. **HTML 格式**（浏览器书签）
    - 支持保留目录结构选项
@@ -1717,5 +2491,69 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 **行为说明：**
 
 - JSON 导入时，分类 ID 会被重新生成，通过映射表维护书签与分类的关联关系
+- JSON 导入时，工作空间、工作空间分类和 Tab 分组配置会随备份一起恢复
 - 同名同父级的分类不会重复创建，直接复用已有分类
 - 导入进度实时显示，支持大量书签的批量导入
+
+---
+
+## pageShell
+
+管理页与设置页的页面级壳层行为说明。
+
+### OptionsPage
+
+扩展设置页面组件，负责 AI、通用设置与存储管理。
+
+| Prop | Type | Required | Default | Description |
+| ---- | ---- | -------- | ------- | ----------- |
+| -    | -    | -        | -       | 无 props    |
+
+**用法示例：**
+
+```tsx
+<OptionsPage />
+```
+
+**行为说明：**
+
+- 与产品介绍相关的信息已拆分到独立的 `AboutPage`
+
+### AboutPage
+
+关于 HamHome 的独立菜单页，集中展示产品信息与外部入口。
+
+| Prop | Type | Required | Default | Description |
+| ---- | ---- | -------- | ------- | ----------- |
+| -    | -    | -        | -       | 无 props    |
+
+**用法示例：**
+
+```tsx
+<AboutPage />
+```
+
+**行为说明：**
+
+- 展示当前扩展版本、官网地址、GitHub 仓库地址和 GitHub Star 引导
+- 官网与仓库入口使用新标签页打开，避免打断当前扩展管理流程
+
+### App 页面顶部工具栏
+
+管理页面顶部工具栏，承载常用全局操作入口。
+
+| Prop | Type | Required | Default | Description |
+| ---- | ---- | -------- | ------- | ----------- |
+| -    | -    | -        | -       | 页面内部结构，无独立 props |
+
+**用法示例：**
+
+```tsx
+<header className="flex h-16 shrink-0 items-center gap-2 border-b">...</header>
+```
+
+**行为说明：**
+
+- 左侧侧边栏新增“关于”独立菜单项，对应 `AboutPage`
+- 右上角在语言切换按钮左侧新增 GitHub 仓库快捷入口
+- GitHub 按钮通过 Tooltip 提示用途，并在新标签页打开项目仓库

@@ -3,23 +3,42 @@
  * 保存面板的业务逻辑层
  */
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { aiClient } from "@/lib/ai/client";
 import {
   bookmarkStorage,
-  snapshotStorage,
   configStorage,
   aiCacheStorage,
 } from "@/lib/storage";
+import {
+  matchCategoryByName,
+} from "@/lib/agent";
 import { getBackgroundService } from "@/lib/services";
+import { obsidianSyncService } from "@/lib/services/obsidian-sync-service";
 import { createMarkdownContent } from "defuddle/full";
 import type { PageContent, LocalBookmark, LocalCategory } from "@/types";
 import type { AIStatusType } from "./AIStatus";
 import { parseCategoryPath } from "../common/CategoryTree";
 
+export type SavePanelSnapshotStatus =
+  | "idle"
+  | "savingBookmark"
+  | "savingSnapshot"
+  | "bookmarkSaved"
+  | "skipped"
+  | "saved"
+  | "failed";
+
+export type SavePanelObsidianStatus =
+  | "idle"
+  | "syncing"
+  | "synced"
+  | "skipped"
+  | "failed";
+
 interface UseSavePanelProps {
   pageContent: PageContent;
   existingBookmark: LocalBookmark | null;
   onSaved?: () => void;
+  initialSaveSnapshot?: boolean;
 }
 
 interface UseSavePanelResult {
@@ -41,6 +60,12 @@ interface UseSavePanelResult {
 
   // 操作状态
   saving: boolean;
+  saveSnapshot: boolean;
+  snapshotStatus: SavePanelSnapshotStatus;
+  snapshotError: string | null;
+  syncToObsidian: boolean;
+  obsidianStatus: SavePanelObsidianStatus;
+  obsidianError: string | null;
 
   // 表单操作
   setUrl: (value: string) => void;
@@ -48,6 +73,8 @@ interface UseSavePanelResult {
   setDescription: (value: string) => void;
   setCategoryId: (value: string | null) => void;
   setTags: (value: string[]) => void;
+  setSaveSnapshot: (value: boolean) => void;
+  setSyncToObsidian: (value: boolean) => void;
 
   // 业务操作
   runAIAnalysis: () => Promise<void>;
@@ -61,13 +88,14 @@ export function useSavePanel({
   pageContent,
   existingBookmark,
   onSaved,
+  initialSaveSnapshot,
 }: UseSavePanelProps): UseSavePanelResult {
   // 将 content.ts 传来的 HTML 正文转为 Markdown
   // 提升性能，仅在 UI 层按需处理
   const markdown = useMemo(() => {
     if (!pageContent.content) return "";
     return createMarkdownContent(pageContent.htmlContent, pageContent.url);
-  }, [pageContent.content, pageContent.url]);
+  }, [pageContent.content, pageContent.htmlContent, pageContent.url]);
 
   // 表单状态
   const [url, setUrl] = useState(pageContent.url);
@@ -92,19 +120,47 @@ export function useSavePanel({
 
   // 操作状态
   const [saving, setSaving] = useState(false);
+  const [saveSnapshot, setSaveSnapshotState] = useState(false);
+  const [snapshotStatus, setSnapshotStatus] =
+    useState<SavePanelSnapshotStatus>("idle");
+  const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [syncToObsidian, setSyncToObsidian] = useState(false);
+  const [obsidianStatus, setObsidianStatus] =
+    useState<SavePanelObsidianStatus>("idle");
+  const [obsidianError, setObsidianError] = useState<string | null>(null);
 
   // 加载分类和标签列表
   useEffect(() => {
     const loadData = async () => {
-      const [cats, existingTags] = await Promise.all([
+      const [cats, existingTags, settings] = await Promise.all([
         bookmarkStorage.getCategories(),
         bookmarkStorage.getAllTags(),
+        configStorage.getSettings(),
       ]);
       setCategories(cats);
       setAllTags(existingTags);
+      
+      // Use initialSaveSnapshot if provided, otherwise fallback to settings
+      if (initialSaveSnapshot !== undefined) {
+        setSaveSnapshotState(initialSaveSnapshot);
+      } else {
+        setSaveSnapshotState(settings.autoSaveSnapshot);
+      }
+      
       setDataLoaded(true);
     };
     loadData();
+  }, [initialSaveSnapshot]);
+
+  const setSaveSnapshot = useCallback((value: boolean) => {
+    setSaveSnapshotState(value);
+    setSnapshotStatus("idle");
+    setSnapshotError(null);
+    setObsidianStatus("idle");
+    setObsidianError(null);
+    if (!value) {
+      setSyncToObsidian(false);
+    }
   }, []);
 
   // 如果已存在书签，填充现有数据
@@ -176,16 +232,10 @@ export function useSavePanel({
           }
         }
 
-        // 2. 加载配置并检查
-        await aiClient.loadConfig();
-        if (!aiClient.isConfigured()) {
-          setAIStatus("disabled");
-          return;
-        }
-
-        // 3. 执行新的分析（传递已有标签避免生成语义相近的重复标签）
+        // 2. 执行分析（传递已有标签避免生成语义相近的重复标签）
+        const backgroundService = getBackgroundService();
         const existingTags = await bookmarkStorage.getAllTags();
-        const result = await aiClient.analyzeComplete({
+        const result = await backgroundService.analyzeBookmark({
           pageContent: { ...pageContent, content: markdown },
           userCategories: categories,
           existingTags,
@@ -306,10 +356,12 @@ export function useSavePanel({
     if (!title?.trim() || !url.trim()) return;
 
     setSaving(true);
+    setSnapshotStatus("savingBookmark");
+    setSnapshotError(null);
+    setObsidianStatus("idle");
+    setObsidianError(null);
 
     try {
-      const settings = await configStorage.getSettings();
-
       const data = {
         url: url.trim(),
         title: title.trim(),
@@ -318,7 +370,7 @@ export function useSavePanel({
         categoryId,
         tags,
         favicon: pageContent.favicon,
-        hasSnapshot: false,
+        hasSnapshot: existingBookmark?.hasSnapshot ?? false,
       };
 
       let bookmark: LocalBookmark;
@@ -333,26 +385,7 @@ export function useSavePanel({
         // 创建新书签
         bookmark = await bookmarkStorage.createBookmark(data);
       }
-
-      // 自动保存快照
-      // 交由 Background Worker 异步执行，防止当前 UI (Popup) 关闭导致 Promise 死亡而中断保存
-      if (settings.autoSaveSnapshot) {
-        try {
-          const backgroundService = getBackgroundService();
-          // 如果页面可读并且成功解析出了 markdown，把 markdown 传递给后台直接保存
-          // 否则传递 undefined，后台会自动执行 SingleFile HTML 兜底捕获并保存
-          const snapshotMarkdown = (pageContent.isReaderable && markdown) ? markdown : undefined;
-          
-          backgroundService.saveSnapshotBackground(
-            bookmark.id,
-            snapshotMarkdown
-          ).catch((e) => {
-            console.warn("[useSavePanel] Failed to trigger background snapshot:", e);
-          });
-        } catch (e) {
-          console.warn("[useSavePanel] Failed to save snapshot asynchronously:", e);
-        }
-      }
+      setSnapshotStatus("bookmarkSaved");
 
       // 添加 embedding 生成任务（在 background 中执行）
       try {
@@ -362,9 +395,71 @@ export function useSavePanel({
         console.warn("[useSavePanel] Failed to queue embedding:", e);
       }
 
+      if (saveSnapshot) {
+        setSnapshotStatus("savingSnapshot");
+        try {
+          const backgroundService = getBackgroundService();
+          const snapshotMarkdown = shouldUseMarkdownSnapshot(
+            pageContent,
+            markdown,
+          )
+            ? markdown
+            : undefined;
+
+          const result = await backgroundService.saveSnapshotBackground(
+            bookmark.id,
+            {
+              markdown: snapshotMarkdown,
+              mode: "auto",
+            },
+          );
+
+          if (!result.ok) {
+            setSnapshotStatus("failed");
+            setSnapshotError(result.error ?? "快照保存失败，可稍后重试");
+            return;
+          }
+
+          setSnapshotStatus(result.skipped ? "skipped" : "saved");
+
+          if (!result.skipped && syncToObsidian) {
+            setObsidianStatus("syncing");
+            const obsidianResult = await obsidianSyncService.syncBookmark(
+              bookmark.id,
+              {
+                skipUnchanged: false,
+                markdown,
+                sourceUpdatedAt: bookmark.updatedAt,
+              },
+            );
+            if (obsidianResult.status === "failed") {
+              setObsidianStatus("failed");
+              setObsidianError(obsidianResult.error ?? "同步到 Obsidian 失败");
+            } else {
+              setObsidianStatus(
+                obsidianResult.status === "success" ? "synced" : "skipped",
+              );
+            }
+          }
+        } catch (e) {
+          console.warn(
+            "[useSavePanel] Failed to save snapshot asynchronously:",
+            e,
+          );
+          setSnapshotStatus("failed");
+          setSnapshotError(
+            e instanceof Error ? e.message : "快照保存失败，可稍后重试",
+          );
+          return;
+        }
+      } else {
+        setSnapshotStatus("skipped");
+      }
+
       onSaved?.();
     } catch (err: unknown) {
       console.error("[useSavePanel] Save failed:", err);
+      setSnapshotStatus("failed");
       alert(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
@@ -376,7 +471,10 @@ export function useSavePanel({
     categoryId,
     tags,
     pageContent,
+    markdown,
     existingBookmark,
+    saveSnapshot,
+    syncToObsidian,
     onSaved,
   ]);
 
@@ -418,11 +516,19 @@ export function useSavePanel({
     aiStatus,
     aiError,
     saving,
+    saveSnapshot,
+    snapshotStatus,
+    snapshotError,
+    syncToObsidian,
+    obsidianStatus,
+    obsidianError,
     setUrl,
     setTitle,
     setDescription,
     setCategoryId,
     setTags,
+    setSaveSnapshot,
+    setSyncToObsidian,
     runAIAnalysis,
     retryAnalysis,
     applyAIRecommendedCategory,
@@ -432,45 +538,18 @@ export function useSavePanel({
   };
 }
 
-// ========== 辅助函数 ==========
+function shouldUseMarkdownSnapshot(
+  pageContent: PageContent,
+  markdown: string,
+): boolean {
+  if (!markdown) return false;
+  return !!pageContent.isReaderable;
+}
 
 /**
  * 简单匹配分类名称（精确 + 模糊）
  * 优先匹配叶子节点（子分类），避免只匹配到父节点
  */
-function matchCategoryByName(
-  categoryName: string,
-  categories: LocalCategory[],
-): { matched: boolean; categoryId: string | null } {
-  const searchName = categoryName.toLowerCase();
-
-  // 判断是否为叶子节点（没有子分类）
-  const parentIds = new Set(categories.map((c) => c.parentId).filter(Boolean));
-  const isLeaf = (c: LocalCategory) => !parentIds.has(c.id);
-
-  // 精确匹配 - 优先叶子节点
-  const exactMatches = categories.filter(
-    (c) => c.name.toLowerCase() === searchName,
-  );
-  if (exactMatches.length > 0) {
-    const leafMatch = exactMatches.find(isLeaf);
-    return { matched: true, categoryId: (leafMatch || exactMatches[0]).id };
-  }
-
-  // 模糊匹配 - 优先叶子节点
-  const fuzzyMatches = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchName) ||
-      searchName.includes(c.name.toLowerCase()),
-  );
-  if (fuzzyMatches.length > 0) {
-    const leafMatch = fuzzyMatches.find(isLeaf);
-    return { matched: true, categoryId: (leafMatch || fuzzyMatches[0]).id };
-  }
-
-  return { matched: false, categoryId: null };
-}
-
 /**
  * 应用分析结果到表单（带有 setter 函数）
  * 返回 AI 推荐的新分类名称（如果不在用户已有分类中）
@@ -495,7 +574,8 @@ async function applyAnalysisResultWithSetters(
   // 处理描述（翻译功能）
   if (result.summary) {
     if (config.enableTranslation) {
-      const translatedSummary = await aiClient.translate(
+      const backgroundService = getBackgroundService();
+      const translatedSummary = await backgroundService.translate(
         result.summary,
         targetLang,
       );
@@ -508,8 +588,11 @@ async function applyAnalysisResultWithSetters(
   // 处理标签（仅在启用标签推荐时）
   if (config.enableTagSuggestion && result.tags.length > 0) {
     if (config.enableTranslation) {
+      const backgroundService = getBackgroundService();
       const translatedTags = await Promise.all(
-        result.tags.map((tag: string) => aiClient.translate(tag, targetLang)),
+        result.tags.map((tag: string) =>
+          backgroundService.translate(tag, targetLang),
+        ),
       );
       setTags(translatedTags);
     } else {

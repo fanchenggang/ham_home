@@ -79,7 +79,8 @@ class ConfigStorage {
    * 获取用户设置
    */
   async getSettings(): Promise<LocalSettings> {
-    return settingsItem.getValue();
+    const settings = await settingsItem.getValue();
+    return { ...DEFAULT_SETTINGS, ...settings };
   }
 
   /**
@@ -195,7 +196,7 @@ class ConfigStorage {
    */
   watchSettings(callback: (settings: LocalSettings) => void): () => void {
     return settingsItem.watch((newValue: LocalSettings | null) => {
-      callback(newValue ?? DEFAULT_SETTINGS);
+      callback({ ...DEFAULT_SETTINGS, ...(newValue ?? {}) });
     });
   }
 

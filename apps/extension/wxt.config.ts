@@ -14,13 +14,6 @@ export default defineConfig({
         // 项目内部绝对路径别名配置
         "@": path.resolve(__dirname, "./"), // 指向本项目根目录 apps/extension/
         "@ui": path.resolve(__dirname, "../../packages/ui/src"), // 指向 MonoRepo 中共享的 UI 组件库
-
-        // 用于修复部分依赖路径解析异常的问题
-        // Vite/WXT 无法正确解析 @langchain/anthropic 内部使用的无扩展名子路径
-        "@anthropic-ai/sdk/lib/transform-json-schema": path.resolve(
-          __dirname,
-          "../../node_modules/.pnpm/node_modules/@anthropic-ai/sdk/lib/transform-json-schema.js",
-        ),
       },
     },
     esbuild: {
@@ -56,7 +49,7 @@ export default defineConfig({
     // 设置扩展的默认语言区域为简体中文
     default_locale: "zh_CN",
     // 扩展的版本号
-    version: "1.1.5",
+    version: "1.1.6",
 
     // 声明扩展所需要的浏览器 API 权限
     // 下面的注释同时对应 Chrome Web Store 提交时可填写的权限用途说明
@@ -64,8 +57,12 @@ export default defineConfig({
       "storage", // 保存用户书签数据、分类、标签、设置、AI 配置等本地/同步数据
       "unlimitedStorage", // 本地保存网页快照、页面内容和向量索引，避免数据量增大后触发默认存储配额限制
       "activeTab", // 仅在用户主动操作当前标签页时，读取当前页面信息并执行保存、快照、面板切换等操作
+      "tabs", // 读取当前窗口标签页标题、URL、图标和固定状态，用于保存/恢复工作空间
+      ...(browser !== "firefox"
+        ? ["tabGroups"] // 使用 Chromium 原生 Tab Groups API，按用户规则自动创建和更新浏览器标签页分组
+        : []),
       "scripting", // 在当前活动页面按需执行脚本，用于提取页面 HTML/正文内容，保存书签快照或分析页面内容
-      // "downloads",         // 当前代码未直接调用 browser.downloads API；若仅通过 <a download> 导出文件，可考虑移除此权限
+      "clipboardWrite", // 将 Obsidian 笔记内容写入剪贴板后通过 Obsidian 协议保存
       "contextMenus", // 在网页右键菜单中提供“收藏到 HamHome”入口，方便用户快速保存当前页面或链接
       "bookmarks", // 读取浏览器原生书签树，用于导入用户已有书签到 HamHome
       "alarms", // 创建后台定时任务，定期执行 WebDAV 同步，并在本地书签变更后延迟触发同步
@@ -102,6 +99,14 @@ export default defineConfig({
           mac: "Command+Shift+X", // macOS 默认建议按键
         },
         description: "__MSG_commandSaveBookmark__", // 多语言快捷键描述
+      },
+      // 快捷保存当前窗口为工作空间命令
+      "save-workspace": {
+        suggested_key: {
+          default: "Ctrl+Shift+Y",
+          mac: "Command+Shift+Y",
+        },
+        description: "__MSG_commandSaveWorkspace__",
       },
       // 切换主控制面板（侧边栏或悬浮窗）显示/隐藏的命令
       "toggle-bookmark-panel": {

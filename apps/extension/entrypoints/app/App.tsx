@@ -16,10 +16,13 @@ import {
   Database,
   SunMoon,
   Languages,
+  Github,
+  Info,
   Cloud,
   Loader2,
   AlertTriangle,
-  RefreshCw,
+  Briefcase,
+  Layers,
 } from "lucide-react";
 import {
   Toaster,
@@ -56,8 +59,13 @@ import { MainContent } from "@/components/MainContent";
 import { OptionsPage } from "@/components/OptionsPage";
 import { CategoriesPage } from "@/components/CategoriesPage";
 import { TagsPage } from "@/components/TagsPage";
+import { WorkspacesPage } from "@/components/WorkspacesPage";
+import { TabGroupsPage } from "@/components/TabGroupsPage";
 import { PrivacyPage } from "@/components/PrivacyPage";
 import { ImportExportPage } from "@/components/ImportExportPage";
+import { AboutPage } from "@/components/AboutPage";
+import { APP_GITHUB_REPO_URL } from "@/lib/constants/app-info";
+import { safeCreateTab } from "@/utils/browser-api";
 import logoImage from "@/assets/logo.png";
 
 // 页面标题映射
@@ -82,9 +90,21 @@ const PAGE_TITLES: Record<string, { title: string; description?: string }> = {
     title: "bookmark:tags.title",
     description: "bookmark:tags.description",
   },
+  workspaces: {
+    title: "bookmark:workspace.title",
+    description: "bookmark:workspace.description",
+  },
+  "tab-groups": {
+    title: "bookmark:tabGroups.title",
+    description: "bookmark:tabGroups.description",
+  },
   "import-export": {
     title: "settings:settings.importExport.title",
     description: "settings:settings.importExport.description",
+  },
+  about: {
+    title: "settings:settings.about.title",
+    description: "settings:settings.about.description",
   },
 };
 
@@ -246,6 +266,18 @@ function AppContent() {
         badge: bookmarks.length,
       },
       {
+        title: t("bookmark:workspace.title"),
+        url: "#workspaces",
+        icon: Briefcase,
+        isActive: currentViewBase === "workspaces",
+      },
+      {
+        title: t("bookmark:tabGroups.navTitle"),
+        url: "#tab-groups",
+        icon: Layers,
+        isActive: currentViewBase === "tab-groups",
+      },
+      {
         title: t("bookmark:bookmark.categories"),
         url: "#categories",
         icon: Folder,
@@ -276,6 +308,12 @@ function AppContent() {
         url: "#settings",
         icon: Settings,
         isActive: currentViewBase === "settings",
+      },
+      {
+        title: t("settings:settings.about.title"),
+        url: "#about",
+        icon: Info,
+        isActive: currentViewBase === "about",
       },
     ],
     [t, currentViewBase, bookmarks.length, categories.length, allTags.length],
@@ -425,8 +463,14 @@ function AppContent() {
         return <CategoriesPage />;
       case "tags":
         return <TagsPage />;
+      case "workspaces":
+        return <WorkspacesPage />;
+      case "tab-groups":
+        return <TabGroupsPage />;
       case "import-export":
         return <ImportExportPage />;
+      case "about":
+        return <AboutPage />;
       default:
         return (
           <MainContent
@@ -464,6 +508,22 @@ function AppContent() {
             </Breadcrumb>
           </div>
           <div className="ml-auto px-4 flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => void safeCreateTab(APP_GITHUB_REPO_URL)}
+                  aria-label={t("settings:settings.about.githubButton")}
+                >
+                  <Github className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t("settings:settings.about.githubButton")}
+              </TooltipContent>
+            </Tooltip>
             {/* 语言切换 */}
             <DropdownMenu>
               <Tooltip>

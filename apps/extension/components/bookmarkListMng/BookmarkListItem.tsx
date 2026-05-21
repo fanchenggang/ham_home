@@ -10,6 +10,8 @@ import {
   Share2,
   Trash2,
   Camera,
+  Download,
+  Pin,
   Sparkles,
 } from "lucide-react";
 import {
@@ -36,6 +38,11 @@ export interface BookmarkListItemProps {
   onEdit: () => void;
   onDelete: () => void;
   onViewSnapshot?: () => void;
+  onSaveSnapshot?: () => void;
+  onDeleteSnapshot?: () => void;
+  onSyncToObsidian?: () => void;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
   onReanalyzeAI?: () => void;
   isProcessingAI?: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -52,6 +59,11 @@ export function BookmarkListItem({
   onEdit,
   onDelete,
   onViewSnapshot,
+  onSaveSnapshot,
+  onDeleteSnapshot,
+  onSyncToObsidian,
+  onTogglePin,
+  isPinned = false,
   onReanalyzeAI,
   isProcessingAI,
   t,
@@ -178,13 +190,46 @@ export function BookmarkListItem({
               <Share2 className="h-4 w-4 mr-2" />
               {t("bookmark:bookmark.share")}
             </DropdownMenuItem>
-            {bookmark.hasSnapshot && onViewSnapshot && (
+            {onTogglePin && (
+              <DropdownMenuItem onClick={onTogglePin}>
+                <Pin className="h-4 w-4 mr-2" />
+                {isPinned
+                  ? t("bookmark:bookmark.unpin")
+                  : t("bookmark:bookmark.pin")}
+              </DropdownMenuItem>
+            )}
+            {(onViewSnapshot ||
+              onSaveSnapshot ||
+              onDeleteSnapshot ||
+              onSyncToObsidian) && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onViewSnapshot}>
-                  <Camera className="h-4 w-4 mr-2" />
-                  {t("bookmark:bookmark.viewSnapshot")}
-                </DropdownMenuItem>
+                {bookmark.hasSnapshot && onViewSnapshot && (
+                  <DropdownMenuItem onClick={onViewSnapshot}>
+                    <Camera className="h-4 w-4 mr-2" />
+                    {t("bookmark:bookmark.viewSnapshot")}
+                  </DropdownMenuItem>
+                )}
+                {onSaveSnapshot && (
+                  <DropdownMenuItem onClick={onSaveSnapshot}>
+                    <Camera className="h-4 w-4 mr-2" />
+                    {bookmark.hasSnapshot
+                      ? t("bookmark:bookmark.snapshot.update")
+                      : t("bookmark:bookmark.snapshot.save")}
+                  </DropdownMenuItem>
+                )}
+                {bookmark.hasSnapshot && onDeleteSnapshot && (
+                  <DropdownMenuItem onClick={onDeleteSnapshot}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t("bookmark:bookmark.snapshot.delete")}
+                  </DropdownMenuItem>
+                )}
+                {bookmark.hasSnapshot && onSyncToObsidian && (
+                  <DropdownMenuItem onClick={onSyncToObsidian}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {t("bookmark:bookmark.snapshot.syncToObsidian")}
+                  </DropdownMenuItem>
+                )}
               </>
             )}
             {onReanalyzeAI && (

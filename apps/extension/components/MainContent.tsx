@@ -58,6 +58,8 @@ import { useVirtualBookmarkList } from "@/hooks/useVirtualBookmarkList";
 import { useBatchAITask } from "@/hooks/useBatchAITask";
 import { getCategoryPath, formatDate } from "@/utils/bookmark-utils";
 import { configStorage } from "@/lib/storage/config-storage";
+import { pinStorage } from "@/lib/storage";
+import { obsidianSyncService } from "@/lib/services/obsidian-sync-service";
 import type {
   LocalBookmark,
   CustomFilter,
@@ -83,6 +85,9 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
     string | undefined
   >();
   const [customFilterDialogOpen, setCustomFilterDialogOpen] = useState(false);
+  const [pinnedBookmarkIds, setPinnedBookmarkIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // 书签卡片引用（用于滚动定位）- grid 视图使用
   const bookmarkRefsForGrid = useRef<Map<string, HTMLElement>>(new Map());
@@ -103,6 +108,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
     highlightedBookmarkId,
     setHighlightedBookmarkId,
     handleSearch: handleAISearch,
+    handleSuggestion: handleAISuggestion,
     closeChat: closeAIChat,
     isChatOpen: isAIChatOpen,
     resultBookmarkIds: aiResultBookmarkIds,
@@ -119,6 +125,29 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       }
     };
     loadCustomFilters();
+  }, []);
+
+  useEffect(() => {
+    const loadPinnedItems = async () => {
+      const items = await pinStorage.getPinnedItems();
+      setPinnedBookmarkIds(
+        new Set(
+          items
+            .filter((item) => item.type === "bookmark")
+            .map((item) => item.targetId),
+        ),
+      );
+    };
+    loadPinnedItems();
+    return pinStorage.watch((items) => {
+      setPinnedBookmarkIds(
+        new Set(
+          items
+            .filter((item) => item.type === "bookmark")
+            .map((item) => item.targetId),
+        ),
+      );
+    });
   }, []);
 
   // 选中的自定义筛选器
@@ -251,7 +280,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
   // 处理 AI 建议点击
   const handleAISuggestionClick = useCallback(
     async (suggestion: Suggestion) => {
-      const { action, payload, label } = suggestion;
+      const { action, payload } = suggestion;
 
       switch (action) {
         case "navigate": {
@@ -308,9 +337,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
         case "findDuplicates":
         case "text":
         default: {
-          // 文本类建议 - 放入输入框并搜索
-          setAIQuery(label);
-          handleAISearch();
+          await handleAISuggestion(suggestion);
           break;
         }
       }
@@ -320,8 +347,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       bookmarks,
       selectedIds,
       toggleSelect,
-      setAIQuery,
-      handleAISearch,
+      handleAISuggestion,
       toast,
       t,
     ],
@@ -348,6 +374,7 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
     error: snapshotError,
     openSnapshot,
     closeSnapshot,
+    saveSnapshot,
     deleteSnapshot,
   } = useSnapshot();
 
@@ -427,6 +454,28 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
     openSnapshot(bookmark.id);
   };
 
+  const handleSyncToObsidian = async (bookmark: LocalBookmark) => {
+    const result = await obsidianSyncService.syncBookmark(bookmark.id);
+    if (result.status === "success") {
+      toast.success(t("bookmark:bookmark.snapshot.obsidianSyncSuccess"));
+    } else if (result.status === "skipped") {
+      toast.info(t("bookmark:bookmark.snapshot.obsidianSyncSkipped"));
+    } else {
+      toast.error(
+        result.error || t("bookmark:bookmark.snapshot.obsidianSyncFailed"),
+      );
+    }
+  };
+
+  const handleToggleBookmarkPin = async (bookmark: LocalBookmark) => {
+    const pinned = await pinStorage.togglePin("bookmark", bookmark.id);
+    toast.success(
+      pinned
+        ? t("bookmark:bookmark.pinSuccess")
+        : t("bookmark:bookmark.unpinSuccess"),
+    );
+  };
+
   // 关闭快照查看器
   const handleCloseSnapshot = () => {
     setSnapshotBookmark(null);
@@ -451,6 +500,26 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       handleCloseSnapshot();
     } catch (err) {
       console.error("[MainContent] Failed to delete snapshot:", err);
+    }
+  };
+
+  const handleDeleteBookmarkSnapshot = async (bookmark: LocalBookmark) => {
+    const confirmed = await confirm({
+      title: t("bookmark:bookmark.snapshot.deleteConfirm"),
+      description: t("bookmark:bookmark.snapshot.deleteConfirm"),
+      confirmText: t("common:common.delete"),
+      cancelText: t("common:common.cancel"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteSnapshot(bookmark.id);
+      toast.success(t("bookmark:bookmark.snapshot.deleteSuccess"));
+      refreshBookmarks();
+    } catch (err) {
+      console.error("[MainContent] Failed to delete snapshot:", err);
+      toast.error(t("bookmark:bookmark.snapshot.deleteFailed"));
     }
   };
 
@@ -530,6 +599,30 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
       console.error("[MainContent] Failed to batch move category:", error);
       throw error;
     }
+  };
+
+  const handleBatchSyncToObsidian = async () => {
+    if (selectedIds.size === 0) return;
+    
+    // 过滤出有快照的书签
+    const idsWithSnapshot = Array.from(selectedIds).filter(id => {
+      const bookmark = bookmarks.find(b => b.id === id);
+      return bookmark?.hasSnapshot;
+    });
+
+    if (idsWithSnapshot.length === 0) {
+      toast.error(t("bookmark:bookmark.snapshot.noSnapshotToSync"));
+      return;
+    }
+
+    const result = await obsidianSyncService.syncBookmarks(idsWithSnapshot);
+    toast.info(
+      t("bookmark:bookmark.snapshot.obsidianBatchResult", {
+        success: result.success,
+        failed: result.failed,
+        skipped: result.skipped,
+      }),
+    );
   };
 
   return (
@@ -779,6 +872,15 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                   <Button
                     variant="secondary"
                     size="sm"
+                    onClick={handleBatchSyncToObsidian}
+                    disabled={!Array.from(selectedIds).some(id => bookmarks.find(b => b.id === id)?.hasSnapshot)}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    {t("bookmark:bookmark.snapshot.syncSelectedToObsidian")}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => startBatchAITask(Array.from(selectedIds))}
                     disabled={isBatchAIProcessing}
                   >
@@ -938,6 +1040,14 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                     onViewSnapshot={
                       bm.hasSnapshot ? () => handleViewSnapshot(bm) : undefined
                     }
+                    onDeleteSnapshot={
+                      bm.hasSnapshot
+                        ? () => handleDeleteBookmarkSnapshot(bm)
+                        : undefined
+                    }
+                    onSyncToObsidian={() => handleSyncToObsidian(bm)}
+                    onTogglePin={() => handleToggleBookmarkPin(bm)}
+                    isPinned={pinnedBookmarkIds.has(bm.id)}
                     onReanalyzeAI={() => startBatchAITask([bm.id])}
                     isProcessingAI={isBatchAIProcessing}
                     columnSize={masonryConfig.columnSize}
@@ -983,6 +1093,14 @@ export function MainContent({ currentView, onViewChange }: MainContentProps) {
                         ? () => handleViewSnapshot(bookmark)
                         : undefined
                     }
+                    onDeleteSnapshot={
+                      bookmark.hasSnapshot
+                        ? () => handleDeleteBookmarkSnapshot(bookmark)
+                        : undefined
+                    }
+                    onSyncToObsidian={() => handleSyncToObsidian(bookmark)}
+                    onTogglePin={() => handleToggleBookmarkPin(bookmark)}
+                    isPinned={pinnedBookmarkIds.has(bookmark.id)}
                     onReanalyzeAI={() => startBatchAITask([bookmark.id])}
                     isProcessingAI={isBatchAIProcessing}
                     t={t}

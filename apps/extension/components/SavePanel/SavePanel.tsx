@@ -13,6 +13,8 @@ interface SavePanelProps {
   onSaved: () => void;
   onClose?: () => void;
   onDelete?: () => void;
+  hideSnapshotOptions?: boolean;
+  initialSaveSnapshot?: boolean;
 }
 
 export function SavePanel({
@@ -21,6 +23,8 @@ export function SavePanel({
   onSaved,
   onClose,
   onDelete,
+  hideSnapshotOptions = false,
+  initialSaveSnapshot,
 }: SavePanelProps) {
   const {
     title,
@@ -33,10 +37,18 @@ export function SavePanel({
     aiError,
     aiRecommendedCategory,
     saving,
+    saveSnapshot,
+    snapshotStatus,
+    snapshotError,
+    syncToObsidian,
+    obsidianStatus,
+    obsidianError,
     setTitle,
     setDescription,
     setCategoryId,
     setTags,
+    setSaveSnapshot,
+    setSyncToObsidian,
     runAIAnalysis,
     retryAnalysis,
     applyAIRecommendedCategory,
@@ -46,6 +58,7 @@ export function SavePanel({
     pageContent,
     existingBookmark,
     onSaved,
+    initialSaveSnapshot,
   });
 
   return (
@@ -61,10 +74,18 @@ export function SavePanel({
       aiStatus={aiStatus}
       aiError={aiError}
       saving={saving}
+      saveSnapshot={saveSnapshot}
+      snapshotStatus={snapshotStatus}
+      snapshotError={snapshotError}
+      syncToObsidian={syncToObsidian}
+      obsidianStatus={obsidianStatus}
+      obsidianError={obsidianError}
       onTitleChange={setTitle}
       onDescriptionChange={setDescription}
       onCategoryChange={setCategoryId}
       onTagsChange={setTags}
+      onSaveSnapshotChange={setSaveSnapshot}
+      onSyncToObsidianChange={setSyncToObsidian}
       onLoadSuggestions={runAIAnalysis}
       onApplyAICategory={applyAIRecommendedCategory}
       onRetry={retryAnalysis}
@@ -82,6 +103,7 @@ export function SavePanel({
             }
           : undefined
       }
+      hideSnapshotOptions={hideSnapshotOptions}
     />
   );
 }

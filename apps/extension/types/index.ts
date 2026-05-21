@@ -5,7 +5,7 @@
 
 // AI 对话式搜索类型
 export * from "./ai-search";
-import type { Suggestion } from "./ai-search";
+import type { Suggestion, SuggestionActionType } from "./ai-search";
 
 // ============ 书签相关 ============
 
@@ -164,6 +164,294 @@ export interface LocalSettings {
 
 // ============ 快照相关 ============
 
+export type SnapshotSaveMode = "auto" | "markdown" | "html" | "none";
+
+export type SnapshotContentType = "text/html" | "text/markdown;charset=utf-8";
+
+export interface SaveSnapshotBackgroundOptions {
+  markdown?: string;
+  mode?: SnapshotSaveMode;
+}
+
+export interface SnapshotSaveResult {
+  ok: boolean;
+  skipped?: boolean;
+  type?: SnapshotContentType;
+  error?: string;
+}
+
+export type ObsidianSyncStatus =
+  | "not_synced"
+  | "pending"
+  | "syncing"
+  | "synced"
+  | "failed";
+
+export interface ObsidianBookmarkSyncState {
+  bookmarkId: string;
+  status: ObsidianSyncStatus;
+  lastSyncedAt?: number;
+  sourceUpdatedAt?: number;
+  contentHash?: string;
+  error?: string;
+}
+
+export interface ObsidianSyncBookmarkOptions {
+  skipUnchanged?: boolean;
+  markdown?: string;
+  sourceUpdatedAt?: number;
+}
+
+export interface ObsidianSyncResult {
+  bookmarkId: string;
+  status: "success" | "failed" | "skipped";
+  filePath?: string;
+  error?: string;
+}
+
+export interface ObsidianBatchSyncResult {
+  total: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  results: ObsidianSyncResult[];
+}
+
+export type PinnedTargetType = "category" | "bookmark";
+
+export interface PinnedItem {
+  id: string;
+  type: PinnedTargetType;
+  targetId: string;
+  pinnedAt: number;
+  order: number;
+}
+
+// ============ 工作空间相关 ============
+
+export interface WorkspaceTabPage {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  favicon?: string;
+  pinned?: boolean;
+  windowId?: number;
+  index: number;
+  aiCategory?: string;
+  bookmarkId?: string;
+  convertedToBookmarkAt?: number;
+  bookmarkConversionStatus?: WorkspacePageBookmarkStatus;
+  bookmarkConversionError?: string;
+  purpose?: string;
+  duplicateGroupId?: string;
+  isDuplicate?: boolean;
+  tabId?: number;
+  tabGroupId?: number;
+  bookmarkRecommendation?: "recommended" | "excluded";
+}
+
+export type WorkspaceTabGroupColor =
+  | "grey"
+  | "blue"
+  | "red"
+  | "yellow"
+  | "green"
+  | "pink"
+  | "purple"
+  | "cyan"
+  | "orange";
+
+export interface WorkspaceTabGroup {
+  id: number;
+  title: string;
+  color: WorkspaceTabGroupColor;
+  collapsed?: boolean;
+  windowId?: number;
+}
+
+export interface WorkspaceCategory {
+  id: string;
+  name: string;
+  icon?: string;
+  parentId: string | null;
+  order: number;
+  createdAt: number;
+}
+
+export type WorkspacePageBookmarkStatus =
+  | "not_bookmarked"
+  | "converted"
+  | "existing"
+  | "failed";
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string | null;
+  tags: string[];
+  pages: WorkspaceTabPage[];
+  tabGroups?: WorkspaceTabGroup[];
+  analysis?: WorkspaceAnalysis;
+  isRestored: boolean;
+  restoredAt?: number;
+  convertedToBookmarks: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WorkspaceDuplicateGroup {
+  id: string;
+  url: string;
+  pageIds: string[];
+  preferredPageId: string;
+}
+
+export interface WorkspaceCategoryDistribution {
+  category: string;
+  count: number;
+}
+
+export interface WorkspaceAnalysis {
+  analyzedAt: number;
+  recommendedName: string;
+  recommendedTags: string[];
+  categoryDistribution: WorkspaceCategoryDistribution[];
+  totalPageCount: number;
+  dedupedPageCount: number;
+  duplicateGroups: WorkspaceDuplicateGroup[];
+  bookmarkRecommendedPageIds: string[];
+  excludedPageIds: string[];
+  aiEnabled: boolean;
+}
+
+export type CreateWorkspaceInput = Omit<
+  Workspace,
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "isRestored"
+  | "restoredAt"
+  | "convertedToBookmarks"
+>;
+
+export type UpdateWorkspaceInput = Partial<
+  Omit<Workspace, "id" | "createdAt" | "updatedAt">
+>;
+
+export interface WorkspaceQuery {
+  categoryId?: string | null;
+  tags?: string[];
+  search?: string;
+  sortBy?: "createdAt" | "updatedAt" | "restoredAt" | "name";
+  sortOrder?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}
+
+export type WorkspaceRestoreMode = "newWindow" | "currentWindow";
+
+export interface WorkspaceRestoreOptions {
+  mode: WorkspaceRestoreMode;
+  pageIds?: string[];
+  skipDuplicateUrls?: boolean;
+}
+
+export interface WorkspaceRestoreResult {
+  restoredCount: number;
+  skippedDuplicateCount: number;
+}
+
+export interface WorkspaceBookmarkConversionOptions {
+  workspaceId: string;
+  pageIds: string[];
+  categoryId: string | null;
+  tags: string[];
+}
+
+export interface WorkspaceBookmarkConversionResult {
+  total: number;
+  created: number;
+  skippedExisting: number;
+  failed: number;
+}
+
+export interface WorkspaceBookmarkRecommendation {
+  pageIds: string[];
+  recommendedCategoryId: string | null;
+  recommendedTags: string[];
+  reasons: Record<string, string>;
+  excludedReasons: Record<string, string>;
+}
+
+// ============ Tab 分组规则相关 ============
+
+export type TabGroupRuleMatchType =
+  | "domain"
+  | "urlContains"
+  | "title"
+  | "titleIgnoreCase"
+  | "regex";
+
+export type TabGroupRuleMatchCondition =
+  | "contains"
+  | "equals"
+  | "startsWith"
+  | "endsWith"
+  | "regex";
+
+export type TabGroupRuleColor =
+  | "grey"
+  | "blue"
+  | "red"
+  | "yellow"
+  | "green"
+  | "pink"
+  | "purple"
+  | "cyan"
+  | "orange";
+
+export interface TabGroupRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  matchType: TabGroupRuleMatchType;
+  matchCondition?: TabGroupRuleMatchCondition;
+  pattern: string;
+  groupTitle: string;
+  color: TabGroupRuleColor;
+  collapsed: boolean;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type CreateTabGroupRuleInput = Omit<
+  TabGroupRule,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+export type UpdateTabGroupRuleInput = Partial<
+  Omit<TabGroupRule, "id" | "createdAt" | "updatedAt">
+>;
+
+export interface TabGroupRuleMatchResult {
+  rule: TabGroupRule;
+  normalizedUrl: string;
+}
+
+export interface TabGroupAutoGroupSettings {
+  aiAutoGroupEnabled: boolean;
+}
+
+export interface TabGroupAICacheEntry {
+  url: string;
+  groupTitle: string;
+  color: TabGroupRuleColor;
+  updatedAt: number;
+}
+
 /**
  * 网页快照数据结构 (IndexedDB)
  */
@@ -171,6 +459,7 @@ export interface Snapshot {
   id: string;
   bookmarkId: string;
   html: Blob;
+  type: SnapshotContentType;
   size: number;
   createdAt: number; // 时间戳
 }
@@ -410,6 +699,14 @@ export type QuerySubtype =
   | "compound";
 
 /**
+ * 检索模式
+ * - hybrid: 关键词 + 语义混合检索
+ * - semantic: 仅语义检索
+ * - keyword: 仅关键词检索
+ */
+export type RetrievalMode = "hybrid" | "semantic" | "keyword";
+
+/**
  * 检索过滤条件
  */
 export interface SearchFilters {
@@ -423,8 +720,41 @@ export interface SearchFilters {
   timeRangeDays?: number | null;
   /** 是否允许加载全文片段 */
   includeContent?: boolean;
+  /** 检索模式 */
+  retrievalMode?: RetrievalMode;
   /** 是否启用语义检索 */
   semantic?: boolean;
+}
+
+/**
+ * 对话回合输入
+ */
+export interface ConversationalSearchTurnInput {
+  type: "message" | "suggestion";
+  text?: string;
+  suggestion?: {
+    label: string;
+    action: SuggestionActionType;
+    payload?: Record<string, unknown>;
+  };
+}
+
+/**
+ * 持久化对话会话状态
+ */
+export interface ConversationalSearchSession {
+  /** 持续生效的结构化过滤条件 */
+  filters: SearchFilters;
+  /** 已展示过的书签 ID */
+  seenBookmarkIds: string[];
+  /** 最近一轮选中的书签 ID */
+  lastSelectedBookmarkIds: string[];
+  /** 最近一轮意图 */
+  lastIntent?: ConversationIntent;
+  /** 最近一轮查询 */
+  lastQuery?: string;
+  /** 最近多轮对话历史 */
+  history: Array<{ role: "user" | "assistant"; text: string }>;
 }
 
 /**
