@@ -216,7 +216,8 @@ export class SyncEngine {
   ): boolean {
     return (
       local.aiAutoGroupEnabled === remote.aiAutoGroupEnabled &&
-      local.aiAutoGroupInstructions === remote.aiAutoGroupInstructions
+      local.aiAutoGroupInstructions === remote.aiAutoGroupInstructions &&
+      local.domainAutoGroupEnabled === remote.domainAutoGroupEnabled
     );
   }
 

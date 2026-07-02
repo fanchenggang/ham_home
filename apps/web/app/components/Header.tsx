@@ -54,10 +54,10 @@ function DownloadDropdown({ isEn }: { isEn: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="gap-2">
+        <Button variant="default" size="sm" className="gap-1.5 px-2 sm:gap-2 sm:px-3">
           <Download className="h-4 w-4" />
-          {isEn ? 'Download' : '下载'}
-          <ChevronDown className="h-3 w-3" />
+          <span className="hidden sm:inline">{isEn ? 'Download' : '下载'}</span>
+          <ChevronDown className="hidden h-3 w-3 sm:block" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
@@ -115,30 +115,30 @@ export function Header({ isDark, isEn, onToggleTheme, onToggleLanguage }: Header
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 mx-auto">
+      <div className="container mx-auto flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-4">
         {/* Logo + 品牌 */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Image
             src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/icon/128.png`}
             alt="HamHome Logo"
             width={40}
             height={40}
-            className="rounded-lg"
+            className="h-9 w-9 shrink-0 rounded-lg sm:h-10 sm:w-10"
           />
-          <div>
-            <span className="text-xl font-bold block">HamHome</span>
-            <span className="text-xs text-muted-foreground block">
-              {isEn ? 'Smart Browser Workspace' : '智能浏览器工作空间'}
+          <div className="min-w-0">
+            <span className="block truncate text-lg font-bold sm:text-xl">HamHome</span>
+            <span className="hidden text-xs text-muted-foreground sm:block">
+              {isEn ? 'AI Browser Workspace' : 'AI 浏览器工作台'}
             </span>
           </div>
         </div>
 
         {/* 右侧操作 */}
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-4">
 
 
           {/* 语言切换 */}
-          <Button variant="ghost" size="sm" onClick={onToggleLanguage} className="gap-2">
+          <Button variant="ghost" size="sm" onClick={onToggleLanguage} className="gap-1 px-2 sm:gap-2 sm:px-3">
             <Languages className="h-4 w-4" />
             {isEn ? '中文' : 'EN'}
           </Button>
@@ -146,16 +146,16 @@ export function Header({ isDark, isEn, onToggleTheme, onToggleLanguage }: Header
           {/* 主题切换 */}
           <div
             ref={themeToggleRef}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2"
             onPointerDown={handleThemeTogglePointerDown}
           >
-            <Sun className="h-4 w-4 text-muted-foreground" />
+            <Sun className="hidden h-4 w-4 text-muted-foreground sm:block" />
             <Switch checked={isDark} onCheckedChange={handleThemeToggle} />
-            <Moon className="h-4 w-4 text-muted-foreground" />
+            <Moon className="hidden h-4 w-4 text-muted-foreground sm:block" />
           </div>
 
           {/* GitHub 入口 */}
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild className="hidden sm:inline-flex">
             <a
               href="https://github.com/bingoYB/ham_home"
               target="_blank"

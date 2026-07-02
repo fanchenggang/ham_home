@@ -7,12 +7,12 @@ const CLARITY_PROJECT_ID = 'vg9k8vkmuz';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hamhome.app'),
-  title: 'HamHome - AI 驱动的浏览器工作空间 | Browser Workspace',
-  description: 'HamHome 是一款本地优先的浏览器工作空间，支持保存和恢复已打开的 Tab、自动分组，并通过 AI 管理书签与收藏内容。',
+  title: 'HamHome - AI 浏览器工作台 | Browser Workspace',
+  description: 'HamHome 是一款 AI 浏览器工作台，整合书签收藏、网页快照、Agent 代办插件操作、工作空间、Tab 分组规则、WebDAV 同步与导入导出。',
   keywords: [
-    '浏览器工作空间', '书签管理', 'Tab 管理', 'Tab 自动分组', '收藏管理', '浏览器扩展', 'AI',
-    'browser workspace', 'bookmark manager', 'tab manager', 'tab grouping', 'collections',
-    '智能分类', '语义搜索', 'AI 标签', '本地存储', 'semantic search'
+    '浏览器工作台', '浏览器工作空间', '书签管理', 'Tab 管理', 'Tab 自动分组', '收藏管理', '浏览器扩展', 'AI Agent',
+    'browser workspace', 'bookmark manager', 'tab manager', 'tab grouping', 'collections', 'webdav sync',
+    '智能分类', '语义搜索', 'AI 标签', '本地存储', 'semantic search', 'Obsidian'
   ],
   authors: [{ name: 'HamHome Team', url: 'https://github.com/bingoYB/ham_home' }],
   creator: 'HamHome',
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
     apple: `${basePath}/icon/128.png`,
   },
   openGraph: {
-    title: 'HamHome - AI 驱动的浏览器工作空间',
-    description: '保存和恢复已打开的 Tab，自动完成 Tab 分组，并用 AI 管理书签与收藏内容。',
+    title: 'HamHome - AI 浏览器工作台',
+    description: '收藏网页、保存快照、让 Agent 理解并代办插件操作、恢复工作空间、自动整理 Tab 分组，并通过 WebDAV 迁移结构化数据。',
     url: 'https://hamhome.app',
     siteName: 'HamHome',
     images: [
@@ -53,8 +53,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'HamHome - AI 驱动的浏览器工作空间',
-    description: '保存和恢复已打开的 Tab，自动完成 Tab 分组，并用 AI 管理书签与收藏内容。',
+    title: 'HamHome - AI 浏览器工作台',
+    description: '收藏网页、保存快照、让 Agent 理解并代办插件操作、恢复工作空间、自动整理 Tab 分组，并通过 WebDAV 迁移结构化数据。',
     images: [`${basePath}/og-image.png`],
   },
   robots: {

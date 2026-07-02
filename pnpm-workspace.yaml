@@ -1,3 +1,11 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+onlyBuiltDependencies:
+  - '@swc/core'
+  - es5-ext
+  - esbuild
+  - msw
+  - sharp
+  - spawn-sync
+  - workerd

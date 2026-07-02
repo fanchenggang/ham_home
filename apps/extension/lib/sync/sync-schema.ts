@@ -190,6 +190,7 @@ export const RemoteTabGroupRuleSchema = z.object({
 export const RemoteTabGroupAutoGroupSettingsSchema = z.object({
   aiAutoGroupEnabled: z.boolean(),
   aiAutoGroupInstructions: z.string().default(""),
+  domainAutoGroupEnabled: z.boolean().default(false),
   updatedAt: z.number().default(0),
 });
 
@@ -198,6 +199,7 @@ export const RemoteTabGroupConfigFileSchema = z.object({
   autoGroupSettings: RemoteTabGroupAutoGroupSettingsSchema.default({
     aiAutoGroupEnabled: false,
     aiAutoGroupInstructions: "",
+    domainAutoGroupEnabled: false,
     updatedAt: 0,
   }),
 });

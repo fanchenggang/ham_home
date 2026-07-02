@@ -1,19 +1,14 @@
 import { useState } from "react";
-import { AlertTriangle, BrainCircuit, Layers, Plus } from "lucide-react";
+import { AlertTriangle, Layers, Plus } from "lucide-react";
 import {
   Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Dialog,
-  Label,
-  Switch,
-  Textarea,
 } from "@hamhome/ui";
 import { useTranslation } from "react-i18next";
 import { useTabGroupRules } from "@/hooks/useTabGroupRules";
+import { TabAutoGroupSettingsCard } from "@/components/tabGroups/TabAutoGroupSettingsCard";
 import { TabGroupRuleForm } from "@/components/tabGroups/TabGroupRuleForm";
 import { TabGroupRuleList } from "@/components/tabGroups/TabGroupRuleList";
 import type { TabGroupRuleGroup } from "@/hooks/useTabGroupRules";
@@ -22,7 +17,6 @@ export function TabGroupsPage() {
   const { t } = useTranslation("bookmark");
   const state = useTabGroupRules();
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
-  const aiInstructionsId = "ai-tab-group-instructions";
 
   const openCreateDialog = () => {
     state.startCreateRule();
@@ -75,47 +69,16 @@ export function TabGroupsPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="grid-cols-[1fr_auto] items-center">
-          <div className="flex items-start gap-3">
-            <div className="rounded-md bg-primary/10 p-2 text-primary">
-              <BrainCircuit className="h-4 w-4" />
-            </div>
-            <div>
-              <CardTitle className="text-base">
-                {t("tabGroups.aiAutoGroup.title")}
-              </CardTitle>
-              <CardDescription className="mt-1">
-                {t("tabGroups.aiAutoGroup.description")}
-              </CardDescription>
-            </div>
-          </div>
-          <Switch
-            checked={state.aiAutoGroupEnabled}
-            disabled={!state.supported}
-            onCheckedChange={state.updateAiAutoGroupEnabled}
-            aria-label={t("tabGroups.aiAutoGroup.title")}
-          />
-        </CardHeader>
-        <CardContent className="space-y-2 pt-0">
-          <Label htmlFor={aiInstructionsId}>
-            {t("tabGroups.aiAutoGroup.instructionsLabel")}
-          </Label>
-          <Textarea
-            id={aiInstructionsId}
-            value={state.aiAutoGroupInstructions}
-            disabled={!state.supported}
-            maxLength={1000}
-            rows={3}
-            placeholder={t("tabGroups.aiAutoGroup.instructionsPlaceholder")}
-            onChange={(event) => state.updateAiAutoGroupInstructions(event.target.value)}
-            onBlur={state.saveAiAutoGroupInstructions}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("tabGroups.aiAutoGroup.instructionsHint")}
-          </p>
-        </CardContent>
-      </Card>
+      <TabAutoGroupSettingsCard
+        supported={state.supported}
+        aiAutoGroupEnabled={state.aiAutoGroupEnabled}
+        aiAutoGroupInstructions={state.aiAutoGroupInstructions}
+        domainAutoGroupEnabled={state.domainAutoGroupEnabled}
+        onAiAutoGroupEnabledChange={state.updateAiAutoGroupEnabled}
+        onDomainAutoGroupEnabledChange={state.updateDomainAutoGroupEnabled}
+        onAiAutoGroupInstructionsChange={state.updateAiAutoGroupInstructions}
+        onAiAutoGroupInstructionsSave={state.saveAiAutoGroupInstructions}
+      />
 
       <Dialog open={ruleDialogOpen} onOpenChange={updateRuleDialogOpen}>
         <TabGroupRuleForm

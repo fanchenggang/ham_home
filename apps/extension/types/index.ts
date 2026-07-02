@@ -446,6 +446,7 @@ export interface TabGroupRuleMatchResult {
 export interface TabGroupAutoGroupSettings {
   aiAutoGroupEnabled: boolean;
   aiAutoGroupInstructions: string;
+  domainAutoGroupEnabled: boolean;
   updatedAt: number;
 }
 

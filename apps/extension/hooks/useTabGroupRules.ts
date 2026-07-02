@@ -117,6 +117,7 @@ export function useTabGroupRules() {
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [aiAutoGroupEnabled, setAiAutoGroupEnabled] = useState(false);
   const [aiAutoGroupInstructions, setAiAutoGroupInstructions] = useState("");
+  const [domainAutoGroupEnabled, setDomainAutoGroupEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const autoGroupSettingsLoadedRef = useRef(false);
@@ -131,6 +132,7 @@ export function useTabGroupRules() {
   const applyAutoGroupSettings = useCallback((settings: TabGroupAutoGroupSettings) => {
     setAiAutoGroupEnabled(settings.aiAutoGroupEnabled);
     setAiAutoGroupInstructions(settings.aiAutoGroupInstructions);
+    setDomainAutoGroupEnabled(settings.domainAutoGroupEnabled);
     lastSavedAiAutoGroupInstructionsRef.current = settings.aiAutoGroupInstructions;
     autoGroupSettingsLoadedRef.current = true;
   }, []);
@@ -287,12 +289,24 @@ export function useTabGroupRules() {
 
   const updateAiAutoGroupEnabled = useCallback(async (enabled: boolean) => {
     setAiAutoGroupEnabled(enabled);
+    if (enabled) setDomainAutoGroupEnabled(false);
     lastSavedAiAutoGroupInstructionsRef.current = aiAutoGroupInstructions;
     await tabGroupRulesStorage.setAutoGroupSettings({
       aiAutoGroupEnabled: enabled,
       aiAutoGroupInstructions,
+      domainAutoGroupEnabled: enabled ? false : domainAutoGroupEnabled,
     });
-  }, [aiAutoGroupInstructions]);
+  }, [aiAutoGroupInstructions, domainAutoGroupEnabled]);
+
+  const updateDomainAutoGroupEnabled = useCallback(async (enabled: boolean) => {
+    setDomainAutoGroupEnabled(enabled);
+    if (enabled) setAiAutoGroupEnabled(false);
+    await tabGroupRulesStorage.setAutoGroupSettings({
+      aiAutoGroupEnabled: enabled ? false : aiAutoGroupEnabled,
+      aiAutoGroupInstructions,
+      domainAutoGroupEnabled: enabled,
+    });
+  }, [aiAutoGroupEnabled, aiAutoGroupInstructions]);
 
   const updateAiAutoGroupInstructions = useCallback((instructions: string) => {
     setAiAutoGroupInstructions(instructions);
@@ -318,6 +332,7 @@ export function useTabGroupRules() {
     supported,
     aiAutoGroupEnabled,
     aiAutoGroupInstructions,
+    domainAutoGroupEnabled,
     saveRule,
     resetForm,
     startCreateRule,
@@ -327,6 +342,7 @@ export function useTabGroupRules() {
     deleteRuleGroup,
     toggleRuleGroup,
     updateAiAutoGroupEnabled,
+    updateDomainAutoGroupEnabled,
     updateAiAutoGroupInstructions,
     saveAiAutoGroupInstructions,
   };

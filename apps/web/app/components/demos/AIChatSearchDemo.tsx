@@ -1,45 +1,22 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
-  AIChatPanel as SharedAIChatPanel,
-  type AIChatLabels,
-  type AISearchStatus,
-  type ChatMessage,
-  type Source,
-  type Suggestion,
-} from '@hamhome/ui-business/ai-search';
-import type { Bookmark } from '@/data/mock-bookmarks';
-
-interface DemoTexts {
-  aiAnswer: string;
-  close: string;
-  newSession: string;
-  deleteSession: string;
-  sessionSelect: string;
-  aiPlaceholder: string;
-  sources: string;
-  dismiss: string;
-  quickActions: { title: string; query: string }[];
-  status: {
-    thinking: string;
-    searching: string;
-    writing: string;
-    error: string;
-    retry: string;
-  };
-  answer: {
-    noResults: string;
-    foundIntro: (query: string, count: number) => string;
-    moreResults: (count: number) => string;
-  };
-  suggestions: {
-    viewMore: string;
-    filterByTime: string;
-    narrowSearch: string;
-    copyAllLinks: string;
-  };
-}
+  AlertCircle,
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  Loader2,
+  Plus,
+  Send,
+  Sparkles,
+  Trash2,
+  Wrench,
+  X,
+} from "lucide-react";
+import { Button, cn } from "@hamhome/ui";
+import type { Bookmark } from "@/data/mock-bookmarks";
 
 interface AIChatSearchDemoProps {
   bookmarks: Bookmark[];
@@ -48,399 +25,238 @@ interface AIChatSearchDemoProps {
   onSourceClick?: (bookmarkId: string) => void;
 }
 
-function getTexts(isEn: boolean): DemoTexts {
-  if (isEn) {
-    return {
-      aiAnswer: 'AI Answer',
-      close: 'Close',
-      newSession: 'New chat',
-      deleteSession: 'Delete chat',
-      sessionSelect: 'Switch chat',
-      aiPlaceholder: 'Ask AI about your bookmarks...',
-      sources: 'Sources',
-      dismiss: 'Dismiss',
-      quickActions: [
-        {
-          title: 'View features',
-          query: 'What features does this extension have?',
-        },
-        {
-          title: 'Learn shortcuts',
-          query: 'What keyboard shortcuts are available?',
-        },
-        {
-          title: 'Semantic search example',
-          query: 'Find me bookmarks about frontend development',
-        },
-      ],
-      status: {
-        thinking: 'AI is thinking...',
-        searching: 'Searching bookmarks...',
-        writing: 'Generating answer...',
-        error: 'An error occurred',
-        retry: 'Retry',
-      },
-      answer: {
-        noResults: 'No related bookmarks found. Please try different keywords or phrasing.',
-        foundIntro: (query, count) =>
-          `Based on your question "${query}", I found ${count} related bookmarks:`,
-        moreResults: (count) =>
-          `There are ${count} more related results, you can view them in the list below.`,
-      },
-      suggestions: {
-        viewMore: 'View more related bookmarks',
-        filterByTime: 'Filter by time',
-        narrowSearch: 'Narrow search scope',
-        copyAllLinks: 'Copy all links',
-      },
-    };
-  }
+interface AgentStep {
+  id: string;
+  type: "tool" | "skill" | "message";
+  title: string;
+  content: string;
+  status: "running" | "completed" | "failed";
+}
 
+function getTexts(isEn: boolean) {
   return {
-    aiAnswer: 'AI 回答',
-    close: '关闭',
-    newSession: '新对话',
-    deleteSession: '删除对话',
-    sessionSelect: '切换对话',
-    aiPlaceholder: '用自然语言询问你的书签...',
-    sources: '信息来源',
-    dismiss: '关闭',
-    quickActions: [
-      {
-        title: '查看插件功能',
-        query: '这个插件有哪些功能？',
-      },
-      {
-        title: '了解快捷键',
-        query: '有哪些快捷键可以使用？',
-      },
-      {
-        title: '语义搜索示例',
-        query: '帮我找到关于前端开发的书签',
-      },
-    ],
-    status: {
-      thinking: 'AI 正在思考...',
-      searching: '正在检索书签...',
-      writing: '正在生成回答...',
-      error: '发生错误',
-      retry: '重试',
-    },
-    answer: {
-      noResults: '未找到相关书签。请尝试其他关键词或问法。',
-      foundIntro: (query, count) => `根据您的问题"${query}"，我找到了 ${count} 个相关书签：`,
-      moreResults: (count) => `还有 ${count} 个其他相关结果，您可以在下方列表中查看。`,
-    },
-    suggestions: {
-      viewMore: '查看更多相关书签',
-      filterByTime: '按时间筛选',
-      narrowSearch: '缩小搜索范围',
-      copyAllLinks: '复制所有链接',
-    },
+    title: isEn ? "HamHome Agent" : "HamHome Agent",
+    session: isEn ? "Research cleanup" : "资料整理",
+    empty: isEn
+      ? "Let the Agent understand HamHome, check safe settings, open extension views, or search bookmarks."
+      : "让 Agent 理解 HamHome、检查安全配置、打开插件页面，或搜索书签。",
+    placeholder: isEn ? "Tell the Agent what to handle..." : "告诉 Agent 要处理什么...",
+    process: isEn ? "Process" : "执行过程",
+    sources: isEn ? "Context" : "参考",
+    userQuery: isEn
+      ? "Check WebDAV status and open Import / Export"
+      : "检查 WebDAV 状态，并打开导入导出页面",
+    answer: isEn
+      ? "WebDAV sync is not configured yet. I can open Import / Export so you can import browser bookmarks, export a JSON backup, or connect WebDAV. I can also open Settings if you want to add credentials manually."
+      : "当前还没有配置 WebDAV 同步。我可以打开导入导出页面，方便你导入浏览器书签、导出 JSON 备份或连接 WebDAV。如果要填写凭据，我也可以打开设置页，但凭据需要你手动输入。",
+    steps: isEn
+      ? [
+          { id: "skill", type: "skill" as const, title: "Load HamHome feature guide", content: "Use bookmark and semantic-search guidance", status: "completed" as const },
+          { id: "tool", type: "tool" as const, title: "inspect_sync_status", content: "scope: WebDAV, credentials: hidden", status: "completed" as const },
+          { id: "message", type: "message" as const, title: "Open extension view", content: "target: Import / Export", status: "completed" as const },
+        ]
+      : [
+          { id: "skill", type: "skill" as const, title: "读取 HamHome 功能指南", content: "使用同步、导入导出与安全边界说明", status: "completed" as const },
+          { id: "tool", type: "tool" as const, title: "inspect_sync_status", content: "scope: WebDAV, credentials: hidden", status: "completed" as const },
+          { id: "message", type: "message" as const, title: "打开插件页面", content: "target: 导入导出", status: "completed" as const },
+        ],
+    suggestions: isEn
+      ? ["Open Import / Export", "Check WebDAV status", "Open settings", "Search recent bookmarks"]
+      : ["打开导入导出", "检查 WebDAV 状态", "打开设置", "搜索最近书签"],
   };
 }
 
-async function simulateStreamingOutput(
-  text: string,
-  setAnswer: (answer: string) => void
-): Promise<void> {
-  const charsPerFrame = 3;
-  let index = 0;
-
-  return new Promise((resolve) => {
-    function tick() {
-      const end = Math.min(index + charsPerFrame, text.length);
-      setAnswer(text.slice(0, end));
-      index = end;
-
-      if (index < text.length) {
-        requestAnimationFrame(tick);
-      } else {
-        resolve();
-      }
-    }
-    requestAnimationFrame(tick);
-  });
+function StepIcon({ step }: { step: AgentStep }) {
+  if (step.status === "failed") return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
+  if (step.status === "running") return <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />;
+  if (step.type === "tool") return <Wrench className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />;
+  return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />;
 }
 
-export function AIChatSearchDemo({ bookmarks, isEn, className, onSourceClick }: AIChatSearchDemoProps) {
+export function AIChatSearchDemo({
+  bookmarks,
+  isEn,
+  className,
+  onSourceClick,
+}: AIChatSearchDemoProps) {
   const texts = useMemo(() => getTexts(isEn), [isEn]);
-  const aiChatLabels = useMemo<AIChatLabels>(
-    () => ({
-      aiAnswer: texts.aiAnswer,
-      close: texts.close,
-      newSession: texts.newSession,
-      deleteSession: texts.deleteSession,
-      sessionSelect: texts.sessionSelect,
-      aiPlaceholder: texts.aiPlaceholder,
-      sources: texts.sources,
-      retry: texts.status.retry,
-      dismissQuickActions: texts.dismiss,
-      status: {
-        thinking: texts.status.thinking,
-        searching: texts.status.searching,
-        writing: texts.status.writing,
-        error: texts.status.error,
-      },
-      quickActions: texts.quickActions,
-    }),
-    [texts]
-  );
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<AISearchStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentAnswer, setCurrentAnswer] = useState('');
-  const [results, setResults] = useState<Source[]>([]);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [resultBookmarkIds, setResultBookmarkIds] = useState<string[]>([]);
-  const lastQueryRef = useRef('');
-  const queryRef = useRef('');
-
-  const setQueryValue = useCallback((value: string) => {
-    queryRef.current = value;
-    setQuery(value);
-  }, []);
-
-  const findRelatedBookmarks = useCallback(
-    (searchQuery: string) => {
-      const keywords = searchQuery
-        .toLowerCase()
-        .split(/[\s,，。？！?]+/)
-        .filter(Boolean);
-
-      if (keywords.length === 0) return [];
-
-      return bookmarks
-        .map((bookmark) => {
-          const haystack = `${bookmark.title} ${bookmark.description} ${bookmark.tags.join(' ')}`.toLowerCase();
-          const score = keywords.reduce((sum, keyword) => {
-            if (!keyword) return sum;
-            return sum + (haystack.includes(keyword) ? 1 : 0);
-          }, 0);
-          return {
-            bookmark,
-            score: score / keywords.length,
-          };
-        })
-        .filter((item) => item.score > 0)
-        .sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score;
-          return b.bookmark.createdAt - a.bookmark.createdAt;
-        })
-        .slice(0, 8);
-    },
-    [bookmarks]
-  );
-
-  const buildAnswer = useCallback(
-    (searchQuery: string, matchedItems: Array<{ bookmark: Bookmark; score: number }>) => {
-      if (matchedItems.length === 0) return texts.answer.noResults;
-      const topItems = matchedItems.slice(0, 5);
-      const lines = topItems.map((item, index) => `[${index + 1}] ${item.bookmark.title}`);
-
-      const extraCount = Math.max(0, matchedItems.length - topItems.length);
-      const result: string[] = [texts.answer.foundIntro(searchQuery, topItems.length), ...lines];
-
-      if (extraCount > 0) {
-        result.push(texts.answer.moreResults(extraCount));
-      }
-
-      return result.join('\n');
-    },
-    [texts]
-  );
-
-  const buildSuggestions = useCallback(
-    (hasResults: boolean): Suggestion[] => {
-      if (!hasResults) {
-        return [
-          {
-            label: texts.suggestions.narrowSearch,
-            action: 'text',
-            payload: {
-              query: isEn ? 'Find bookmarks by specific keyword' : '按更具体的关键词搜索书签',
-            },
-          },
-        ];
-      }
-
-      return [
-        { label: texts.suggestions.viewMore, action: 'showMore' },
-        { label: texts.suggestions.filterByTime, action: 'timeFilter' },
-        { label: texts.suggestions.narrowSearch, action: 'text' },
-        { label: texts.suggestions.copyAllLinks, action: 'copyAllLinks' },
-      ];
-    },
-    [isEn, texts]
-  );
-
-  const clearConversation = useCallback(() => {
-    setMessages([]);
-    setCurrentAnswer('');
-    setResults([]);
-    setSuggestions([]);
-    setResultBookmarkIds([]);
-    setStatus('idle');
-    setError(null);
-    queryRef.current = '';
-    setQuery('');
-    lastQueryRef.current = '';
-  }, []);
-
-  const closeChat = useCallback(() => {
-    setIsChatOpen(false);
-    clearConversation();
-  }, [clearConversation]);
-
-  const handleSearch = useCallback(async () => {
-    const searchQuery = (queryRef.current || query).trim();
-    if (!searchQuery) return;
-    lastQueryRef.current = searchQuery;
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: searchQuery,
-      timestamp: Date.now(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsChatOpen(true);
-    setStatus('thinking');
-    setError(null);
-    setCurrentAnswer('');
-
-    try {
-      setStatus('searching');
-
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      const matchedItems = findRelatedBookmarks(searchQuery);
-      const sourceItems = matchedItems.slice(0, 5);
-
-      const sources: Source[] = sourceItems.map((item, index) => ({
-        index: index + 1,
-        bookmarkId: item.bookmark.id,
-        title: item.bookmark.title,
-        url: item.bookmark.url,
-        score: item.score,
-      }));
-
-      const answer = buildAnswer(searchQuery, matchedItems);
-
-      setResults(sources);
-      setResultBookmarkIds(matchedItems.map((item) => item.bookmark.id));
-      setStatus('writing');
-
-      await simulateStreamingOutput(answer, setCurrentAnswer);
-
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: answer,
-        timestamp: Date.now(),
-        sources,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      setSuggestions(buildSuggestions(sources.length > 0));
-      setCurrentAnswer('');
-      queryRef.current = '';
-      setQuery('');
-      setStatus('done');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : texts.status.error);
-      setStatus('error');
-    }
-  }, [buildAnswer, buildSuggestions, findRelatedBookmarks, query, texts.status.error]);
-
-  const handleSourceClickInternal = useCallback(
-    (bookmarkId: string) => {
-      onSourceClick?.(bookmarkId);
-    },
-    [onSourceClick]
-  );
-
-  const handleSuggestionClick = useCallback(
-    async (suggestion: Suggestion) => {
-      switch (suggestion.action) {
-        case 'copyAllLinks': {
-          const links = resultBookmarkIds
-            .map((id) => bookmarks.find((bookmark) => bookmark.id === id)?.url)
-            .filter(Boolean)
-            .join('\n');
-
-          if (!links) return;
-          try {
-            await navigator.clipboard.writeText(links);
-          } catch {
-            // Ignore clipboard errors in demo mode.
-          }
-          break;
-        }
-        case 'timeFilter': {
-          const nextQuery = isEn
-            ? `${lastQueryRef.current} in the last 30 days`
-            : `${lastQueryRef.current} 最近30天`;
-          setQueryValue(nextQuery);
-          setTimeout(() => {
-            void handleSearch();
-          }, 0);
-          break;
-        }
-        case 'showMore': {
-          const nextQuery = isEn ? `${lastQueryRef.current} more` : `${lastQueryRef.current} 更多`;
-          setQueryValue(nextQuery);
-          setTimeout(() => {
-            void handleSearch();
-          }, 0);
-          break;
-        }
-        case 'text':
-        case 'domainFilter':
-        case 'categoryFilter':
-        case 'semanticOnly':
-        case 'keywordOnly':
-        case 'findDuplicates':
-        case 'navigate':
-        case 'batchAddTags':
-        case 'batchMoveCategory': {
-          const payloadQuery =
-            typeof suggestion.payload?.query === 'string' ? suggestion.payload.query : suggestion.label;
-          setQueryValue(payloadQuery);
-          setTimeout(() => {
-            void handleSearch();
-          }, 0);
-          break;
-        }
-        default:
-          break;
-      }
-    },
-    [bookmarks, handleSearch, isEn, resultBookmarkIds, setQueryValue]
+  const [query, setQuery] = useState("");
+  const [showProcess, setShowProcess] = useState(true);
+  const sources = useMemo(
+    () =>
+      bookmarks
+        .filter((bookmark) =>
+          /react|performance|vercel|web/i.test(
+            `${bookmark.title} ${bookmark.description} ${bookmark.tags.join(" ")}`,
+          ),
+        )
+        .slice(0, 3),
+    [bookmarks],
   );
 
   return (
-    <SharedAIChatPanel
-      className={className}
-      isOpen={isChatOpen}
-      onClose={closeChat}
-      query={query}
-      onQueryChange={setQueryValue}
-      onSubmit={() => {
-        void handleSearch();
-      }}
-      messages={messages}
-      currentAnswer={currentAnswer}
-      status={status}
-      error={error}
-      sources={results}
-      onSourceClick={handleSourceClickInternal}
-      suggestions={suggestions}
-      onSuggestionClick={handleSuggestionClick}
-      onRetry={() => {
-        void handleSearch();
-      }}
-      labels={aiChatLabels}
-    />
+    <section
+      className={cn(
+        "flex h-[560px] min-h-0 flex-col overflow-hidden rounded-2xl border border-white/20 bg-background/80 shadow-2xl shadow-black/10 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10",
+        className,
+      )}
+    >
+      <header className="border-b border-white/10 bg-transparent px-4 py-3 dark:border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
+            <Bot className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-sm font-bold text-transparent">
+              {texts.title}
+            </div>
+            <div className="truncate text-xs font-medium text-muted-foreground/70">
+              {texts.session}
+            </div>
+          </div>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="relative mt-3">
+          <select
+            value="research"
+            onChange={() => undefined}
+            className="h-8 w-full appearance-none rounded-lg border border-transparent bg-foreground/5 px-3 pr-8 text-xs font-medium text-foreground outline-none"
+          >
+            <option value="research">{texts.session}</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-4 w-4 text-muted-foreground/70" />
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5">
+        <div className="flex justify-center">
+          <div className="flex max-w-[220px] flex-col items-center gap-3 py-2 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">{texts.empty}</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <div className="max-w-[88%] rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-500 to-blue-600 px-4 py-2.5 text-sm leading-relaxed text-white shadow-sm shadow-indigo-500/20">
+            {texts.userQuery}
+          </div>
+        </div>
+
+        <div className="flex justify-start">
+          <div className="max-w-[92%] rounded-2xl rounded-tl-sm border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-blue-50/80 px-4 py-3 text-sm leading-relaxed text-foreground shadow-sm backdrop-blur-md dark:border-indigo-900/50 dark:from-indigo-950/40 dark:to-blue-950/40">
+            <div className="mb-2.5 rounded-xl border border-white/10 bg-background/50 p-2.5 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setShowProcess((prev) => !prev)}
+                className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-indigo-500" />
+                  {texts.process}
+                </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !showProcess && "-rotate-90")} />
+              </button>
+              {showProcess && (
+                <div className="mt-2.5 space-y-2 border-t border-border/40 pt-2.5">
+                  {texts.steps.map((step) => (
+                    <div key={step.id} className="grid grid-cols-[18px_1fr] gap-2.5 text-xs">
+                      <div className="pt-0.5">
+                        <StepIcon step={step} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium text-foreground/90">{step.title}</span>
+                          <span className="shrink-0 rounded-full bg-foreground/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                            {step.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-[11px] text-muted-foreground/90">{step.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p>{texts.answer}</p>
+            {sources.length > 0 && (
+              <div className="mt-3.5 space-y-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                  {texts.sources}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {sources.map((source, index) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      onClick={() => onSourceClick?.(source.id)}
+                      className="group block w-full rounded-xl border border-border/50 bg-background/50 px-3 py-2 text-left text-xs transition-all hover:border-indigo-500/30 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10"
+                    >
+                      <span className="line-clamp-1 font-medium text-foreground/90 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                        {index + 1}. {source.title}
+                      </span>
+                      <span className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground/70">
+                        {source.url}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 px-4 pb-3">
+        {texts.suggestions.map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => setQuery(suggestion)}
+            className="rounded-full border border-border/60 bg-background/50 px-3 py-1.5 text-[11px] font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-indigo-500/30 hover:text-indigo-600 hover:shadow dark:hover:text-indigo-400"
+          >
+            {suggestion === (isEn ? "Copy all links" : "复制所有链接") ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Copy className="h-3 w-3" />
+                {suggestion}
+              </span>
+            ) : (
+              suggestion
+            )}
+          </button>
+        ))}
+      </div>
+
+      <form
+        onSubmit={(event) => event.preventDefault()}
+        className="border-t border-white/10 bg-background/50 p-3 backdrop-blur-md dark:border-white/5"
+      >
+        <div className="flex items-end gap-2">
+          <textarea
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            rows={1}
+            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-transparent bg-muted/50 px-4 py-3 text-sm leading-relaxed outline-none transition-all placeholder:text-muted-foreground/60 focus:border-indigo-500/30 focus:bg-background focus:ring-2 focus:ring-indigo-500/20"
+            placeholder={texts.placeholder}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    </section>
   );
 }

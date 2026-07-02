@@ -19,7 +19,17 @@
     "clean": "rm -rf .wxt .output dist",
     "submit:init": "wxt submit init",
     "submit:all": "node scripts/submit.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:headed": "HEADED=1 playwright test --config e2e/playwright.config.ts",
+    "test:e2e:default": "playwright test --config e2e/playwright.config.ts --project chromium-extension",
+    "test:e2e:english": "playwright test --config e2e/playwright.config.ts --project chromium-extension-english",
+    "test:e2e:dark": "playwright test --config e2e/playwright.config.ts --project chromium-extension-dark",
+    "test:e2e:desktop": "HEADED=1 E2E_DESKTOP_SCREENSHOT=1 playwright test --config e2e/playwright.config.ts --project chromium-extension-desktop",
+    "screenshots": "playwright test --config e2e/screenshots/playwright.config.ts",
+    "screenshots:headed": "HEADED=1 playwright test --config e2e/screenshots/playwright.config.ts",
+    "test:e2e:report": "playwright show-report e2e/playwright-report",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@browser-agent-sdk/agent": "0.1.0-beta.1",
@@ -50,6 +60,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/chrome": "^0.0.260",
     "@types/react": "^19.0.0",

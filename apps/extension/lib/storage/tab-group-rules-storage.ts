@@ -12,6 +12,7 @@ const MAX_AI_CACHE_ENTRIES = 500;
 const DEFAULT_AUTO_GROUP_SETTINGS: TabGroupAutoGroupSettings = {
   aiAutoGroupEnabled: false,
   aiAutoGroupInstructions: "",
+  domainAutoGroupEnabled: false,
   updatedAt: 0,
 };
 
@@ -43,7 +44,13 @@ function sortRules(rules: TabGroupRule[]): TabGroupRule[] {
 function normalizeAutoGroupSettings(
   settings?: Partial<TabGroupAutoGroupSettings> | null,
 ): TabGroupAutoGroupSettings {
-  return { ...DEFAULT_AUTO_GROUP_SETTINGS, ...(settings ?? {}) };
+  const normalized = { ...DEFAULT_AUTO_GROUP_SETTINGS, ...(settings ?? {}) };
+  return {
+    ...normalized,
+    domainAutoGroupEnabled: normalized.aiAutoGroupEnabled
+      ? false
+      : normalized.domainAutoGroupEnabled,
+  };
 }
 
 class TabGroupRulesStorage {
@@ -100,7 +107,11 @@ class TabGroupRulesStorage {
     settings: Partial<TabGroupAutoGroupSettings>,
   ): Promise<TabGroupAutoGroupSettings> {
     const current = await this.getAutoGroupSettings();
-    const updated = { ...current, ...settings, updatedAt: Date.now() };
+    const updated = normalizeAutoGroupSettings({
+      ...current,
+      ...settings,
+      updatedAt: Date.now(),
+    });
     await tabGroupAutoGroupSettingsItem.setValue(updated);
     return updated;
   }

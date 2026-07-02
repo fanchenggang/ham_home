@@ -137,11 +137,13 @@ describe("SyncEngine settings merge", () => {
     const localAutoGroupSettings = {
       aiAutoGroupEnabled: true,
       aiAutoGroupInstructions: "按项目分组",
+      domainAutoGroupEnabled: false,
       updatedAt: 2000,
     };
     const remoteAutoGroupSettings = {
       aiAutoGroupEnabled: false,
       aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: false,
       updatedAt: 1000,
     };
 
@@ -170,11 +172,13 @@ describe("SyncEngine settings merge", () => {
     const localAutoGroupSettings = {
       aiAutoGroupEnabled: false,
       aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: false,
       updatedAt: 1000,
     };
     const remoteAutoGroupSettings = {
       aiAutoGroupEnabled: true,
       aiAutoGroupInstructions: "按项目分组",
+      domainAutoGroupEnabled: false,
       updatedAt: 2000,
     };
 

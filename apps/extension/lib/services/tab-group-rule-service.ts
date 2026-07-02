@@ -25,6 +25,8 @@ const TAB_GROUP_COLORS = [
   "orange",
 ] as const;
 
+const COMMON_SECOND_LEVEL_DOMAIN_LABELS = new Set(["ac", "co", "com", "edu", "gov", "net", "org"]);
+
 const aiTabGroupSuggestionSchema = z.object({
   groupTitle: z.string().nullable().optional(),
 });
@@ -302,6 +304,33 @@ function getRandomColor(): TabGroupRuleColor {
   return TAB_GROUP_COLORS[Math.floor(Math.random() * TAB_GROUP_COLORS.length)];
 }
 
+function getDomainGroupTitle(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\.$/, "");
+    const labels = hostname.split(".").filter(Boolean);
+    while (labels[0] === "www") {
+      labels.shift();
+    }
+    if (labels.length === 0) return null;
+    if (labels.length === 1 || labels.every((label) => /^\d+$/.test(label))) {
+      return labels.join(".");
+    }
+
+    const tld = labels[labels.length - 1];
+    const secondLevel = labels[labels.length - 2];
+    const rootIndex =
+      labels.length >= 3 &&
+      tld.length === 2 &&
+      COMMON_SECOND_LEVEL_DOMAIN_LABELS.has(secondLevel)
+        ? labels.length - 3
+        : labels.length - 2;
+
+    return labels[rootIndex] ?? labels[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeAITabGroupSuggestion(
   suggestion: AITabGroupSuggestion,
 ): AITabGroupDecision {
@@ -404,6 +433,24 @@ class TabGroupRuleService {
     const result = this.findMatchingRule(rules, url, title);
     if (!result) {
       const settings = await tabGroupRulesStorage.getAutoGroupSettings();
+      if (settings.domainAutoGroupEnabled && !settings.aiAutoGroupEnabled && isSupportedTabUrl(url)) {
+        const groupTitle = getDomainGroupTitle(url);
+        if (!groupTitle) return false;
+
+        const existingGroup = await findExistingGroup(windowId, groupTitle);
+        const groupId = existingGroup
+          ? await api.tabs.group({ tabIds: tabId, groupId: existingGroup.id })
+          : await api.tabs.group({ tabIds: tabId });
+
+        await api.tabGroups.update(groupId, {
+          title: groupTitle,
+          color: existingGroup?.color ?? getRandomColor(),
+          collapsed: false,
+        });
+
+        return true;
+      }
+
       if (!options?.allowAI || !settings.aiAutoGroupEnabled || !isSupportedTabUrl(url)) {
         return false;
       }

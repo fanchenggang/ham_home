@@ -9,26 +9,10 @@ import { LandingCta } from './components/LandingCta';
 import { LandingOverview } from './components/LandingOverview';
 import { LandingPrivacy } from './components/LandingPrivacy';
 import { LandingFAQ } from './components/LandingFAQ';
-import {
-  mockBookmarks,
-  mockCategories,
-  mockPageContent,
-  mockAllTags,
-  mockBookmarksEn,
-  mockCategoriesEn,
-  mockPageContentEn,
-  mockAllTagsEn,
-} from '@/data/mock-bookmarks';
 import { useWebPreferences } from '@/app/hooks/useWebPreferences';
 
 export default function HomePage() {
   const { isDark, isEn, toggleTheme, toggleLanguage } = useWebPreferences();
-
-  // 根据语言选择数据
-  const bookmarks = isEn ? mockBookmarksEn : mockBookmarks;
-  const categories = isEn ? mockCategoriesEn : mockCategories;
-  const pageContent = isEn ? mockPageContentEn : mockPageContent;
-  const allTags = isEn ? mockAllTagsEn : mockAllTags;
 
   return (
     <div className="home-page-shell min-h-screen text-foreground">
@@ -51,11 +35,8 @@ export default function HomePage() {
 
         {/* 功能展示区 - 垂直排列 */}
         <FeatureShowcase
-          bookmarks={bookmarks}
-          categories={categories}
-          pageContent={pageContent}
-          allTags={allTags}
           isEn={isEn}
+          isDark={isDark}
         />
 
         <LandingCapabilities isEn={isEn} />

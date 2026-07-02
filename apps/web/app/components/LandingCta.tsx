@@ -8,11 +8,11 @@ interface LandingCtaProps {
 
 export function LandingCta({ isEn }: LandingCtaProps) {
   const texts = {
-    title: isEn ? 'Stop letting saved pages sink out of sight' : '让收藏不再沉底',
+    title: isEn ? 'Make your browser remember the work, not just the links' : '让浏览器记住你的工作，而不只是链接',
     desc: isEn
-      ? 'Available for Chrome, Edge, and Firefox. Turn your browser into a useful knowledge entry point today.'
-      : '支持 Chrome、Edge、Firefox。现在开始，升级你的浏览器工作空间。',
-    download: isEn ? 'Download extension' : '下载安装',
+      ? 'Available for Chrome, Edge, and Firefox. Start with local data, then add AI, semantic search, WebDAV, or Obsidian only when you need them.'
+      : '支持 Chrome、Edge、Firefox。从本地数据开始，再按需开启 AI、语义搜索、WebDAV 或 Obsidian 工作流。',
+    download: isEn ? 'Install extension' : '安装扩展',
     github: isEn ? 'View GitHub' : '查看 GitHub',
   };
 

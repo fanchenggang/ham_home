@@ -77,7 +77,7 @@ const PRESET_CATEGORIES_GENERAL: HierarchicalCategory[] = [
 const PRESET_CATEGORIES_GENERAL_EN: HierarchicalCategory[] = [
   {
     id: 'general-learning',
-    name: 'Learning & Knowledge',
+    name: 'Learning & Research',
     icon: '📚',
     children: [
       { id: 'general-learning-tech-docs', name: 'Tech Docs', icon: '📄' },

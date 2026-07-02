@@ -33,7 +33,7 @@ vi.mock("@/lib/agent/command-runner", () => ({
   runExtensionCommand: mocks.runExtensionCommand,
 }));
 
-describe("TabGroupRuleService AI auto grouping", () => {
+describe("TabGroupRuleService auto grouping", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -41,6 +41,7 @@ describe("TabGroupRuleService AI auto grouping", () => {
     mocks.getAutoGroupSettings.mockResolvedValue({
       aiAutoGroupEnabled: true,
       aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: false,
     });
     mocks.getAIGroupCache.mockResolvedValue(null);
 
@@ -57,6 +58,214 @@ describe("TabGroupRuleService AI auto grouping", () => {
         update: vi.fn(),
       },
     };
+  });
+
+  it("uses custom rules before domain auto grouping", async () => {
+    mocks.getRules.mockResolvedValue([
+      {
+        id: "rule-baidu",
+        name: "搜索规则",
+        enabled: true,
+        matchType: "domain",
+        matchCondition: "contains",
+        pattern: "baidu.com",
+        groupTitle: "搜索",
+        color: "red",
+        collapsed: true,
+        order: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]);
+    mocks.getAutoGroupSettings.mockResolvedValue({
+      aiAutoGroupEnabled: false,
+      aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: true,
+    });
+
+    const { tabGroupRuleService } = await import("../tab-group-rule-service");
+
+    const grouped = await tabGroupRuleService.autoGroupTab(
+      12,
+      "https://www.baidu.com/s?wd=hamhome",
+      1,
+      "百度搜索",
+      { allowAI: true },
+    );
+
+    const chromeMock = (globalThis as typeof globalThis & {
+      chrome: {
+        tabs: { group: ReturnType<typeof vi.fn> };
+        tabGroups: { update: ReturnType<typeof vi.fn> };
+      };
+    }).chrome;
+
+    expect(grouped).toBe(true);
+    expect(mocks.runExtensionCommand).not.toHaveBeenCalled();
+    expect(chromeMock.tabs.group).toHaveBeenCalledWith({ tabIds: 12 });
+    expect(chromeMock.tabGroups.update).toHaveBeenCalledWith(
+      100,
+      expect.objectContaining({
+        title: "搜索",
+        color: "red",
+        collapsed: true,
+      }),
+    );
+  });
+
+  it("groups tabs by root domain with a random color when domain auto grouping is enabled", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.42);
+    mocks.getAutoGroupSettings.mockResolvedValue({
+      aiAutoGroupEnabled: false,
+      aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: true,
+    });
+
+    const { tabGroupRuleService } = await import("../tab-group-rule-service");
+
+    const grouped = await tabGroupRuleService.autoGroupTab(
+      12,
+      "https://www.baidu.com/s?wd=hamhome",
+      1,
+      "百度搜索",
+      { allowAI: false },
+    );
+
+    const chromeMock = (globalThis as typeof globalThis & {
+      chrome: {
+        tabs: { group: ReturnType<typeof vi.fn> };
+        tabGroups: { update: ReturnType<typeof vi.fn> };
+      };
+    }).chrome;
+
+    expect(grouped).toBe(true);
+    expect(mocks.runExtensionCommand).not.toHaveBeenCalled();
+    expect(chromeMock.tabs.group).toHaveBeenCalledWith({ tabIds: 12 });
+    expect(chromeMock.tabGroups.update).toHaveBeenCalledWith(
+      100,
+      expect.objectContaining({
+        title: "baidu",
+        color: "yellow",
+        collapsed: false,
+      }),
+    );
+
+    randomSpy.mockRestore();
+  });
+
+  it("reuses an existing root-domain group and preserves its color", async () => {
+    mocks.getAutoGroupSettings.mockResolvedValue({
+      aiAutoGroupEnabled: false,
+      aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: true,
+    });
+
+    const chromeMock = (globalThis as typeof globalThis & {
+      chrome: {
+        tabs: { group: ReturnType<typeof vi.fn> };
+        tabGroups: {
+          query: ReturnType<typeof vi.fn>;
+          update: ReturnType<typeof vi.fn>;
+        };
+      };
+    }).chrome;
+    chromeMock.tabGroups.query.mockResolvedValue([
+      { id: 8, title: "github", color: "cyan" },
+    ]);
+
+    const { tabGroupRuleService } = await import("../tab-group-rule-service");
+
+    const grouped = await tabGroupRuleService.autoGroupTab(
+      12,
+      "https://docs.github.com/actions",
+      1,
+      "GitHub Actions docs",
+      { allowAI: false },
+    );
+
+    expect(grouped).toBe(true);
+    expect(chromeMock.tabs.group).toHaveBeenCalledWith({ tabIds: 12, groupId: 8 });
+    expect(chromeMock.tabGroups.update).toHaveBeenCalledWith(
+      8,
+      expect.objectContaining({
+        title: "github",
+        color: "cyan",
+        collapsed: false,
+      }),
+    );
+  });
+
+  it("uses the registrable domain label for common second-level domains", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.42);
+    mocks.getAutoGroupSettings.mockResolvedValue({
+      aiAutoGroupEnabled: false,
+      aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: true,
+    });
+
+    const { tabGroupRuleService } = await import("../tab-group-rule-service");
+
+    const grouped = await tabGroupRuleService.autoGroupTab(
+      12,
+      "https://news.bbc.co.uk/world",
+      1,
+      "BBC News",
+      { allowAI: false },
+    );
+
+    const chromeMock = (globalThis as typeof globalThis & {
+      chrome: {
+        tabGroups: { update: ReturnType<typeof vi.fn> };
+      };
+    }).chrome;
+
+    expect(grouped).toBe(true);
+    expect(chromeMock.tabGroups.update).toHaveBeenCalledWith(
+      100,
+      expect.objectContaining({
+        title: "bbc",
+        color: "yellow",
+      }),
+    );
+
+    randomSpy.mockRestore();
+  });
+
+  it("does not run domain auto grouping when AI auto grouping is enabled", async () => {
+    mocks.getAutoGroupSettings.mockResolvedValue({
+      aiAutoGroupEnabled: true,
+      aiAutoGroupInstructions: "",
+      domainAutoGroupEnabled: true,
+    });
+    mocks.runExtensionCommand.mockResolvedValue({
+      output: {
+        groupTitle: "AI 分组",
+      },
+    });
+
+    const { tabGroupRuleService } = await import("../tab-group-rule-service");
+
+    await tabGroupRuleService.autoGroupTab(
+      12,
+      "https://www.baidu.com/s?wd=hamhome",
+      1,
+      "百度搜索",
+      { allowAI: true },
+    );
+
+    const chromeMock = (globalThis as typeof globalThis & {
+      chrome: {
+        tabGroups: { update: ReturnType<typeof vi.fn> };
+      };
+    }).chrome;
+
+    expect(mocks.runExtensionCommand).toHaveBeenCalled();
+    expect(chromeMock.tabGroups.update).toHaveBeenCalledWith(
+      100,
+      expect.objectContaining({
+        title: "AI 分组",
+      }),
+    );
   });
 
   it("reuses an existing group when AI returns an existing group title", async () => {
@@ -232,6 +441,7 @@ describe("TabGroupRuleService AI auto grouping", () => {
     mocks.getAutoGroupSettings.mockResolvedValue({
       aiAutoGroupEnabled: true,
       aiAutoGroupInstructions: customInstructions,
+      domainAutoGroupEnabled: false,
     });
     mocks.runExtensionCommand.mockResolvedValue({
       output: {

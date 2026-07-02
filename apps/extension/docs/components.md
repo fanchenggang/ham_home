@@ -116,7 +116,7 @@
 
 ## TabGroupsPage
 
-浏览器 Tab 分组规则管理页面，用于创建、编辑、启停和删除自动 Tab 分组规则，并控制 AI 自动分组开关与自定义分类要求。页面通过 `useTabGroupRules` 读取 `sync:tabGroupRules` 和 `sync:tabGroupAutoGroupSettings`，按分组配置聚合展示已保存规则，并通过弹窗维护规则条件；后台监听新建/更新 Tab 后执行同一套匹配规则。
+浏览器 Tab 分组规则管理页面，用于创建、编辑、启停和删除自动 Tab 分组规则，并控制 AI 自动分组、按域名自动分组开关与自定义分类要求。页面通过 `useTabGroupRules` 读取 `sync:tabGroupRules` 和 `sync:tabGroupAutoGroupSettings`，按分组配置聚合展示已保存规则，并通过弹窗维护规则条件；后台监听新建/更新 Tab 后执行同一套匹配规则。
 
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -134,13 +134,51 @@
 - 匹配条件支持包含、完全相等、前缀为、后缀为和正则匹配。
 - 同一分组可以配置多条匹配条件，底层仍按多条 `TabGroupRule` 保存以兼容已有数据。
 - 规则保存到 `sync:tabGroupRules`，会跟随浏览器账号同步。
-- AI 自动分组开关和自定义分类要求保存到 `sync:tabGroupAutoGroupSettings`，默认关闭且要求为空。
+- AI 自动分组开关、按域名自动分组开关和自定义分类要求保存到 `sync:tabGroupAutoGroupSettings`，默认关闭且要求为空。
 - AI 自动分组设置包含 `updatedAt`，WebDAV 同步会按更新时间合并，避免旧远端配置覆盖本地刚修改的开关或要求。
+- AI 自动分组与按域名自动分组互斥，开启其中一个策略时不能同时开启另一个策略。
+- 按域名自动分组仅在未命中自定义规则时生效，会按主域名归入同名分组，例如 `www.baidu.com` 归为 `baidu`，新分组颜色随机。
 - AI 自动分组结果按域名和当前自定义分类要求缓存在 `local:tabGroupAIGroupCache`，同一域名再次打开且要求未变时优先复用历史分组，避免重复调用 AI。
 - Chromium 浏览器命中规则后使用 `chrome.tabs.group` 分组，并用 `chrome.tabGroups.update` 设置组名、颜色和折叠状态。
 - 已存在同名分组时，新 Tab 会加入同名分组；不存在时会创建新的浏览器原生分组。
 - AI 自动分组开启时，后台先执行规则匹配；未命中且页面加载完成后，读取 URL、标题和页面描述，并把自定义分类要求作为基础判断逻辑传给 AI，调用已配置的 AI 服务选择已有分组或返回新分组名。
 - 当前浏览器不支持 `chrome.tabGroups` 时页面仍允许编辑规则，但会展示不支持提示，后台不会执行分组。
+
+### TabAutoGroupSettingsCard
+
+Tab 自动分组策略设置卡片，用于展示 AI 自动分组、按域名自动分组和 AI 自定义分类要求。组件只接收状态和事件回调，不直接访问存储层。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| supported | `boolean` | ✓ | - | 当前浏览器是否支持 `chrome.tabGroups` |
+| aiAutoGroupEnabled | `boolean` | ✓ | - | AI 自动分组是否开启 |
+| aiAutoGroupInstructions | `string` | ✓ | - | AI 自动分组自定义分类要求 |
+| domainAutoGroupEnabled | `boolean` | ✓ | - | 按域名自动分组是否开启 |
+| onAiAutoGroupEnabledChange | `(enabled: boolean) => void` | ✓ | - | AI 自动分组开关变化回调 |
+| onDomainAutoGroupEnabledChange | `(enabled: boolean) => void` | ✓ | - | 按域名自动分组开关变化回调 |
+| onAiAutoGroupInstructionsChange | `(instructions: string) => void` | ✓ | - | 自定义分类要求输入变化回调 |
+| onAiAutoGroupInstructionsSave | `() => void` | ✓ | - | 自定义分类要求失焦保存回调 |
+
+**用法示例：**
+
+```tsx
+<TabAutoGroupSettingsCard
+  supported={state.supported}
+  aiAutoGroupEnabled={state.aiAutoGroupEnabled}
+  aiAutoGroupInstructions={state.aiAutoGroupInstructions}
+  domainAutoGroupEnabled={state.domainAutoGroupEnabled}
+  onAiAutoGroupEnabledChange={state.updateAiAutoGroupEnabled}
+  onDomainAutoGroupEnabledChange={state.updateDomainAutoGroupEnabled}
+  onAiAutoGroupInstructionsChange={state.updateAiAutoGroupInstructions}
+  onAiAutoGroupInstructionsSave={state.saveAiAutoGroupInstructions}
+/>
+```
+
+**行为说明：**
+
+- AI 自动分组开启时禁用按域名自动分组开关。
+- 按域名自动分组开启时禁用 AI 自动分组开关和 AI 自定义分类要求输入。
+- 不支持 `chrome.tabGroups` 时所有自动分组策略控件都会禁用。
 
 ### TabGroupRuleForm
 

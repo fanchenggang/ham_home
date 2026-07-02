@@ -6,30 +6,34 @@ interface LandingPrivacyProps {
 
 export function LandingPrivacy({ isEn }: LandingPrivacyProps) {
   const texts = {
-    kicker: isEn ? 'Privacy first' : '隐私优先',
-    title: isEn ? 'AI has boundaries. Your data stays controllable.' : 'AI 有边界，数据也该可控',
+    kicker: isEn ? 'Data boundaries' : '数据与隐私边界',
+    title: isEn ? 'AI has boundaries. Stored data stays inspectable.' : 'AI 有边界，数据也该可检查',
     desc: isEn
-      ? 'HamHome provides granular storage management, private-domain exclusions, and controlled cleanup. You can enjoy AI productivity while deciding what never enters analysis.'
-      : 'HamHome 提供细粒度存储管理、隐私域名黑名单和可控的数据清理。你可以享受 AI 效率，也能决定哪些内容不进入分析流程。',
+      ? 'HamHome stores primary data in browser storage and IndexedDB, lets you exclude sensitive domains from AI analysis, and keeps credentials out of Agent automation.'
+      : 'HamHome 将主要数据保存在浏览器存储和 IndexedDB 中，支持将敏感域名排除在 AI 分析之外，也不会让 Agent 自动读取或代填凭据。',
     localTitle: isEn ? 'Local storage' : '本地存储',
     localDesc: isEn
-      ? 'Chrome Storage + IndexedDB. Bookmarks, snapshots, and vectors are visible by category.'
-      : 'Chrome Storage + IndexedDB，书签、快照、向量数据分项可见。',
+      ? 'Bookmarks, snapshots, AI cache, and vectors are stored locally and can be managed separately.'
+      : '书签、快照、AI 缓存和向量数据都在本地，并可分项管理。',
     domainTitle: isEn ? 'Private domains' : '隐私域名',
     domainDesc: isEn
       ? 'Sensitive sites such as banking, email, and admin systems can bypass AI analysis.'
       : '银行、邮箱、后台等敏感站点可直接跳过 AI 分析。',
-    syncTitle: isEn ? 'Sync does not mean losing control' : '同步不等于失控',
+    syncTitle: isEn ? 'Sync is explicit and structured' : '同步是显式且结构化的',
     syncDesc: isEn
-      ? 'WebDAV supports encrypted sync, status visibility, and remote cleanup for cross-device migration without giving up control.'
-      : 'WebDAV 支持加密同步、状态提示和远程数据清理，适合在多设备之间迁移，又不牺牲控制权。',
+      ? 'WebDAV sync writes structured HamHome data under /HamHomeSync. Local snapshot blobs stay local unless you export them or send Markdown notes to Obsidian.'
+      : 'WebDAV 会在 /HamHomeSync 下同步结构化数据。本地快照 Blob 默认仍在本机，除非通过导出或 Obsidian Markdown 笔记流程另行处理。',
+    sensitiveTitle: isEn ? 'Sensitive values stay manual' : '敏感项必须手动填写',
+    sensitiveDesc: isEn
+      ? 'API keys, Base URLs, privacy domains, WebDAV credentials, and browser shortcuts are configured by the user, not by the Agent.'
+      : 'API Key、Base URL、隐私域名、WebDAV 凭据和浏览器快捷键都由用户手动配置，Agent 不代填。',
   };
 
   return (
     <section className="mx-auto grid w-full gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 lg:py-24 container">
       <div className="max-w-2xl">
-        <p className="text-sm font-bold text-[#2dd4bf]">{texts.kicker}</p>
-        <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+        <p className="text-sm font-bold text-[#0f766e] dark:text-[#5eead4]">{texts.kicker}</p>
+        <h2 className="mt-3 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl">
           {texts.title}
         </h2>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -59,9 +63,14 @@ export function LandingPrivacy({ isEn }: LandingPrivacyProps) {
           </div>
         </article>
 
-        <article className="rounded-lg border bg-card/60 p-6 shadow-sm md:col-span-2">
+        <article className="rounded-lg border bg-card/60 p-6 shadow-sm">
           <h3 className="text-lg font-bold text-foreground">{texts.syncTitle}</h3>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{texts.syncDesc}</p>
+        </article>
+
+        <article className="rounded-lg border bg-card/60 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-foreground">{texts.sensitiveTitle}</h3>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{texts.sensitiveDesc}</p>
         </article>
       </div>
     </section>

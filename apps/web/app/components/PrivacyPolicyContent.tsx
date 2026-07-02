@@ -13,7 +13,7 @@ const chineseSections = [
   {
     title: '1. 适用范围',
     paragraphs: [
-      '本隐私权政策适用于 HamHome 浏览器扩展及其配套官网中的隐私说明页面。HamHome 是一款以本地优先为核心的书签管理工具，主要帮助用户保存、分类、搜索和整理网页书签。',
+      '本隐私权政策适用于 HamHome 浏览器扩展及其配套官网中的隐私说明页面。HamHome 是一款浏览器工作台工具，主要帮助用户保存、分类、搜索和整理网页书签与标签页工作空间。',
       '除非用户主动启用第三方 AI 服务或自行配置同步服务，HamHome 不会将你的书签内容、页面正文或账号数据上传到开发者自建服务器。',
     ],
   },
@@ -55,7 +55,7 @@ const chineseSections = [
   {
     title: '7. 安全措施',
     paragraphs: [
-      'HamHome 采用本地优先设计，尽量减少不必要的数据外发。对于你填写的 API Key、同步地址及相关设置，HamHome 仅在实现你选择的功能时于本地使用。',
+      'HamHome 会尽量减少不必要的数据外发。对于你填写的 API Key、同步地址及相关设置，HamHome 仅在实现你选择的功能时使用。',
       '尽管我们会尽力降低风险，但任何本地设备、浏览器环境或第三方服务都无法承诺绝对安全，请你妥善保管本机和外部服务凭据。',
     ],
   },
@@ -72,7 +72,7 @@ const englishSections = [
   {
     title: '1. Scope',
     paragraphs: [
-      'This Privacy Policy applies to the HamHome browser extension and its public privacy page. HamHome is a local-first bookmark manager for saving, organizing, and searching web bookmarks.',
+      'This Privacy Policy applies to the HamHome browser extension and its public privacy page. HamHome is a browser workspace tool for saving, organizing, and searching web bookmarks and tab workspaces.',
       'Unless you explicitly enable a third-party AI provider or configure your own sync target, HamHome does not upload your bookmark content, page text, or account data to developer-operated servers.',
     ],
   },
@@ -114,7 +114,7 @@ const englishSections = [
   {
     title: '7. Security',
     paragraphs: [
-      'HamHome follows a local-first approach to reduce unnecessary external transfers. API keys, sync endpoints, and related settings are used locally to provide the features you enable.',
+      'HamHome reduces unnecessary external transfers. API keys, sync endpoints, and related settings are used only to provide the features you enable.',
       'No browser extension or third-party service can guarantee absolute security, so please protect your device and external credentials carefully.',
     ],
   },

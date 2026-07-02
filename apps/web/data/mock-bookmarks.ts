@@ -162,7 +162,7 @@ export const mockBookmarks: Bookmark[] = [
     id: 'bk-8',
     url: 'https://www.notion.so/',
     title: 'Notion – One workspace. Every team.',
-    description: 'Notion 是一款集笔记、文档、知识库和项目管理于一体的协作工具，帮助团队更好地组织工作。',
+    description: 'Notion 是一款集笔记、文档和项目管理于一体的协作工具，帮助团队更好地组织工作。',
     categoryId: 'cat-6',
     tags: ['Notion', '效率', '笔记', '协作'],
     favicon: 'https://www.notion.so/images/favicon.ico',

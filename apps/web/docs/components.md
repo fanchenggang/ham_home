@@ -1,79 +1,39 @@
 # HamHome Web - 组件文档
 
+本文档记录 `apps/web` 产品落地页当前使用的页面组件。组件内容以扩展实际能力为准，截图统一来自插件自动截图输出并复制到 `apps/web/public/screenshots/extension/`。
+
 ## 目录结构
 
-```
+```text
 app/components/
-├── Header.tsx          # 导航栏组件
-├── Footer.tsx          # 页脚组件
-├── PrivacyPolicyContent.tsx # 隐私权政策内容组件
-├── LandingActionButtons.tsx # 首页下载与 GitHub 按钮组
-├── LandingOverview.tsx # 首页能力摘要与三步工作流
-├── LandingCapabilities.tsx # 更多能力网格
-├── LandingPrivacy.tsx  # 隐私优先说明区
-├── LandingCta.tsx      # 首页底部行动区
-├── FeatureHeroBanner.tsx # 首页首屏 Hero
-├── FeatureSection.tsx  # 功能区块容器 (垂直布局)
-├── FeatureShowcase.tsx # 功能展示区 (垂直排列各功能区块)
-├── index.ts            # 导出入口
-└── demos/              # Demo 展示组件
-    ├── SaveBookmarkDemo.tsx    # 保存书签演示
-    ├── BookmarkPanelDemo.tsx   # 书签面板演示
-    ├── BookmarkListMngDemo.tsx # 书签管理演示
-    ├── WorkspaceDemo.tsx       # 工作空间与 Tab 自动分组演示
-    ├── CategoriesDemo.tsx      # 分类方案演示
-    ├── AIChatSearchDemo.tsx    # AI 对话搜索演示
-    ├── ImportExportDemo.tsx    # 导入导出演示
-    └── index.ts
+├── Header.tsx
+├── Footer.tsx
+├── PrivacyPolicyContent.tsx
+├── LandingActionButtons.tsx
+├── LandingOverview.tsx
+├── LandingCapabilities.tsx
+├── LandingPrivacy.tsx
+├── LandingFAQ.tsx
+├── LandingCta.tsx
+├── FeatureHeroBanner.tsx
+├── FeatureSection.tsx
+├── FeatureShowcase.tsx
+├── ExtensionScreenshotFrame.tsx
+├── extensionScreenshots.ts
+└── demos/
+    ├── AIChatSearchDemo.tsx
+    └── ...
 ```
 
----
+## HomePage
 
-## Header
-
-导航栏组件，包含 Logo、品牌名称、语言切换、主题切换、下载入口和 GitHub 入口。
-
-### 行为说明
-
-- Logo 使用 `/icon/128.png`，路径会自动加上 `NEXT_PUBLIC_BASE_PATH` 前缀以支持 GitHub Pages 部署
-- 右上角包含下载下拉按钮和 GitHub 图标按钮
-- 下载按钮点击展开下拉菜单，包含多种安装渠道：
-  - Chrome Web Store（待发布）
-  - Edge Add-ons（待发布）
-  - Firefox Add-ons（已发布）
-  - 离线安装包（已发布，链接至 GitHub Releases）
-- 自动检测当前浏览器类型，显示"推荐"标签
-- 未发布的渠道显示"待发布"标签，点击跳转至 GitHub Releases
+首页页面组件，组合导航、Hero、真实截图功能展示、能力网格、隐私说明、FAQ、底部 CTA 和页脚。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isDark | boolean | ✓ | - | 当前是否为深色主题 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-| onToggleTheme | () => void | ✓ | - | 切换主题回调 |
-| onToggleLanguage | () => void | ✓ | - | 切换语言回调 |
-
-### Usage
-
-```tsx
-<Header
-  isDark={isDark}
-  isEn={isEn}
-  onToggleTheme={() => setIsDark(!isDark)}
-  onToggleLanguage={() => setIsEn(!isEn)}
-/>
-```
-
----
-
-## HomePage
-
-首页页面组件，负责组合导航、Hero、能力摘要、功能展示区、更多能力、隐私优先、底部 CTA 和页脚。
-
-### Props
-
-无
+| - | - | - | - | 无 props |
 
 ### Usage
 
@@ -83,49 +43,53 @@ app/components/
 
 ### 行为说明
 
-- 页面根容器使用 `home-page-shell`，并应用设计稿中的深色基底与三层径向渐变背景
-- 根据当前主题和语言偏好渲染对应内容
-- 使用 `LandingOverview` 承接首屏下方的能力摘要与“从收藏到找回”三步路径
-- 使用 `LandingCapabilities`、`LandingPrivacy`、`LandingCta` 补齐设计稿下半部分内容
-- 背景层只负责页面级视觉，不承载业务逻辑
+- 使用 `useWebPreferences()` 管理语言与主题。
+- 将 `isEn` 与 `isDark` 传入 Hero 和功能展示区，自动选择中英文、明暗主题截图。
+- 不再依赖 mock bookmark 数据渲染主落地页展示，主展示内容以自动截图为准。
 
 ---
 
-## Footer
+## Header
 
-页脚组件，显示品牌标语、支持平台标签、隐私权政策入口和 GitHub 入口。
+顶部导航栏组件，展示 Logo、品牌、副标题、语言切换、主题切换、GitHub 入口和下载下拉菜单。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| isDark | boolean | 是 | - | 当前是否为深色主题 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
+| onToggleTheme | (e?: React.MouseEvent) => void | 是 | - | 切换主题回调 |
+| onToggleLanguage | () => void | 是 | - | 切换语言回调 |
 
 ### Usage
 
 ```tsx
-<Footer isEn={isEn} />
+<Header
+  isDark={isDark}
+  isEn={isEn}
+  onToggleTheme={toggleTheme}
+  onToggleLanguage={toggleLanguage}
+/>
 ```
 
 ### 行为说明
 
-- 始终显示品牌标语
-- 展示 Chrome、Edge、Firefox、WebDAV 支持项
-- 提供隐私权政策链接 `/privacy-policy`
-- 提供 GitHub 外链入口
+- 下载菜单通过 `getDownloadChannels()` 和 `getRecommendedDownloadChannel()` 自动推荐当前浏览器渠道。
+- 副标题与落地页定位一致：AI 浏览器工作台。
 
 ---
 
 ## FeatureHeroBanner
 
-首页首屏 Hero 组件，展示 HamHome 品牌、主标题、价值描述、下载入口、GitHub 入口和产品预览图。
+首页首屏 Hero，展示品牌主张、下载/GitHub 操作、核心能力标签，以及自动截图轮播。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-| isDark | boolean | ✓ | - | 当前是否为深色主题，用于切换预览图 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
+| isDark | boolean | 是 | - | 当前是否为深色主题，用于选择截图主题 |
 
 ### Usage
 
@@ -135,47 +99,109 @@ app/components/
 
 ### 行为说明
 
-- 根据语言切换标题与描述
-- 根据主题切换深色或浅色产品预览图
-- 下载和 GitHub 操作复用 `LandingActionButtons`
+- 轮播展示真实插件截图：书签库、AI Agent、工作空间、Tab 分组、导入导出与同步。
+- 截图路径由 `getExtensionScreenshotSrc()` 生成，自动带上 `NEXT_PUBLIC_BASE_PATH`。
+- 不再使用 Imgur 老截图。
 
 ---
 
-## LandingActionButtons
+## ExtensionScreenshotFrame
 
-首页复用按钮组，封装推荐下载入口与 GitHub 外链入口。
+通用截图展示框，给插件自动截图添加浏览器窗口样式、标题栏和稳定纵横比。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-| className | string | ✗ | - | 按钮组额外样式 |
-| downloadLabel | string | ✗ | 根据语言生成 | 下载按钮文案 |
-| githubLabel | string | ✗ | GitHub | GitHub 按钮文案 |
+| id | ExtensionScreenshotId | 是 | - | 截图 ID |
+| isEn | boolean | 是 | - | 选择英文或中文截图目录 |
+| isDark | boolean | 是 | - | 选择深色或浅色截图目录 |
+| caption | string | 否 | 截图标题 | 标题栏文案 |
+| priority | boolean | 否 | false | 是否优先加载 |
+| className | string | 否 | - | 外层样式 |
+| imageClassName | string | 否 | - | 图片样式 |
 
 ### Usage
 
 ```tsx
-<LandingActionButtons isEn={isEn} downloadLabel="下载安装" />
+<ExtensionScreenshotFrame
+  id="aiAgent"
+  isEn={isEn}
+  isDark={isDark}
+/>
 ```
 
 ### 行为说明
 
-- 下载按钮复用 `openRecommendedDownload()`，自动根据当前浏览器打开推荐渠道
-- GitHub 按钮打开项目仓库新窗口
+- `popupSave` 使用竖向 popup 比例，其余截图使用桌面 3:2 比例。
+- 只负责展示截图，不包含业务交互。
+
+---
+
+## FeatureShowcase
+
+首页核心功能展示区，按实际扩展功能展示多组自动截图和对应能力说明。
+
+### Props
+
+| name | type | required | default | description |
+|------|------|----------|---------|-------------|
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
+| isDark | boolean | 是 | - | 当前是否为深色主题 |
+
+### Usage
+
+```tsx
+<FeatureShowcase isEn={isEn} isDark={isDark} />
+```
+
+### 行为说明
+
+- 展示 AI 收藏、书签管理、AI Agent、工作空间、Tab 分组、导入导出与同步六个区块。
+- 内容说明覆盖真实实现：Defuddle/Readability/SingleFile、Agent 代办流程、混合检索、WebDAV 结构化同步、Obsidian Markdown 工作流等。
+- 每个区块使用真实截图和右侧能力要点，不再渲染旧的手写产品 demo。
+
+---
+
+## FeatureSection
+
+功能区块容器，负责统一标题、图标、描述、背景和内容插槽。
+
+### Props
+
+| name | type | required | default | description |
+|------|------|----------|---------|-------------|
+| id | string | 是 | - | section id |
+| icon | ReactNode | 是 | - | 标题图标 |
+| title | string | 是 | - | 区块标题 |
+| description | string | 是 | - | 区块描述 |
+| children | ReactNode | 是 | - | 区块主体 |
+| alternate | boolean | 否 | false | 是否使用交替背景 |
+| className | string | 否 | - | 自定义样式 |
+
+### Usage
+
+```tsx
+<FeatureSection id="agent-control" icon={<Bot />} title="AI Agent" description="...">
+  <ExtensionScreenshotFrame id="aiAgent" isEn={isEn} isDark={isDark} />
+</FeatureSection>
+```
+
+### 行为说明
+
+- 偶数/奇数区块可交替背景，提高长页面扫读性。
 
 ---
 
 ## LandingOverview
 
-首页首屏下方概览组件，展示四个核心能力摘要，并说明“收藏、管理、找回”的三步路径。
+首屏下方能力摘要组件，概括当前扩展真实界面和核心功能。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
 
 ### Usage
 
@@ -185,20 +211,20 @@ app/components/
 
 ### 行为说明
 
-- 根据语言切换能力摘要和三步路径文案
-- 四个能力摘要为静态展示，不包含交互
+- 展示 AI 收藏、Agent 代办、工作空间、Tab 分组、WebDAV、隐私保护六个摘要。
+- 文案强调 HamHome 围绕真实浏览流程工作。
 
 ---
 
 ## LandingCapabilities
 
-更多能力网格组件，用于展示 WebDAV 同步、网页快照、语义检索、分类方案、自定义筛选和导入导出。
+更多能力网格，展示 Agent 代办插件、书签搜索、快照、Tab 规则、WebDAV、迁移、Provider 和隐私边界。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
 
 ### Usage
 
@@ -208,20 +234,20 @@ app/components/
 
 ### 行为说明
 
-- 使用六个静态能力卡片，按语言切换标题和描述
-- 每个卡片使用 Lucide 图标和不同强调色
+- 八个静态能力卡片按语言切换标题和描述。
+- Provider 描述与扩展实际 `provider-config.ts` 保持一致。
 
 ---
 
 ## LandingPrivacy
 
-隐私优先说明组件，展示本地存储、隐私域名和 WebDAV 可控同步。
+数据与隐私边界说明区，说明本地存储、隐私域名、WebDAV 同步范围和敏感配置边界。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
 
 ### Usage
 
@@ -231,20 +257,44 @@ app/components/
 
 ### 行为说明
 
-- 根据语言切换隐私说明文案
-- 使用静态存储进度条和示例域名芯片表达可控范围
+- 明确 WebDAV 同步结构化数据，本地快照 Blob 默认仍在本机。
+- 明确 API Key、Base URL、隐私域名、WebDAV 凭据和浏览器快捷键由用户手动配置。
 
 ---
 
-## LandingCta
+## LandingFAQ
 
-首页底部行动区组件，承接下载和 GitHub 查看两个主要操作。
+常见问题组件，按通用、隐私、AI、同步四类展示问答。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
+
+### Usage
+
+```tsx
+<LandingFAQ isEn={isEn} />
+```
+
+### 行为说明
+
+- 使用分类按钮切换 FAQ 类别。
+- 问答内容已对齐当前扩展实现，不再声明未实现的 WebDAV 加密同步能力。
+- AI FAQ 描述新版 Agent UI 与支持的 Provider 范围。
+
+---
+
+## LandingCta
+
+首页底部行动区，承接安装扩展和查看 GitHub 的主要操作。
+
+### Props
+
+| name | type | required | default | description |
+|------|------|----------|---------|-------------|
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
 
 ### Usage
 
@@ -254,310 +304,30 @@ app/components/
 
 ### 行为说明
 
-- 复用 `LandingActionButtons`，保证 Hero 与底部 CTA 的下载行为一致
-- 按语言切换标题、描述和按钮文案
-
----
-
-## FeatureSection
-
-功能区块容器组件，用于垂直布局中每个功能模块的展示。包含图标、标题、描述和 Demo 内容区域。偶数/奇数行交替使用不同背景色，并添加装饰性渐变光斑。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| id | string | ✓ | - | 区块 ID，用于锚点定位 |
-| icon | ReactNode | ✓ | - | 区块图标 |
-| title | string | ✓ | - | 区块标题 |
-| description | string | ✓ | - | 区块描述文字 |
-| children | ReactNode | ✓ | - | Demo 内容 |
-| alternate | boolean | ✗ | false | 是否使用交替背景样式 |
-| className | string | ✗ | - | 额外 CSS 类名 |
-
-### Usage
-
-```tsx
-<FeatureSection
-  id="ai-save"
-  icon={<Sparkles className="h-5 w-5" />}
-  title="AI 智能收藏"
-  description="将值得保留的页面沉淀为结构化收藏..."
-  alternate
->
-  <SaveBookmarkDemo ... />
-</FeatureSection>
-```
-
----
-
-## FeatureShowcase
-
-功能展示区组件，将各功能模块按垂直方向依次排列展示。每个模块使用 `FeatureSection` 容器包裹，配有独立的标题、描述和 Demo 内容。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| bookmarks | Bookmark[] | ✓ | - | 书签数据列表 |
-| categories | Category[] | ✓ | - | 分类数据列表 |
-| pageContent | PageContent | ✓ | - | 模拟页面内容 |
-| allTags | string[] | ✓ | - | 所有标签列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### Usage
-
-```tsx
-<FeatureShowcase
-  bookmarks={mockBookmarks}
-  categories={mockCategories}
-  pageContent={mockPageContent}
-  allTags={mockAllTags}
-  isEn={false}
-/>
-```
-
-### 包含的功能区块（垂直排列）
-
-1. **工作空间与 Tab 自动分组** - WorkspaceDemo
-2. **AI 智能收藏** - SaveBookmarkDemo
-3. **侧边栏书签面板** - BookmarkPanelDemo
-4. **全功能书签管理** - BookmarkListMngDemo
-5. **智能分类方案** - CategoriesDemo
-6. **无缝导入导出** - ImportExportDemo
-
-> AI 对话搜索已集成到 **书签面板** 和 **书签管理** 两个演示中。
-
----
-
-## PrivacyPolicyContent
-
-隐私权政策页面内容组件，根据当前语言偏好只显示中文或英文版本。
-
-### Props
-
-无
-
-### Usage
-
-```tsx
-<PrivacyPolicyContent />
-```
-
-### 行为说明
-
-- 复用站点语言偏好逻辑，优先读取本地语言设置，否则根据浏览器语言判断
-- 复用首页顶部导航，支持主题切换、语言切换、下载入口和 GitHub 入口
-- 页面只展示当前语言对应的隐私政策内容
-- 渲染返回首页入口、最后更新时间和 GitHub 外链
-- 页脚语言与当前页面语言保持一致
-
-## SaveBookmarkDemo
-
-保存书签演示组件，左侧展示保存书签表单，右侧展示 AI 功能列表。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| pageContent | PageContent | ✓ | - | 模拟页面内容 |
-| categories | Category[] | ✓ | - | 分类列表 |
-| allTags | string[] | ✓ | - | 标签建议列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 布局
-
-- 左侧: 保存书签表单 (标题、摘要、分类、标签、操作按钮)
-- 右侧: AI 功能介绍 (自动生成摘要、智能分类、标签推荐、隐私保护)
-
-### 样式对齐
-
-- 标签输入直接复用 `@hamhome/ui-business/common` 的 `TagInput`
-- 使用与插件一致的渐变标签 Badge、建议列表、最大数量提示和删除按钮
-
----
-
-## BookmarkPanelDemo
-
-书签面板演示组件，模拟插件在页面唤起时的真实场景，与 `@apps/extension/components/bookmarkPanel` UI 保持一致。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| bookmarks | Bookmark[] | ✓ | - | 书签列表 |
-| categories | Category[] | ✓ | - | 分类列表 |
-| allTags | string[] | ✓ | - | 标签列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 布局结构
-
-- **底层**: 模拟网页内容（带浏览器地址栏、文章骨架）
-- **中层**: 半透明模糊遮罩 (bg-black/20 + backdrop-blur)
-- **上层**: 左侧滑入的书签面板侧边栏
-
-### 功能
-
-- 自动打开动画（800ms 延迟后滑入）
-- 点击遮罩关闭面板
-- 头部: 标题、书签数量、快捷操作按钮（LayoutGrid、Settings）
-- 搜索框 + 清除按钮 + 标签筛选 + 筛选器按钮
-- 分类树视图和书签项复用 `@hamhome/ui-business/bookmark-panel`
-- AI 对话面板挂载在侧边栏容器内部底部（与 extension `BookmarkPanel` 相同位置与样式）
-
----
-
-## BookmarkListMngDemo
-
-书签管理演示组件，展示完整的管理视图，包含搜索、筛选、视图切换、批量操作功能。
-网格卡片和列表行直接复用 `@hamhome/ui-business/bookmark`，与插件端 `bookmarkListMng` 的主体 UI 同源。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| bookmarks | Bookmark[] | ✓ | - | 书签列表 |
-| categories | Category[] | ✓ | - | 分类列表 |
-| allTags | string[] | ✓ | - | 标签列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 功能
-
-- 搜索框
-- 标签筛选按钮
-- 分类筛选按钮
-- 筛选器按钮
-- 视图切换 (网格/列表)
-- 筛选状态显示
-- 批量选择操作
-- 网格/列表书签项复用共享 `BookmarkCard` / `BookmarkListItem`
-- AI 对话面板位于管理视图根容器底部（与 extension `MainContent` 相同相对位置）
-
----
-
-## WorkspaceDemo
-
-工作空间与 Tab 自动分组演示组件，展示标签页管理、AI 智能分组与云同步等功能。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 功能
-
-- 显示当前工作区及标签页数量
-- 模拟 AI 一键智能分组（分析进度反馈及结果洞察）
-- 展示不同话题的标签页分组列表
-- 提供“云端同步”与“转为书签”快速操作
-- 具有清晰层次结构的卡片式界面
-
----
-
-## CategoriesDemo
-
-AI 功能演示组件，直接展示预设分类选择和 AI 生成分类功能。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 布局结构
-
-- 头部标题和描述
-- Tab 切换（预设分类 / AI 生成）
-- 内容区域（可滚动）
-
-### 功能
-
-- **预设分类 Tab**: 左右并排展示通用型和专业型两套预设分类方案，树形结构预览
-- **AI 生成 Tab**: 输入需求描述，模拟 AI 生成个性化分类结构
-- 应用按钮（演示用）
-- 分类树预览复用 `@hamhome/ui-business/category` 的 `CategoryPreviewTree`
-
-### Usage
-
-```tsx
-<CategoriesDemo isEn={false} />
-```
+- 复用 `LandingActionButtons`，保证 Hero 与底部 CTA 的下载行为一致。
 
 ---
 
 ## AIChatSearchDemo
 
-AI 对话搜索演示组件，对齐插件端的自然语言问答、来源引用和建议操作。
-
-> 该组件作为子模块复用在 `BookmarkPanelDemo` 和 `BookmarkListMngDemo` 内部。
-> 面板 UI 复用 `@hamhome/ui-business/ai-search`，本组件只保留 demo 搜索状态和模拟回答逻辑。
+旧 demo 兼容组件，已更新为当前 `GlobalAgentLauncher` 风格的 Agent 展示，用于仍引用 demo 的内部组件。
 
 ### Props
 
 | name | type | required | default | description |
 |------|------|----------|---------|-------------|
-| bookmarks | Bookmark[] | ✓ | - | 书签列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
+| bookmarks | Bookmark[] | 是 | - | 用于生成参考卡片的模拟书签 |
+| isEn | boolean | 是 | - | 当前是否为英文模式 |
+| className | string | 否 | - | 外层样式 |
+| onSourceClick | (bookmarkId: string) => void | 否 | - | 参考卡片点击回调 |
 
-### 功能
+### Usage
 
-- 快速提问示例（与插件 `quickActions` 一致）
-- 对话消息区（用户问题 + AI 回答）
-- 来源引用列表（可点击打开链接）
-- 后续建议（查看更多、时间筛选、复制链接）
-
----
-
-## ImportExportDemo
-
-导入导出演示组件，对齐插件端的导入配置和进度反馈流程。
-主体面板复用 `@hamhome/ui-business/import-export` 的 `ImportExportDemoPanel`。
-
-### Props
-
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| bookmarks | Bookmark[] | ✓ | - | 书签列表 |
-| categories | Category[] | ✓ | - | 分类列表 |
-| isEn | boolean | ✓ | - | 当前是否为英文模式 |
-
-### 功能
-
-- 导出为 JSON / HTML
-- 从文件导入、从浏览器导入
-- 保留目录结构 与 AI 自动分析互斥开关
-- 模拟导入进度与结果反馈
-
----
-
-## 数据类型
-
-详见 `data/mock-bookmarks.ts`:
-
-```ts
-interface Bookmark {
-  id: string;
-  url: string;
-  title: string;
-  description: string;
-  categoryId: string;
-  tags: string[];
-  favicon?: string;
-  createdAt: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  parentId: string | null;
-  order: number;
-}
-
-interface PageContent {
-  url: string;
-  title: string;
-  excerpt: string;
-  favicon?: string;
-}
+```tsx
+<AIChatSearchDemo bookmarks={bookmarks} isEn={isEn} />
 ```
+
+### 行为说明
+
+- 展示悬浮 Agent 面板风格：会话标题、过程步骤、参考卡片、建议 chip 和输入区。
+- 该组件保留给旧 demo 引用；当前落地页主功能展示使用真实截图。
