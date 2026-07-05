@@ -4,7 +4,7 @@
 
 # HamHome（仓鼠家）
 
-**AI 浏览器工作台：统一管理书签、标签页、工作空间，并让 Agent 代办插件操作**
+**AI 浏览器工作台：统一管理书签、标签页、工作空间，并内置 Agent 让你更容易的操作插件**
 
 <p>
   <img src="https://img.shields.io/github/v/release/bingoYB/ham_home?style=flat-square" alt="Release" />
