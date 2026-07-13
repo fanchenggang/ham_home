@@ -175,3 +175,24 @@ Use workspace boundaries: app code stays in `apps/*`; reusable logic belongs in 
 - Only output changed code/diff unless asked otherwise
 - Combine multi-task requests into single responses
 - Avoid lengthy reasoning; go directly to conclusions
+
+---
+
+## Cursor Cloud specific instructions
+
+Dependencies are refreshed automatically on startup via the update script (`pnpm install`). Standard commands live in the sections above; only the non-obvious caveats are captured here.
+
+### Services / how to run
+- **Web (Next.js 16 marketing site)** — `pnpm dev:web`, serves on `http://localhost:3000`. `next lint`/`next build` use Turbopack.
+- **Extension (WXT, main product)** — `pnpm dev:extension` builds `apps/extension/.output/chrome-mv3-dev` in watch mode and auto-launches a browser via web-ext; it also runs a Vite dev server on port `3124`. `pnpm --filter hamhome build` produces the production build at `apps/extension/.output/chrome-mv3`.
+- Shared packages build with tsup; there is no root `build:packages` script — use `pnpm --filter "./packages/*" build`.
+
+### Loading / testing the extension (gotchas)
+- Load unpacked in Chrome from `apps/extension/.output/chrome-mv3` (production) or `.output/chrome-mv3-dev` (dev). The main management UI is `app.html` and it also overrides the new-tab page.
+- Right after loading, the new-tab override can transiently render blank or show `ERR_BLOCKED_BY_CLIENT` / "Unsafe attempt to load URL ... from frame with URL chrome-error://". This is a navigation-state quirk, not a build failure: reload the extension or open `chrome-extension://<extension-id>/app.html` directly and it renders fine.
+- Core smoke test: open `app.html`, go to 导入/导出 (Import/Export), import a bookmarks HTML file (repo root has `test-bookmarks-en.html` / `test-bookmarks-zh.html`), then check 所有书签 (All Bookmarks). Data is local-first (Chrome Storage + IndexedDB); no backend/env vars required.
+
+### Known pre-existing issues (not environment problems)
+- `pnpm lint` fails at `web#lint`: Next 16 removed `next lint` (errors with "Invalid project directory ... /lint"). Package-level lint/build pass.
+- `pnpm --filter @hamhome/i18n build` fails only in the DTS step (tsup type-declaration parse error at `src/index.ts:1:0`); the JS (cjs/esm) build succeeds and no app depends on `@hamhome/i18n`'s output.
+- `pnpm --filter @hamhome/agent test` has 2 pre-existing failing tests (of 19) in `__tests__/agent.test.ts` (autonomous-loop result and openai-compatible provider mock).
