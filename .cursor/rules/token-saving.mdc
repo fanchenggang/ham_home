@@ -1,9 +1,0 @@
----
-name: token-saving
-description: 节省token
-alwaysApply: true
----
-# Cursor Rules - Token Saving
-
-See [docs/ai-work/token-saving.md](docs/ai-work/token-saving.md) for the detailed rules.
-Strictly follow the guidelines in that file.

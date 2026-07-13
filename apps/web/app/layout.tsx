@@ -7,11 +7,12 @@ const CLARITY_PROJECT_ID = 'vg9k8vkmuz';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hamhome.app'),
-  title: 'HamHome - AI 驱动的智能书签管理工具 | AI Bookmark Manager',
-  description: '让收藏不再积灰。HamHome 是一款以隐私保护为核心、完全本地存储的智能浏览器扩展，支持一键收藏、AI 内容总结、语义检索、智能分类以及书签快捷导入导出。',
+  title: 'HamHome - AI 浏览器工作台 | Browser Workspace',
+  description: 'HamHome 是一款 AI 浏览器工作台，整合书签收藏、网页快照、Agent 代办插件操作、工作空间、Tab 分组规则、WebDAV 同步与导入导出。',
   keywords: [
-    '书签管理', '浏览器扩展', 'AI', '收藏夹', 'bookmark manager', 'browser extension',
-    '智能分类', '语义搜索', 'AI 标签', '本地存储', 'semantic search', 'tab manager'
+    '浏览器工作台', '浏览器工作空间', '书签管理', 'Tab 管理', 'Tab 自动分组', '收藏管理', '浏览器扩展', 'AI Agent',
+    'browser workspace', 'bookmark manager', 'tab manager', 'tab grouping', 'collections', 'webdav sync',
+    '智能分类', '语义搜索', 'AI 标签', '本地存储', 'semantic search', 'Obsidian'
   ],
   authors: [{ name: 'HamHome Team', url: 'https://github.com/bingoYB/ham_home' }],
   creator: 'HamHome',
@@ -35,8 +36,8 @@ export const metadata: Metadata = {
     apple: `${basePath}/icon/128.png`,
   },
   openGraph: {
-    title: 'HamHome - AI 驱动的新一代智能书签助手',
-    description: '让收藏不再积灰。支持一键收藏、AI 自动分类、语义检索。本地化存储保护隐私的浏览器扩展。',
+    title: 'HamHome - AI 浏览器工作台',
+    description: '收藏网页、保存快照、让 Agent 理解并代办插件操作、恢复工作空间、自动整理 Tab 分组，并通过 WebDAV 迁移结构化数据。',
     url: 'https://hamhome.app',
     siteName: 'HamHome',
     images: [
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
         url: `${basePath}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'HamHome - 智能书签助手预览图',
+        alt: 'HamHome - 浏览器工作空间预览图',
       },
     ],
     locale: 'zh_CN',
@@ -52,8 +53,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'HamHome - AI 驱动的新一代智能书签助手',
-    description: '让收藏不再积灰。支持一键收藏、AI 自动分类、语义检索。本地化存储保护隐私的浏览器扩展。',
+    title: 'HamHome - AI 浏览器工作台',
+    description: '收藏网页、保存快照、让 Agent 理解并代办插件操作、恢复工作空间、自动整理 Tab 分组，并通过 WebDAV 迁移结构化数据。',
     images: [`${basePath}/og-image.png`],
   },
   robots: {
@@ -76,7 +77,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen bg-background antialiased scroll-table-fix">
         {children}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`

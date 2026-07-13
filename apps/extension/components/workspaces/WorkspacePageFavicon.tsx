@@ -1,29 +1,29 @@
-import { Globe } from "lucide-react";
-import { cn } from "@hamhome/ui";
+/**
+ * WorkspacePageFavicon - 工作空间页面 favicon 展示
+ */
+import {
+  FaviconIcon,
+  type FaviconIconProps,
+} from "@hamhome/ui-business/workspace";
+import { getSafeFaviconUrl } from "@/utils/bookmark-utils";
 
-interface WorkspacePageFaviconProps {
+export interface WorkspacePageFaviconProps
+  extends Omit<FaviconIconProps, "favicon"> {
   favicon?: string;
-  className?: string;
+  url?: string;
 }
 
 export function WorkspacePageFavicon({
   favicon,
-  className,
+  url,
+  ...props
 }: WorkspacePageFaviconProps) {
-  const baseClassName = cn("h-5 w-5 shrink-0 rounded-none", className);
-
-  if (favicon) {
-    return <img src={favicon} alt="" className={cn(baseClassName, "object-contain")} />;
-  }
+  const resolvedFavicon = url ? getSafeFaviconUrl(url, favicon) : favicon;
 
   return (
-    <span
-      className={cn(
-        baseClassName,
-        "inline-flex items-center justify-center bg-muted text-muted-foreground",
-      )}
-    >
-      <Globe className="h-3.5 w-3.5" />
-    </span>
+    <FaviconIcon
+      {...props}
+      favicon={resolvedFavicon ?? undefined}
+    />
   );
 }

@@ -105,7 +105,7 @@
 - 左侧每个工作空间以保存时间作为分组头，页面以紧凑卡片网格展示。
 - 点击分组或卡片会选中工作空间，选中后在分组内展示选择、恢复、智能分析和转书签工具。
 - 右侧 Tabs 侧栏通过 `workspaceService.previewCurrentWindow(true)` 读取所有窗口可保存页面，并支持按窗口分组展示、刷新、标题排序和保存所有窗口。
-- 工作空间使用 `local:workspaces` 持久化，包含名称、描述、分类、标签、页面标题/URL/域名/图标、恢复状态和后续 AI 分析预留字段。
+- 工作空间使用 `local:workspaces` 持久化，包含名称、描述、分类、标签、页面标题/URL/域名/Cravatar 图标、恢复状态和后续 AI 分析预留字段。
 - 工作空间分类使用独立的 `local:workspaceCategories` 持久化，不复用书签分类；转书签弹窗仍使用书签分类。
 - 分组头部提供编辑入口，可修改工作空间名称、描述、独立分类和标签。
 - 恢复页面数量超过阈值时会先弹出确认，恢复成功后更新 `restoredAt` 和 `isRestored`；若工作空间保存了浏览器原生 Tab Groups，会在恢复时重建分组，并短暂跳过插件自动分组规则，避免规则分组覆盖工作空间分组。
@@ -116,7 +116,7 @@
 
 ## TabGroupsPage
 
-浏览器 Tab 分组规则管理页面，用于创建、编辑、启停和删除自动 Tab 分组规则，并控制 AI 自动分组开关。页面通过 `useTabGroupRules` 读取 `sync:tabGroupRules` 和 `sync:tabGroupAutoGroupSettings`，按分组配置聚合展示已保存规则，并通过弹窗维护规则条件；后台监听新建/更新 Tab 后执行同一套匹配规则。
+浏览器 Tab 分组规则管理页面，用于创建、编辑、启停和删除自动 Tab 分组规则，并控制 AI 自动分组、按域名自动分组开关与自定义分类要求。页面通过 `useTabGroupRules` 读取 `sync:tabGroupRules` 和 `sync:tabGroupAutoGroupSettings`，按分组配置聚合展示已保存规则，并通过弹窗维护规则条件；后台监听新建/更新 Tab 后执行同一套匹配规则。
 
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -134,12 +134,51 @@
 - 匹配条件支持包含、完全相等、前缀为、后缀为和正则匹配。
 - 同一分组可以配置多条匹配条件，底层仍按多条 `TabGroupRule` 保存以兼容已有数据。
 - 规则保存到 `sync:tabGroupRules`，会跟随浏览器账号同步。
-- AI 自动分组开关保存到 `sync:tabGroupAutoGroupSettings`，默认关闭。
-- AI 自动分组结果按归一化 URL 缓存在 `local:tabGroupAIGroupCache`，再次打开相同页面时优先使用缓存，避免重复调用 AI。
+- AI 自动分组开关、按域名自动分组开关和自定义分类要求保存到 `sync:tabGroupAutoGroupSettings`，默认关闭且要求为空。
+- AI 自动分组设置包含 `updatedAt`，WebDAV 同步会按更新时间合并，避免旧远端配置覆盖本地刚修改的开关或要求。
+- AI 自动分组与按域名自动分组互斥，开启其中一个策略时不能同时开启另一个策略。
+- 按域名自动分组仅在未命中自定义规则时生效，会按主域名归入同名分组，例如 `www.baidu.com` 归为 `baidu`，新分组颜色随机。
+- AI 自动分组结果按域名和当前自定义分类要求缓存在 `local:tabGroupAIGroupCache`，同一域名再次打开且要求未变时优先复用历史分组，避免重复调用 AI。
 - Chromium 浏览器命中规则后使用 `chrome.tabs.group` 分组，并用 `chrome.tabGroups.update` 设置组名、颜色和折叠状态。
 - 已存在同名分组时，新 Tab 会加入同名分组；不存在时会创建新的浏览器原生分组。
-- AI 自动分组开启时，后台先执行规则匹配；未命中且页面加载完成后，读取 URL、标题和页面描述，调用已配置的 AI 服务选择已有分组或返回新分组名。
+- AI 自动分组开启时，后台先执行规则匹配；未命中且页面加载完成后，读取 URL、标题和页面描述，并把自定义分类要求作为基础判断逻辑传给 AI，调用已配置的 AI 服务选择已有分组或返回新分组名。
 - 当前浏览器不支持 `chrome.tabGroups` 时页面仍允许编辑规则，但会展示不支持提示，后台不会执行分组。
+
+### TabAutoGroupSettingsCard
+
+Tab 自动分组策略设置卡片，用于展示 AI 自动分组、按域名自动分组和 AI 自定义分类要求。组件只接收状态和事件回调，不直接访问存储层。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| supported | `boolean` | ✓ | - | 当前浏览器是否支持 `chrome.tabGroups` |
+| aiAutoGroupEnabled | `boolean` | ✓ | - | AI 自动分组是否开启 |
+| aiAutoGroupInstructions | `string` | ✓ | - | AI 自动分组自定义分类要求 |
+| domainAutoGroupEnabled | `boolean` | ✓ | - | 按域名自动分组是否开启 |
+| onAiAutoGroupEnabledChange | `(enabled: boolean) => void` | ✓ | - | AI 自动分组开关变化回调 |
+| onDomainAutoGroupEnabledChange | `(enabled: boolean) => void` | ✓ | - | 按域名自动分组开关变化回调 |
+| onAiAutoGroupInstructionsChange | `(instructions: string) => void` | ✓ | - | 自定义分类要求输入变化回调 |
+| onAiAutoGroupInstructionsSave | `() => void` | ✓ | - | 自定义分类要求失焦保存回调 |
+
+**用法示例：**
+
+```tsx
+<TabAutoGroupSettingsCard
+  supported={state.supported}
+  aiAutoGroupEnabled={state.aiAutoGroupEnabled}
+  aiAutoGroupInstructions={state.aiAutoGroupInstructions}
+  domainAutoGroupEnabled={state.domainAutoGroupEnabled}
+  onAiAutoGroupEnabledChange={state.updateAiAutoGroupEnabled}
+  onDomainAutoGroupEnabledChange={state.updateDomainAutoGroupEnabled}
+  onAiAutoGroupInstructionsChange={state.updateAiAutoGroupInstructions}
+  onAiAutoGroupInstructionsSave={state.saveAiAutoGroupInstructions}
+/>
+```
+
+**行为说明：**
+
+- AI 自动分组开启时禁用按域名自动分组开关。
+- 按域名自动分组开启时禁用 AI 自动分组开关和 AI 自定义分类要求输入。
+- 不支持 `chrome.tabGroups` 时所有自动分组策略控件都会禁用。
 
 ### TabGroupRuleForm
 
@@ -585,18 +624,20 @@ Tab 分组规则列表组件，按规则名称、目标分组、颜色和折叠�
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | favicon | `string` | - | - | favicon URL |
+| url | `string` | - | - | 页面 URL，用于生成 Cravatar favicon |
 | className | `string` | - | - | 自定义尺寸或样式 |
 
 **用法示例：**
 
 ```tsx
-<WorkspacePageFavicon favicon={page.favicon} className="h-7 w-7" />
+<WorkspacePageFavicon favicon={page.favicon} url={page.url} className="h-7 w-7" />
 ```
 
 **行为说明：**
 
 - favicon 图片统一使用方形展示，不做圆形裁切。
 - `favicon` 为空时显示 `Globe` 占位图标，避免页面卡片布局跳动。
+- 工作空间保存预览中的 favicon 基于页面 URL 通过 Cravatar favicon API 生成。
 
 ## bookmarkPanel
 
@@ -687,7 +728,7 @@ Tab 分组规则列表组件，按规则名称、目标分组、颜色和折叠�
 
 - 快捷操作区域使用共享的 `QuickActions` 组件
 - 包含主题切换、语言切换和"更多"下拉菜单
-- AI 搜索使用底部的 `AIChatPanel` 组件
+- app 页面全局 AI 入口使用右下角 `GlobalAgentLauncher`
 
 ---
 
@@ -735,6 +776,26 @@ const { container: portalContainer } = useContentUI();
 
 ---
 
+### TagInput
+
+标签输入组件，复用 `@hamhome/ui-business/common` 的 `TagInput`，Extension 侧仅负责注入 i18n 文案。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| value | `string[]` | ✓ | - | 当前标签列表 |
+| onChange | `(tags: string[]) => void` | ✓ | - | 标签变更回调 |
+| placeholder | `string` | - | - | 输入框占位文案 |
+| maxTags | `number` | - | `10` | 最大标签数 |
+| suggestions | `string[]` | - | `[]` | 标签建议列表 |
+| className | `string` | - | - | 自定义样式类 |
+
+**行为说明：**
+
+- 回车添加标签，空输入 Backspace 删除最后一个标签。
+- 建议筛选、标签样式和删除按钮来自共享业务组件。
+
+---
+
 ### CategorySelect
 
 分类选择组件，用于书签保存/编辑场景，支持树形分类搜索、未分类选项和 AI 推荐分类映射。
@@ -755,12 +816,14 @@ const { container: portalContainer } = useContentUI();
 - 下拉打开后支持 `↑/↓` 高亮切换、`Enter` 选择、`Esc` 关闭、`Home/End` 跳转到首尾项
 - 树节点在非搜索态下支持 `←/→` 收起或展开子分类
 - 打开下拉后会自动聚焦搜索框，输入字符可直接过滤分类结果
+- 组件只展示 AI 推荐分类状态；已有分类的自动匹配与选中由上层业务 hook 在 AI 结果处理阶段完成
 
 ---
 
 ### CategoryTreeView
 
 分类层级树视图组件，按分类层级展示书签，支持展开/折叠。
+主体树与书签项结构复用 `@hamhome/ui-business/bookmark-panel`，Extension 侧注入 Cravatar favicon 和 content UI Portal 容器。
 
 | Prop                  | Type                                        | Required | Default | Description              |
 | --------------------- | ------------------------------------------- | -------- | ------- | ------------------------ |
@@ -834,6 +897,7 @@ const { container: portalContainer } = useContentUI();
 ### BookmarkListItem
 
 书签列表项组件，用于在分类树中显示单个书签。
+该组件是 `@hamhome/ui-business/bookmark-panel` 的薄封装，保留 Extension 数据类型与 favicon 解析处理。
 
 | Prop     | Type            | Required | Default | Description |
 | -------- | --------------- | -------- | ------- | ----------- |
@@ -844,7 +908,7 @@ const { container: portalContainer } = useContentUI();
 - 使用 `<a>` 标签打开链接，在新标签页中打开
 - 只显示书签标题，不显示链接地址
 - 鼠标悬停时显示 Tooltip，包含标题、描述和完整链接地址
-- 显示书签 favicon，加载失败时显示默认图标
+- 显示书签 favicon；除 `data:image` 外，图标地址基于书签 URL 通过 Cravatar favicon API 生成
 
 **用法示例：**
 
@@ -861,6 +925,7 @@ const { container: portalContainer } = useContentUI();
 ### BookmarkCard
 
 网格视图书签卡片，展示书签摘要、分类、标签和更多操作菜单。
+主体 UI 复用 `@hamhome/ui-business/bookmark` 的 `BookmarkCard`，Extension 侧负责注入 Cravatar favicon 解析、i18n 和菜单回调。
 
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -913,10 +978,12 @@ const { container: portalContainer } = useContentUI();
 - 可通过更多菜单触发 `同步到 Obsidian`，同步行为由父组件注入。
 - 可通过更多菜单触发 `置顶` / `取消置顶`，置顶状态由父组件传入。
 - 快照操作由父组件注入，组件不直接访问存储或浏览器 API。
+- 除 `data:image` 外，favicon 地址基于书签 URL 通过 Cravatar favicon API 生成。
 
 ### BookmarkListItem（管理列表）
 
 列表视图书签行，展示书签标题、域名、分类、时间、标签和更多操作菜单。
+主体 UI 复用 `@hamhome/ui-business/bookmark` 的 `BookmarkListItem`，Extension 侧负责注入 Cravatar favicon 解析、i18n 和菜单回调。
 
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -966,6 +1033,7 @@ const { container: portalContainer } = useContentUI();
 - 置顶菜单项与网格视图一致。
 - 快照状态来自 `bookmark.hasSnapshot`，删除快照后父组件需要刷新书签列表。
 - 组件保持展示职责，不直接执行快照存储逻辑。
+- 除 `data:image` 外，favicon 地址基于书签 URL 通过 Cravatar favicon API 生成。
 
 ---
 
@@ -976,6 +1044,7 @@ AI 对话式搜索相关组件，提供底部 AI 搜索栏和对话窗口。
 ### SearchInputArea
 
 关键词搜索输入组件（纯关键词搜索）。
+UI 复用 `@hamhome/ui-business/ai-search` 的 `SearchInputArea`，Extension 侧注入 `ai.searchPlaceholder` 文案。
 
 | Prop        | Type                    | Required | Default | Description        |
 | ----------- | ----------------------- | -------- | ------- | ------------------ |
@@ -1004,37 +1073,29 @@ AI 对话式搜索相关组件，提供底部 AI 搜索栏和对话窗口。
 
 ---
 
-### AIChatPanel
+### GlobalAgentLauncher
 
-AI 对话面板组件，合并了搜索栏和对话窗口，使用 sticky 布局吸附在底部。内容区域最大宽度 720px，居中显示，顶部圆角。
+插件 app 页面右下角全局 Agent 入口。组件固定在视口右下角，折叠时显示圆形入口，展开后展示客服式对话窗口、session 切换、执行过程、书签来源与输入框。
 
-| Prop              | Type                              | Required | Default | Description          |
-| ----------------- | --------------------------------- | -------- | ------- | -------------------- |
-| isOpen            | `boolean`                         | ✓        | -       | 是否展开对话窗口     |
-| onClose           | `() => void`                      | ✓        | -       | 关闭回调             |
-| query             | `string`                          | ✓        | -       | 搜索值               |
-| onQueryChange     | `(val: string) => void`           | ✓        | -       | 搜索值变化回调       |
-| onSubmit          | `() => void`                      | ✓        | -       | 搜索提交回调         |
-| messages          | `ChatMessage[]`                   | ✓        | -       | 对话历史             |
-| currentAnswer     | `string`                          | ✓        | -       | 当前正在生成的回答   |
-| status            | `AISearchStatus`                  | ✓        | -       | 当前状态             |
-| error             | `string \| null`                  | -        | -       | 错误信息             |
-| sources           | `Source[]`                        | ✓        | -       | 当前回答的引用源     |
-| onSourceClick     | `(bookmarkId: string) => void`    | ✓        | -       | 点击引用回调         |
-| suggestions       | `string[]`                        | -        | `[]`    | 后续建议             |
-| onSuggestionClick | `(suggestion: string) => void`    | -        | -       | 后续建议点击回调     |
-| onRetry           | `() => void`                      | -        | -       | 重试回调             |
-| className         | `string`                          | -        | -       | 自定义样式类         |
+| Prop | Type | Required | Default | Description |
+| ---- | ---- | -------- | ------- | ----------- |
+| -    | -    | -        | -       | 组件内部通过 `useGlobalAgent()` 管理状态 |
 
-**子组件：**
+**用法示例：**
 
-该组件由以下子组件组成，可单独使用：
+```tsx
+import { GlobalAgentLauncher } from "@/components/agent/GlobalAgentLauncher";
 
-- `AIChatSearchBar` - 搜索输入栏
-- `AIChatStatusIndicator` - 状态指示器
-- `AIChatSources` - 引用源列表
-- `AIChatSuggestions` - 后续建议
-- `AIChatMessage` - 消息组件
+<GlobalAgentLauncher />;
+```
+
+**行为说明：**
+
+- 由 `entrypoints/app/App.tsx` 挂载，因此书签、设置、分类、标签、工作空间等 app 页面都会显示入口
+- 对话支持多 session 持久化、切换、新建和删除
+- assistant 消息可渲染 `AgentProcessStep[]`，展示 skill 匹配、tool 调用、工具输出摘要和失败原因
+- 书签搜索结果以 `Source[]` 渲染，点击来源会在新标签页打开对应 URL
+- 敏感配置不会在 UI 或 tool 输出里展示明文
 
 ---
 
@@ -1142,44 +1203,9 @@ AI 消息组件，显示单条对话消息（用户或助手）。
 - 用户消息显示在右侧，助手消息显示在左侧
 - 自动解析消息内容中的 `[1]`、`[2]` 等引用标记并转换为可点击按钮
 
-**用法示例：**
-
-```tsx
-<AIChatPanel
-  isOpen={isAIChatOpen}
-  onClose={closeAIChat}
-  query={aiQuery}
-  onQueryChange={setAIQuery}
-  onSubmit={handleAISearch}
-  messages={aiMessages}
-  currentAnswer={aiCurrentAnswer}
-  status={aiStatus}
-  error={aiError}
-  sources={aiResults}
-  onSourceClick={handleSourceClick}
-  suggestions={aiSuggestions}
-  onSuggestionClick={(suggestion) => {
-    setAIQuery(suggestion);
-    handleAISearch();
-  }}
-  onRetry={handleAISearch}
-/>
-```
-
-**行为说明：**
-
-- 使用 `sticky bottom-0` 布局，始终吸附在滚动容器底部
-- 搜索输入栏始终可见，对话窗口在搜索后展开
-- 对话窗口最大高度为 50vh，超出时内部滚动
-- 回答中的 `[1]`、`[2]` 等引用标记可点击跳转
-- 点击引用会触发 `onSourceClick` 回调，滚动定位到对应书签
-- 支持流式输出动画显示
-
----
-
 ### AIAnswerPanel（已弃用）
 
-AI 回答面板组件，展示 AI 回答、引用源和后续建议。已被 `AIChatPanel` 替代，保留用于向后兼容。
+AI 回答面板组件，展示 AI 回答、引用源和后续建议。已被全局 `GlobalAgentLauncher` 入口替代，保留用于向后兼容。
 
 | Prop              | Type                              | Required | Default | Description          |
 | ----------------- | --------------------------------- | -------- | ------- | -------------------- |
@@ -1220,7 +1246,7 @@ interface Source {
 
 ## bookmarkListMng
 
-书签列表管理相关组件，用于 `MainContent` 主内容区的书签展示和编辑。
+书签列表管理相关组件，用于 `BookmarksPage` 主内容区的书签展示和编辑。
 
 ### BookmarkCard
 
@@ -1372,80 +1398,51 @@ const { snapshotUrl, loading, error, openSnapshot, closeSnapshot } =
 
 ## Hooks
 
-### useConversationalSearch
+### useGlobalAgent
 
-AI 对话式搜索 Hook，封装 AI 对话状态机与检索逻辑。内部通过 `chatSearchAgent` 调用统一的 extension agent 接入层，由 agent tool loop 负责搜索编排、帮助问答、统计和筛选。
+全局插件 Agent Hook，封装右下角浮窗所需的多轮会话、session 切换、执行状态、过程步骤、书签来源和 background service 调用。内部通过 `globalAgentService` 使用 `@browser-agent-sdk/agent` 的 skill/tool loop，实现插件功能问答、功能详情读取、安全配置修改、页面打开、书签搜索和数据查询。
 
 **返回值：**
 
-| Property                 | Type                              | Description            |
-| ------------------------ | --------------------------------- | ---------------------- |
-| query                    | `string`                          | 查询文本               |
-| setQuery                 | `(query: string) => void`         | 设置查询               |
-| messages                 | `ChatMessage[]`                   | 对话历史               |
-| currentAnswer            | `string`                          | 当前正在生成的回答     |
-| status                   | `AISearchStatus`                  | AI 状态                |
-| error                    | `string \| null`                  | 错误信息               |
-| results                  | `Source[]`                        | 当前回答的引用源       |
-| suggestions              | `Suggestion[]`                    | 后续建议               |
-| highlightedBookmarkId    | `string \| null`                  | 高亮的书签 ID          |
-| setHighlightedBookmarkId | `(id: string \| null) => void`    | 设置高亮书签           |
-| handleSearch             | `() => Promise<void>`             | 执行搜索               |
-| handleSuggestion         | `(suggestion: Suggestion) => Promise<void>` | 执行结构化建议动作 |
-| clearConversation        | `() => void`                      | 清除对话               |
-| closeChat                | `() => void`                      | 关闭对话窗口           |
-| isChatOpen               | `boolean`                         | 对话窗口是否打开       |
+| Property             | Type                                      | Description            |
+| -------------------- | ----------------------------------------- | ---------------------- |
+| query                | `string`                                  | 输入框文本             |
+| setQuery             | `(query: string) => void`                 | 设置输入框文本         |
+| messages             | `ChatMessage[]`                           | 对话历史               |
+| currentAnswer        | `string`                                  | 当前正在模拟输出的回答 |
+| currentSteps         | `AgentProcessStep[]`                      | 当前回答的执行过程     |
+| status               | `AISearchStatus`                          | Agent 状态             |
+| error                | `string \| null`                          | 错误信息               |
+| sources              | `Source[]`                                | 当前回答的书签来源     |
+| suggestions          | `Suggestion[]`                            | 后续建议               |
+| sessions             | `ChatSearchSessionSummary[]`              | 可切换的会话列表       |
+| currentSessionId     | `string \| null`                          | 当前会话 ID            |
+| isOpen               | `boolean`                                 | 浮窗是否展开           |
+| open / close         | `() => void`                              | 展开或关闭浮窗         |
+| submit               | `() => Promise<void>`                     | 发送当前输入           |
+| sendSuggestion       | `(suggestion: Suggestion) => Promise<void>` | 发送建议动作         |
+| clearConversation    | `() => Promise<void>`                     | 清空当前会话           |
+| switchSession        | `(sessionId: string) => Promise<void>`    | 切换会话               |
+| createSession        | `() => Promise<void>`                     | 新建会话               |
+| deleteSession        | `(sessionId: string) => Promise<void>`    | 删除会话               |
 
-**ChatMessage 类型：**
+**ChatMessage 过程字段：**
 
 ```ts
 interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: number;
   sources?: Source[];
+  steps?: AgentProcessStep[];
 }
 ```
 
 **用法示例：**
 
 ```tsx
-const {
-  query,
-  setQuery,
-  messages,
-  currentAnswer,
-  status,
-  results,
-  suggestions,
-  highlightedBookmarkId,
-  setHighlightedBookmarkId,
-  handleSearch,
-  handleSuggestion,
-  closeChat,
-  isChatOpen,
-} = useConversationalSearch();
-
-// 处理引用点击 - 滚动到对应书签
-const handleSourceClick = (bookmarkId: string) => {
-  setHighlightedBookmarkId(bookmarkId);
-  // 滚动定位...
-};
+const { messages, currentSteps, submit } = useGlobalAgent();
 ```
-
-**行为说明：**
-
-- 调用 `handleSearch()` 打开对话窗口并执行 AI 搜索
-- `handleSearch()` 与 `handleSuggestion()` 都会进入统一的 `chatSearchAgent.runTurn()` 回合流程：
-  1. 将用户文本或 suggestion action 解析为当前回合输入
-  2. agent 读取搜索上下文、历史、过滤条件、分类、标签、快捷键等工具信息
-  3. agent 自主调用 `search_bookmarks`、`apply_filter`、`continue_search` 等工具完成检索编排
-  4. formatter 基于工具结果生成最终回答、引用源和下一步建议
-- 支持连续对话，过滤条件、已展示结果与最近几轮历史会持续保留
-- 支持流式输出动画
-- 搜索类 suggestion 会直接执行结构化动作，而不是仅把文案塞回输入框
-- 关闭对话窗口时自动清除对话状态
-- AI 未配置或调用失败时直接返回错误，不再静默回退
 
 ---
 
@@ -2234,6 +2231,7 @@ AI 配置和用户设置存储，基于 **WXT Storage (sync)** 实现，支持�
 | `setAIConfig`        | `config: Partial<AIConfig>`                        | `Promise<AIConfig>`       | 设置 AI 配置     |
 | `getSettings`        | -                                                  | `Promise<LocalSettings>`  | 获取用户设置     |
 | `setSettings`        | `settings: Partial<LocalSettings>`                 | `Promise<LocalSettings>`  | 设置用户设置     |
+| `importRawSettings`  | `settings: LocalSettings`                          | `Promise<LocalSettings>`  | 导入远端设置并保留原始更新时间 |
 | `resetAIConfig`      | -                                                  | `Promise<AIConfig>`       | 重置 AI 配置     |
 | `resetSettings`      | -                                                  | `Promise<LocalSettings>`  | 重置用户设置     |
 | `getCustomFilters`   | -                                                  | `Promise<CustomFilter[]>` | 获取自定义筛选器 |
@@ -2333,6 +2331,48 @@ await vectorStore.clearAll();
 ### Agent Services
 
 插件内 AI 能力统一收敛到 `lib/agent/services/*`，UI 与 hooks 不再直接调用旧 `aiClient`。
+
+#### globalAgentService.runTurn
+
+全局插件智能管理入口。该服务会创建 Browser Agent SDK agent，注册 HamHome 功能 skill 与全局工具集，并持久化多轮 session。
+
+| Property  | Type                             | Required | Description            |
+| --------- | -------------------------------- | -------- | ---------------------- |
+| input     | `ConversationalSearchTurnInput`  | ✓        | 用户消息或建议动作     |
+| sessionId | `string`                         | -        | 需要继续的对话 session |
+
+**返回值（GlobalAgentTurnResult）：**
+
+| Property     | Type                         | Description              |
+| ------------ | ---------------------------- | ------------------------ |
+| session      | `ChatSearchSessionSnapshot`  | 已保存的 session 快照    |
+| displayText  | `string`                     | 本轮展示文本             |
+| response     | `ChatSearchResponse`         | 最终回答与建议           |
+| sources      | `Source[]`                   | 可渲染的书签来源         |
+| steps        | `AgentProcessStep[]`         | skill/tool 执行过程      |
+| bookmarks    | `LocalBookmark[]`            | 本轮检索关联书签         |
+| searchResult | `SearchResult`               | 检索分数与模式信息       |
+| newState     | `ConversationalSearchSession` | 新的结构化会话状态      |
+
+**行为说明：**
+
+- `createHamHomeFeatureSkill()` 提供插件功能总览文档，SDK 会注入 `skill_view`
+- `get_hamhome_feature_detail` 用于递进读取功能明细、配置方式和能力边界
+- `get_extension_shortcuts` 实时读取浏览器快捷键配置
+- `createGlobalAgentTools()` 提供功能清单、书签搜索、快捷键读取、数据摘要、打开插件页面和安全配置工具
+- `update_safe_plugin_settings` 只允许白名单字段；`apiKey`、`baseUrl`、`privacyDomains`、同步凭据和快捷键会被拒绝并引导用户打开设置页
+- SDK 事件会被转成 `AgentProcessStep[]`，供 `GlobalAgentLauncher` 渲染中间过程
+
+**用法示例：**
+
+```ts
+import { globalAgentService } from "@/lib/agent";
+
+const result = await globalAgentService.runTurn({
+  type: "message",
+  text: "把主题改成深色，然后告诉我 AI 设置在哪里",
+});
+```
 
 #### bookmarkAnalysisService.analyzeBookmark
 
@@ -2493,6 +2533,7 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 - JSON 导入时，分类 ID 会被重新生成，通过映射表维护书签与分类的关联关系
 - JSON 导入时，工作空间、工作空间分类和 Tab 分组配置会随备份一起恢复
 - 同名同父级的分类不会重复创建，直接复用已有分类
+- HTML 导入时会基于书签域名通过 Cravatar favicon API 补全站点图标
 - 导入进度实时显示，支持大量书签的批量导入
 
 ---
@@ -2521,7 +2562,7 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 
 ### AboutPage
 
-关于 HamHome 的独立菜单页，集中展示产品信息与外部入口。
+关于 HamHome 的独立菜单页，集中展示产品定位、版本信息与外部入口。
 
 | Prop | Type | Required | Default | Description |
 | ---- | ---- | -------- | ------- | ----------- |
@@ -2535,7 +2576,7 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 
 **行为说明：**
 
-- 展示当前扩展版本、官网地址、GitHub 仓库地址和 GitHub Star 引导
+- 展示“AI 驱动的浏览器工作空间”定位、当前扩展版本、官网地址、GitHub 仓库地址和 GitHub Star 引导
 - 官网与仓库入口使用新标签页打开，避免打断当前扩展管理流程
 
 ### App 页面顶部工具栏
@@ -2557,3 +2598,96 @@ AI 分析结果缓存，基于 **IndexedDB** 实现（适合大数据存储）�
 - 左侧侧边栏新增“关于”独立菜单项，对应 `AboutPage`
 - 右上角在语言切换按钮左侧新增 GitHub 仓库快捷入口
 - GitHub 按钮通过 Tooltip 提示用途，并在新标签页打开项目仓库
+
+## OptionsPage
+
+设置页面主容器，整合 AI 配置、通用设置和存储管理。采用标签页结构，业务逻辑通过 `useOptionsPage` 钩子管理。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| - | - | - | - | 页面组件通过 `useOptionsPage` 自行加载和管理状态 |
+
+**用法示例：**
+
+```tsx
+<OptionsPage />
+```
+
+**行为说明：**
+
+- 页面分为 "AI"、"通用" 和 "存储" 三个主要标签页。
+- 状态和逻辑完全由 `useOptionsPage` Hook 提供，组件本身作为布局外壳。
+- 使用 `Tabs` 组件进行导航，支持 URL hash 同步（由路由层处理）。
+
+---
+
+### AITab
+
+AI 配置标签页，负责大模型服务商配置、模型选择、高级参数调整及语义搜索（Embedding）索引维护。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| aiConfig | `AIConfig` | ✓ | - | AI 基础配置 |
+| embeddingConfig | `EmbeddingConfig` | ✓ | - | 语义搜索配置 |
+| ... | ... | ... | ... | 详见源代码 props 定义 |
+
+**行为说明：**
+
+- 支持多种 AI 提供商（OpenAI, Anthropic, Google 等）及其自定义镜像。
+- 提供模型拉取（Fetch Models）功能，自动发现可用模型。
+- 包含语义搜索开关及向量索引统计信息展示。
+- 支持增量/全量索引重建及向量数据清理。
+
+---
+
+### GeneralTab
+
+通用设置标签页，包含语言、主题、快捷键预览及自定义筛选器管理。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| language | `string` | ✓ | - | 当前语言代码 |
+| appSettings | `AppSettings` | ✓ | - | 应用全局设置 |
+| ... | ... | ... | ... | 详见源代码 props 定义 |
+
+**行为说明：**
+
+- 语言和主题变更即时生效。
+- 展示当前浏览器已配置的扩展快捷键，并提供跳转管理页面链接。
+- 提供自定义筛选器（Custom Filters）的增删改查入口。
+
+---
+
+### StorageTab
+
+数据存储与同步标签页，负责查看存储统计、导出数据、危险区清理操作及 WebDAV 同步配置。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| storageInfo | `any` | ✓ | - | 基础数据统计 |
+| syncConfig | `SyncConfig` | ✓ | - | WebDAV 同步配置 |
+| ... | ... | ... | ... | 详见源代码 props 定义 |
+
+**行为说明：**
+
+- 展示书签、分类、快照及向量数据的数量和占用空间。
+- 支持 JSON/HTML 格式的书签导出。
+- 提供分项清理（书签、快照、远端同步数据）及全量数据重置入口。
+- WebDAV 同步用户设置和 AI 自动分组设置时按 `updatedAt` 合并；本地刚修改的配置会优先上传，远端更新时才下载覆盖本地。
+- WebDAV 同步支持端到端加密（E2E）。
+
+---
+
+### OptionsDialogs
+
+设置页面弹窗组合组件，集中管理所有确认对话框。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| t | `any` | ✓ | - | 翻译函数 |
+| ... | ... | ... | ... | 详见源代码 props 定义 |
+
+**行为说明：**
+
+- 包含数据清理、索引重建、远端数据清除、自定义筛选器编辑/删除等所有二次确认弹窗。
+- 统一处理 loading 状态展示。
