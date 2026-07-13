@@ -323,26 +323,24 @@ manifest: () => ({
 ### 流水线步骤
 
 1. `pnpm install --frozen-lockfile`
-2. `pnpm build:extension`（构建 Chrome / Firefox / Edge）
-3. 将 `.output/{chrome-mv3,firefox-mv2,edge-mv3}` 打成 ZIP 作为构建产物
-4. 上传 Artifact，并在 tag / 手动触发时创建 GitHub Release
+2. `pnpm --filter hamhome build`（仅构建 Chrome → `.output/chrome-mv3`）
+3. 将 `chrome-mv3` 打成 `hamhome-{version}-chrome-mv3.zip`
+4. 上传 Artifact（名：`chrome-mv3`），并创建 GitHub Release（仅附带该 ZIP）
 
 ### 触发方式
 
 | 触发 | 行为 |
 |------|------|
-| 推送 tag `v*`（如 `v1.3.4`） | 校验 tag 与 `wxt.config.ts` 的 `version` 一致 → 构建 → 发布 Release |
+| 推送 tag `v*`（如 `v1.3.4`） | 校验 tag 与 `wxt.config.ts` 的 `version` 一致 → 构建 chrome-mv3 → 发布 Release |
 | Actions 页手动 `workflow_dispatch` | 读取 `wxt.config.ts` 版本，构建后创建 `v{version}` Release（可勾选 draft / prerelease） |
 
 ### 发布产物
 
 ```
-hamhome-{version}-chrome.zip
-hamhome-{version}-firefox.zip
-hamhome-{version}-edge.zip
+hamhome-{version}-chrome-mv3.zip
 ```
 
-同时会上传同名 Artifact，保留 30 天，便于排查。
+> fork 上需推送对应 tag 或手动运行 **Release Extension** 才会生成 Release；仅合并 PR 不会自动发版。
 
 ### 推荐发布流程
 
@@ -351,7 +349,7 @@ hamhome-{version}-edge.zip
 # 2. 提交到 main
 git tag v1.3.5
 git push origin v1.3.5
-# 3. 在 GitHub Actions / Releases 查看自动产物
+# 3. 在 GitHub Actions / Releases 查看 chrome-mv3 产物
 ```
 
 > **注意：** tag 版本号必须与 `wxt.config.ts` 的 `version` 完全一致（不含 `v` 前缀），否则流水线会失败。
