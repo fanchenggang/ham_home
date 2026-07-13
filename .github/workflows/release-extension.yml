@@ -1,8 +1,8 @@
-# Build browser extension zips and publish a GitHub Release.
+# Build extension with pnpm build:extension and publish GitHub Release artifacts.
 #
 # Triggers:
-# - Push of a version tag (vX.Y.Z) — primary release path
-# - Manual workflow_dispatch — build + create release from wxt.config version
+# - Push of a version tag (vX.Y.Z)
+# - Manual workflow_dispatch
 name: Release Extension
 
 env:
@@ -80,18 +80,36 @@ jobs:
             echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and zip extension
-        run: pnpm zip:extension
+      - name: Build extension
+        run: pnpm build:extension
 
-      - name: List release artifacts
+      - name: Package build artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ls -lh apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-*.zip
+          set -euo pipefail
+          OUTPUT_DIR="apps/extension/.output"
+          cd "${OUTPUT_DIR}"
+
+          test -d chrome-mv3
+          test -d firefox-mv2
+          test -d edge-mv3
+
+          # Zip contents (manifest at archive root) for store / sideload install
+          (cd chrome-mv3 && zip -r -q "../hamhome-${VERSION}-chrome.zip" .)
+          (cd firefox-mv2 && zip -r -q "../hamhome-${VERSION}-firefox.zip" .)
+          (cd edge-mv3 && zip -r -q "../hamhome-${VERSION}-edge.zip" .)
+
+          ls -lh "hamhome-${VERSION}"-*.zip
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hamhome-${{ steps.version.outputs.version }}
-          path: apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-*.zip
+          path: |
+            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-chrome.zip
+            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-firefox.zip
+            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-edge.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -105,12 +123,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          shopt -s nullglob
-          ASSETS=(apps/extension/.output/hamhome-"${VERSION}"-*.zip)
-          if [[ ${#ASSETS[@]} -eq 0 ]]; then
-            echo "::error::No zip artifacts found for version ${VERSION}"
-            exit 1
-          fi
+          ASSETS=(
+            "apps/extension/.output/hamhome-${VERSION}-chrome.zip"
+            "apps/extension/.output/hamhome-${VERSION}-firefox.zip"
+            "apps/extension/.output/hamhome-${VERSION}-edge.zip"
+          )
 
           ARGS=(--title "${TAG}" --generate-notes)
           if [[ "${DRAFT}" == "true" ]]; then
