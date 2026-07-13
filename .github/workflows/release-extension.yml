@@ -1,4 +1,4 @@
-# Build extension with pnpm build:extension and publish GitHub Release artifacts.
+# Build chrome-mv3 and publish it as the GitHub Release asset.
 #
 # Triggers:
 # - Push of a version tag (vX.Y.Z)
@@ -80,36 +80,33 @@ jobs:
             echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build extension
-        run: pnpm build:extension
+      - name: Build chrome-mv3
+        # Chrome only — root build:extension builds all browsers; release only needs chrome-mv3
+        run: pnpm --filter hamhome build
 
-      - name: Package build artifacts
+      - name: Package chrome-mv3 artifact
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           OUTPUT_DIR="apps/extension/.output"
-          cd "${OUTPUT_DIR}"
+          test -d "${OUTPUT_DIR}/chrome-mv3"
+          test -f "${OUTPUT_DIR}/chrome-mv3/manifest.json"
 
-          test -d chrome-mv3
-          test -d firefox-mv2
-          test -d edge-mv3
+          # Zip chrome-mv3 contents (manifest at archive root)
+          (
+            cd "${OUTPUT_DIR}/chrome-mv3"
+            zip -r -q "../hamhome-${VERSION}-chrome-mv3.zip" .
+          )
 
-          # Zip contents (manifest at archive root) for store / sideload install
-          (cd chrome-mv3 && zip -r -q "../hamhome-${VERSION}-chrome.zip" .)
-          (cd firefox-mv2 && zip -r -q "../hamhome-${VERSION}-firefox.zip" .)
-          (cd edge-mv3 && zip -r -q "../hamhome-${VERSION}-edge.zip" .)
+          ls -lh "${OUTPUT_DIR}/hamhome-${VERSION}-chrome-mv3.zip"
+          unzip -l "${OUTPUT_DIR}/hamhome-${VERSION}-chrome-mv3.zip" | head -20
 
-          ls -lh "hamhome-${VERSION}"-*.zip
-
-      - name: Upload build artifacts
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hamhome-${{ steps.version.outputs.version }}
-          path: |
-            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-chrome.zip
-            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-firefox.zip
-            apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-edge.zip
+          name: chrome-mv3
+          path: apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-chrome-mv3.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -123,11 +120,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          ASSETS=(
-            "apps/extension/.output/hamhome-${VERSION}-chrome.zip"
-            "apps/extension/.output/hamhome-${VERSION}-firefox.zip"
-            "apps/extension/.output/hamhome-${VERSION}-edge.zip"
-          )
+          ASSET="apps/extension/.output/hamhome-${VERSION}-chrome-mv3.zip"
+          test -f "${ASSET}"
 
           ARGS=(--title "${TAG}" --generate-notes)
           if [[ "${DRAFT}" == "true" ]]; then
@@ -144,10 +138,10 @@ jobs:
           fi
 
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "Release ${TAG} already exists — uploading assets"
-            gh release upload "${TAG}" "${ASSETS[@]}" --clobber
+            echo "Release ${TAG} already exists — uploading chrome-mv3 asset"
+            gh release upload "${TAG}" "${ASSET}" --clobber
           else
-            gh release create "${TAG}" "${ASSETS[@]}" "${ARGS[@]}"
+            gh release create "${TAG}" "${ASSET}" "${ARGS[@]}"
           fi
 
           echo "Published release ${TAG}"
