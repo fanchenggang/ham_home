@@ -1,6 +1,12 @@
 export { Header } from "./Header";
 export { Footer } from "./Footer";
 export { FeatureHeroBanner } from "./FeatureHeroBanner";
+export { ExtensionScreenshotFrame } from "./ExtensionScreenshotFrame";
 export { FeatureSection } from "./FeatureSection";
 export { FeatureShowcase } from "./FeatureShowcase";
+export { LandingActionButtons } from "./LandingActionButtons";
+export { LandingCapabilities } from "./LandingCapabilities";
+export { LandingCta } from "./LandingCta";
+export { LandingOverview } from "./LandingOverview";
+export { LandingPrivacy } from "./LandingPrivacy";
 export * from "./demos";

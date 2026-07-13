@@ -1,6 +1,6 @@
 {
   "name": "hamhome",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "description": "HamHome 浏览器插件",
   "scripts": {
@@ -18,15 +18,27 @@
     "zip:all": "pnpm zip && pnpm zip:firefox && pnpm zip:edge",
     "clean": "rm -rf .wxt .output dist",
     "submit:init": "wxt submit init",
-    "submit:all": "node scripts/submit.js"
+    "submit:all": "node scripts/submit.js",
+    "test": "vitest run",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:headed": "HEADED=1 playwright test --config e2e/playwright.config.ts",
+    "test:e2e:default": "playwright test --config e2e/playwright.config.ts --project chromium-extension",
+    "test:e2e:english": "playwright test --config e2e/playwright.config.ts --project chromium-extension-english",
+    "test:e2e:dark": "playwright test --config e2e/playwright.config.ts --project chromium-extension-dark",
+    "test:e2e:desktop": "HEADED=1 E2E_DESKTOP_SCREENSHOT=1 playwright test --config e2e/playwright.config.ts --project chromium-extension-desktop",
+    "screenshots": "playwright test --config e2e/screenshots/playwright.config.ts",
+    "screenshots:headed": "HEADED=1 playwright test --config e2e/screenshots/playwright.config.ts",
+    "test:e2e:report": "playwright show-report e2e/playwright-report",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@browser-agent-sdk/agent": "0.1.0-beta.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@hamhome/agent": "workspace:*",
     "@hamhome/ui": "workspace:*",
+    "@hamhome/ui-business": "workspace:*",
     "@hamhome/utils": "workspace:*",
     "@mozilla/readability": "^0.5.0",
     "@tanstack/react-virtual": "^3.13.18",
@@ -48,6 +60,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/chrome": "^0.0.260",
     "@types/react": "^19.0.0",
@@ -58,6 +71,7 @@
     "rollup-plugin-visualizer": "^7.0.1",
     "sharp": "^0.34.5",
     "typescript": "^5.7.0",
+    "vitest": "^4.1.0",
     "wxt": "^0.20.13"
   }
 }

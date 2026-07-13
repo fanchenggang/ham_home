@@ -1,5 +1,6 @@
-import { generateStructuredObject } from "@hamhome/agent";
 import { z } from "zod";
+import type { JsonSchema } from "@browser-agent-sdk/agent";
+import { getFavicon } from "@hamhome/utils";
 import {
   buildCategoryTree,
   formatCategoryHierarchy,
@@ -16,15 +17,28 @@ import {
 import { getAgentErrorMessage } from "../errors";
 import { fetchPageContentForAI } from "../fetch-page-content";
 import { assertAgentConfigured, resolveAgentConfig } from "../factory";
+import { runExtensionCommand } from "../command-runner";
 
 const bookmarkAnalysisSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  summary: z.string().trim().min(1).max(500),
-  category: z.string().trim().max(120).default(""),
-  tags: z.array(z.string().trim().min(1).max(40)).max(8).default([]),
+  title: z.string(),
+  summary: z.string(),
+  category: z.string(),
+  tags: z.array(z.string()),
 });
 
 type BookmarkAnalysisOutput = z.infer<typeof bookmarkAnalysisSchema>;
+
+const bookmarkAnalysisOutputSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    summary: { type: "string" },
+    category: { type: "string" },
+    tags: { type: "array", items: { type: "string" } },
+  },
+  required: ["title", "summary", "category", "tags"],
+  additionalProperties: false,
+};
 
 export interface EnhancedAnalyzeInput {
   pageContent: PageContent;
@@ -61,19 +75,19 @@ class BookmarkAnalysisService {
     const pageContent = input.pageContent;
 
     try {
-      const result = await generateStructuredObject({
-        provider: config.provider,
-        model: config.model,
-        apiKey: config.apiKey,
-        baseURL: config.baseURL,
+      const result = await runExtensionCommand<Record<string, never>, BookmarkAnalysisOutput>({
+        config,
         temperature: config.temperature ?? 0.2,
-        maxTokens: config.maxTokens ?? 900,
-        schema: bookmarkAnalysisSchema,
-        system:
+        maxIterations: 1,
+        systemPrompt:
           config.language === "zh"
             ? "你是 HamHome 的书签分析 Agent。你必须根据给定页面上下文生成结构化书签分析结果，不允许编造页面中不存在的信息。若已有分类可匹配，优先复用已有分类名称；若需要新分类，输出简洁的分类名或层级路径。"
             : "You are HamHome's bookmark analysis agent. Produce grounded structured bookmark analysis only from the provided page context. Prefer existing category names when possible. If a new category is needed, keep it concise.",
-        prompt: [
+        command: {
+          name: "analyzeBookmark",
+          description: "Analyze a web page and return bookmark metadata.",
+          outputSchema: bookmarkAnalysisOutputSchema,
+          prompt: [
           `language: ${config.language}`,
           `url: ${pageContent.url}`,
           `title: ${pageContent.title}`,
@@ -86,10 +100,12 @@ class BookmarkAnalysisService {
           config.language === "zh"
             ? "输出要求：title 为最终保存标题，summary 为 1-3 句摘要，category 为最合适分类，tags 为不重复的简短标签。"
             : "Output requirements: title should be the saved title, summary should be a 1-3 sentence summary, category should be the best fit, tags should be short deduplicated labels.",
-        ].join("\n\n"),
+          ].join("\n\n"),
+        },
+        input: {},
       });
 
-      const output = result.object as BookmarkAnalysisOutput;
+      const output = bookmarkAnalysisSchema.parse(result.output);
 
       return {
         title: output.title.trim(),
@@ -105,13 +121,20 @@ class BookmarkAnalysisService {
   async analyzeBookmarkForLibrary(options: {
     url: string;
     title: string;
+    description?: string;
     currentCategories: LocalCategory[];
     existingTags?: string[];
     shouldFetchPageContent?: boolean;
   }): Promise<BookmarkAnalysisApplyResult> {
-    const content = options.shouldFetchPageContent
-      ? await fetchPageContentForAI(options.url)
-      : "";
+    let content = "";
+    if (options.shouldFetchPageContent) {
+      try {
+        content = await fetchPageContentForAI(options.url);
+      } catch (error) {
+        console.warn(`[BookmarkAnalysisService] Failed to fetch page content for ${options.url}, falling back to description. Error:`, error);
+        content = options.description || "";
+      }
+    }
 
     const hostname = (() => {
       try {
@@ -128,10 +151,8 @@ class BookmarkAnalysisService {
         content,
         htmlContent: "",
         textContent: content,
-        excerpt: "",
-        favicon: hostname
-          ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`
-          : "",
+        excerpt: options.description || "",
+        favicon: hostname ? getFavicon(hostname) : "",
         metadata: {},
         isReaderable: !!content,
       },

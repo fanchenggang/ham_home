@@ -318,9 +318,20 @@
     "description": "Configure automatic grouping rules. Newly opened tabs are added to matching native browser groups.",
     "newRule": "New Rule",
     "unsupported": "This browser does not support the chrome.tabGroups API. Rules can be saved but will not run automatically.",
+    "autoGroup": {
+      "title": "Default Auto Grouping",
+      "description": "Custom rules run first. If none match, choose either AI auto grouping or domain auto grouping. They cannot be enabled together."
+    },
     "aiAutoGroup": {
       "title": "AI Auto Grouping",
-      "description": "When enabled, new tabs match rules first. If none match, the URL, title, and page description are sent to AI to join an existing group or create a new one."
+      "description": "When enabled, new tabs match rules first. If none match, the URL, title, and page description are sent to AI to join an existing group or create a new one.",
+      "instructionsLabel": "Custom grouping requirements",
+      "instructionsPlaceholder": "Example: prioritize project-based groups; put technical docs in Development; do not merge shopping, video, or social sites into work groups.",
+      "instructionsHint": "These requirements become the base AI grouping logic and only apply when no manual rule matches."
+    },
+    "domainAutoGroup": {
+      "title": "Domain Auto Grouping",
+      "description": "When enabled, tabs that miss custom rules are grouped by their main domain, such as www.baidu.com into baidu, with a random color."
     },
     "list": {
       "loading": "Loading rules...",

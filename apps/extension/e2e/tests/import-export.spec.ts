@@ -1,0 +1,232 @@
+import type { Download } from "@playwright/test";
+import { test, expect } from "../fixtures";
+import {
+  createLibraryFixtures,
+  createTabGroupRuleFixture,
+  createWorkspaceCategoryFixture,
+  createWorkspaceFixture,
+} from "../helpers/factories";
+import {
+  attachStepScreenshot,
+  openAppPage,
+  setHiddenFileInput,
+} from "../helpers/pages";
+import {
+  getBookmarks,
+  getStorageState,
+  resetExtensionData,
+  seedBookmarks,
+  seedCategories,
+  seedTabGroupRules,
+  seedWorkspaces,
+} from "../helpers/storage";
+
+test.describe("IMPORT 导入导出", () => {
+  test.beforeEach(async ({ extensionWorker, e2eVariant }) => {
+    await resetExtensionData(extensionWorker, { settings: e2eVariant.settings });
+  });
+
+  test("IMPORT-001 JSON 导入", async ({
+    context,
+    extensionId,
+    extensionWorker,
+  }, testInfo) => {
+    const importData = {
+      version: "1.0.0",
+      exportedAt: Date.now(),
+      categories: [
+        { id: "imp-cat", name: "导入分类", parentId: null, order: 0, createdAt: 1 },
+      ],
+      bookmarks: [
+        {
+          id: "legacy-bm",
+          url: "https://import.example.com",
+          title: "Imported Bookmark",
+          description: "from json",
+          categoryId: "imp-cat",
+          tags: ["imported"],
+          favicon: "",
+          hasSnapshot: false,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      workspaceCategories: [
+        createWorkspaceCategoryFixture({ id: "imp-wcat", name: "导入工作区分类" }),
+      ],
+      workspaces: [
+        createWorkspaceFixture({
+          id: "imp-ws",
+          name: "Imported Workspace",
+          categoryId: "imp-wcat",
+        }),
+      ],
+      tabGroupRules: [
+        createTabGroupRuleFixture({
+          id: "imp-rule",
+          name: "Imported Rule",
+          groupTitle: "导入分组",
+        }),
+      ],
+      tabGroupAutoGroupSettings: {
+        aiAutoGroupEnabled: false,
+        aiAutoGroupInstructions: "",
+        domainAutoGroupEnabled: false,
+        updatedAt: 1,
+      },
+    };
+
+    const page = await openAppPage(context, extensionId, "import-export");
+    await setHiddenFileInput(page, 'input[type="file"]', {
+      name: "hamhome-import.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(importData), "utf-8"),
+    });
+
+    await expect(page.getByText(/导入成功|成功|Import completed/).first()).toBeVisible();
+    await attachStepScreenshot(page, testInfo, "IMPORT-001-JSON导入成功");
+
+    const state = await getStorageState(extensionWorker);
+    expect(state.sync.categories).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "导入分类" })]),
+    );
+    expect(state.local.workspaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "Imported Workspace" }),
+      ]),
+    );
+    expect(state.sync.tabGroupRules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ groupTitle: "导入分组" }),
+      ]),
+    );
+    const bookmarks = await getBookmarks(extensionWorker);
+    expect(bookmarks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Imported Bookmark" }),
+      ]),
+    );
+  });
+
+  test("IMPORT-002 导出 JSON 和 HTML", async ({
+    context,
+    extensionId,
+    extensionWorker,
+    e2eVariant,
+  }, testInfo) => {
+    const t = e2eVariant.text;
+    const { bookmarks, categories } = createLibraryFixtures();
+    await seedCategories(extensionWorker, categories);
+    await seedBookmarks(extensionWorker, bookmarks.slice(0, 2));
+    await seedWorkspaces(extensionWorker, [createWorkspaceFixture()]);
+    await seedTabGroupRules(extensionWorker, [createTabGroupRuleFixture()]);
+
+    const page = await openAppPage(context, extensionId, "import-export");
+    await attachStepScreenshot(page, testInfo, "IMPORT-002-导出入口");
+
+    const [jsonDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: new RegExp(`^${t("JSON 格式", "JSON Format")}`) }).click(),
+    ]);
+    const jsonText = await readDownloadText(jsonDownload);
+    const json = JSON.parse(jsonText);
+    expect(json.bookmarks).toHaveLength(2);
+    expect(json.categories).toHaveLength(2);
+    expect(json.workspaces).toHaveLength(1);
+    expect(json.tabGroupRules).toHaveLength(1);
+
+    const [htmlDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: new RegExp(`^${t("HTML 格式", "HTML Format")}`) }).click(),
+    ]);
+    const html = await readDownloadText(htmlDownload);
+    expect(html).toMatch(/HamHome (书签导出|Bookmark Export)/);
+    expect(html).toContain("React Docs");
+    expect(html).toContain("https://react.dev/reference/react");
+    await attachStepScreenshot(page, testInfo, "IMPORT-002-导出完成");
+  });
+
+  test("HTMLIMPORT-001 HTML 导入保留目录", async ({
+    context,
+    extensionId,
+    extensionWorker,
+  }, testInfo) => {
+    const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+      <DL><p>
+        <DT><H3>资料夹</H3>
+        <DL><p>
+          <DT><A HREF="https://html-import.example.com/one">HTML One</A>
+          <DT><A HREF="https://html-import.example.com/one">HTML One Duplicate</A>
+        </DL><p>
+      </DL><p>`;
+
+    const page = await openAppPage(context, extensionId, "import-export");
+    await setHiddenFileInput(page, 'input[type="file"]', {
+      name: "bookmarks.html",
+      mimeType: "text/html",
+      buffer: Buffer.from(html, "utf-8"),
+    });
+
+    await expect(page.getByText(/导入成功|成功|Import completed/).first()).toBeVisible();
+    await attachStepScreenshot(page, testInfo, "HTMLIMPORT-001-HTML导入成功");
+    const state = await getStorageState(extensionWorker);
+    expect(state.sync.categories).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "资料夹" })]),
+    );
+    const bookmarks = await getBookmarks(extensionWorker);
+    expect(bookmarks.filter((item) => item.url.includes("html-import"))).toHaveLength(1);
+  });
+
+  test("HTMLIMPORT-002 HTML 导入取消和恢复", async ({
+    context,
+    extensionId,
+    extensionWorker,
+    e2eVariant,
+  }, testInfo) => {
+    const t = e2eVariant.text;
+    await extensionWorker.evaluate(async () => {
+      await chrome.storage.local.set({
+        htmlImportTaskPayload: {
+          id: "cancelled-task",
+          source: "file",
+          options: {
+            preserveFolders: true,
+            enableAIAnalysis: false,
+            fetchPageContent: false,
+          },
+          bookmarksToImport: [],
+          total: 0,
+          createdAt: Date.now(),
+        },
+        htmlImportTaskProgress: {
+          taskId: "cancelled-task",
+          status: "cancelled",
+          currentIndex: 0,
+          imported: 0,
+          skipped: 0,
+          duplicateSkipped: 0,
+          categoriesCreated: 0,
+          aiProcessed: 0,
+          importedBookmarkIds: [],
+          updatedAt: Date.now(),
+        },
+      });
+    });
+
+    const page = await openAppPage(context, extensionId, "import-export");
+    await expect(page.getByText(t("导出数据", "Export Data"))).toBeVisible();
+    await attachStepScreenshot(page, testInfo, "HTMLIMPORT-002-取消任务恢复后");
+
+    const state = await getStorageState(extensionWorker);
+    expect(state.local.htmlImportTaskPayload ?? null).toBeNull();
+    expect(state.local.htmlImportTaskProgress ?? null).toBeNull();
+  });
+});
+
+async function readDownloadText(download: Download) {
+  const stream = await download.createReadStream();
+  if (!stream) return "";
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString("utf-8");
+}

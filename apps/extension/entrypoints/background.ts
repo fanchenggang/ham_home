@@ -16,12 +16,19 @@ import {
   safeCreateTab,
   getExtensionURL,
 } from "@/utils/browser-api";
-import type { Language } from "@/types";
+import type { Language, TabGroupPageMetadata } from "@/types";
+import { initApiModePersistence } from "@/lib/agent/api-mode-persistence";
 
 // 右键菜单 ID
 const CONTEXT_MENU_ID = "save-to-hamhome";
 const WORKSPACE_CONTEXT_MENU_ID = "save-window-workspace";
 const MANAGE_HAMHOME_CONTEXT_MENU_ID = "manage-hamhome";
+
+// 防止并发创建菜单
+let isCreatingContextMenu = false;
+
+// 缓存 tab 的域名，用于检测域名是否发生变化
+const tabDomainCache = new Map<number, string>();
 
 /**
  * SingleFile 后台资源获取（匹配官方 bg/fetch.js 的 fetchResource）
@@ -135,32 +142,54 @@ async function getContextMenuTitles(): Promise<{
  * 创建或更新右键菜单
  */
 async function createContextMenu() {
+  if (isCreatingContextMenu) return;
+  isCreatingContextMenu = true;
   try {
     const titles = await getContextMenuTitles();
 
     // 先删除所有菜单（避免重复 ID 错误）
-    await browser.contextMenus.removeAll();
+    try {
+      await browser.contextMenus.removeAll();
+    } catch (e) {
+      console.warn("[HamHome Background] 清除菜单失败:", e);
+    }
 
     // 创建新的右键菜单
-    await browser.contextMenus.create({
-      id: CONTEXT_MENU_ID,
-      title: titles.bookmark,
-      contexts: ["page", "selection", "link", "image"],
-    });
-    await browser.contextMenus.create({
-      id: WORKSPACE_CONTEXT_MENU_ID,
-      title: titles.workspace,
-      contexts: ["page"],
-    });
-    await browser.contextMenus.create({
-      id: MANAGE_HAMHOME_CONTEXT_MENU_ID,
-      title: titles.manage,
-      contexts: ["action", "page"],
-    });
+    // 使用 Promise.allSettled 或逐个创建并捕获错误
+    const menuConfigs = [
+      {
+        id: CONTEXT_MENU_ID,
+        title: titles.bookmark,
+        contexts: ["page", "selection", "link", "image"] as const,
+      },
+      {
+        id: WORKSPACE_CONTEXT_MENU_ID,
+        title: titles.workspace,
+        contexts: ["page"] as const,
+      },
+      {
+        id: MANAGE_HAMHOME_CONTEXT_MENU_ID,
+        title: titles.manage,
+        contexts: ["action", "page"] as const,
+      },
+    ];
 
-    console.log("[HamHome Background] 右键菜单已创建:", titles);
+    for (const config of menuConfigs) {
+      try {
+        await browser.contextMenus.create({ ...config, contexts: [...config.contexts] });
+      } catch (err: any) {
+        // 忽略重复 ID 错误
+        if (!err?.message?.includes("duplicate id")) {
+          console.warn(`[HamHome Background] 创建菜单 ${config.id} 失败:`, err);
+        }
+      }
+    }
+
+    console.log("[HamHome Background] 右键菜单已处理:", titles);
   } catch (error) {
     console.error("[HamHome Background] 创建右键菜单失败:", error);
+  } finally {
+    isCreatingContextMenu = false;
   }
 }
 
@@ -197,7 +226,7 @@ async function saveCurrentWindowWorkspaceFromBackground() {
 async function autoGroupTabFromRules(
   tabId: number,
   tab: { url?: string; pendingUrl?: string; title?: string; windowId?: number; pinned?: boolean },
-  options?: { allowAI?: boolean },
+  options?: { allowAI?: boolean; isDomainChanged?: boolean; isNewTab?: boolean },
 ) {
   if (tab.pinned) return;
 
@@ -209,32 +238,68 @@ async function autoGroupTabFromRules(
     });
     if (shouldSuppress) return;
 
-    const description = options?.allowAI
-      ? await getTabDescription(tabId)
+    const metadata = options?.allowAI
+      ? await getTabMetadata(tabId)
       : undefined;
+    const description =
+      metadata?.metaDescription ||
+      metadata?.openGraphDescription ||
+      metadata?.twitterDescription;
     await tabGroupRuleService.autoGroupTab(
       tabId,
       tab.url || tab.pendingUrl,
       tab.windowId,
       tab.title,
-      { allowAI: options?.allowAI, description },
+      {
+        allowAI: options?.allowAI,
+        description,
+        metadata,
+        isDomainChanged: options?.isDomainChanged,
+        isNewTab: options?.isNewTab,
+      },
     );
   } catch (error) {
     console.warn("[HamHome Background] 自动 Tab 分组失败:", error);
   }
 }
 
-async function getTabDescription(tabId: number): Promise<string | undefined> {
+async function getTabMetadata(tabId: number): Promise<TabGroupPageMetadata | undefined> {
   try {
     const [result] = await browser.scripting.executeScript({
       target: { tabId },
-      func: () =>
-        document
-          .querySelector('meta[name="description"], meta[property="og:description"]')
-          ?.getAttribute("content")
-          ?.trim() || "",
+      func: () => {
+        const getContent = (...selectors: string[]) =>
+          selectors
+            .map((selector) =>
+              document.querySelector(selector)?.getAttribute("content")?.trim() || "",
+            )
+            .find(Boolean) || "";
+
+        const getHref = (selector: string) =>
+          document.querySelector(selector)?.getAttribute("href")?.trim() || "";
+
+        const headings = Array.from(document.querySelectorAll("h1"))
+          .map((heading) => heading.textContent?.trim().replace(/\s+/g, " ") || "")
+          .filter(Boolean)
+          .slice(0, 3);
+
+        return {
+          pageTitle: document.title?.trim() || "",
+          metaDescription: getContent('meta[name="description"]'),
+          keywords: getContent('meta[name="keywords"]'),
+          openGraphTitle: getContent('meta[property="og:title"]'),
+          openGraphDescription: getContent('meta[property="og:description"]'),
+          openGraphSiteName: getContent('meta[property="og:site_name"]'),
+          openGraphType: getContent('meta[property="og:type"]'),
+          twitterTitle: getContent('meta[name="twitter:title"]'),
+          twitterDescription: getContent('meta[name="twitter:description"]'),
+          canonicalUrl: getHref('link[rel="canonical"]'),
+          language: document.documentElement.lang?.trim() || "",
+          headings,
+        };
+      },
     });
-    return typeof result?.result === "string" ? result.result : undefined;
+    return result?.result ?? undefined;
   } catch {
     return undefined;
   }
@@ -249,11 +314,16 @@ function escapeXml(unsafe: string) {
     .replace(/'/g, "&apos;");
 }
 
+const newlyCreatedTabs = new Set<number>();
+
 export default defineBackground(() => {
   console.log("[HamHome Background] Service Worker 启动");
 
   // 注册 proxy service（必须在最顶部同步执行）
   registerBackgroundService();
+
+  // 初始化 OpenAI API 模式缓存持久化
+  initApiModePersistence();
 
   // 1. 初始化并订阅 WebDAV 存储变更自动同步
   Promise.all([
@@ -302,19 +372,47 @@ export default defineBackground(() => {
 
   browser.tabs.onCreated.addListener((tab) => {
     if (tab.id != null) {
+      newlyCreatedTabs.add(tab.id);
+      if (tab.url || tab.pendingUrl) {
+        try {
+          tabDomainCache.set(tab.id, new URL((tab.url || tab.pendingUrl)!).hostname);
+        } catch {}
+      }
       void autoGroupTabFromRules(tab.id, tab, { allowAI: false });
     }
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    let isDomainChanged = false;
+    const currentUrl = changeInfo.url || tab.url;
+    if (currentUrl) {
+      try {
+        const currentDomain = new URL(currentUrl).hostname;
+        const previousDomain = tabDomainCache.get(tabId);
+        if (previousDomain && previousDomain !== currentDomain) {
+          isDomainChanged = true;
+        }
+        tabDomainCache.set(tabId, currentDomain);
+      } catch {}
+    }
+
     if (changeInfo.status === "complete" || changeInfo.url) {
       void autoGroupTabFromRules(tabId, {
         ...tab,
-        url: changeInfo.url || tab.url,
+        url: currentUrl,
       }, {
         allowAI: changeInfo.status === "complete",
+        isDomainChanged,
+        isNewTab: newlyCreatedTabs.has(tabId),
       });
+      if (changeInfo.status === "complete") {
+        newlyCreatedTabs.delete(tabId);
+      }
     }
+  });
+
+  browser.tabs.onRemoved.addListener((tabId) => {
+    tabDomainCache.delete(tabId);
   });
 
   // Service Worker 每次启动时创建右键菜单（确保菜单始终存在）

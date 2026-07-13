@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "HamHome - Smart Bookmark Assistant",
+    "message": "HamHome",
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "Keep your bookmarks alive! AI-powered smart bookmark management tool",
+    "message": "Smart Browser Workspace -— Save tabs, auto-group sessions, and organize bookmarks and collections with AI",
     "description": "Extension description"
   },
   "commandSaveBookmark": {

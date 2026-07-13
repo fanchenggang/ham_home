@@ -36,6 +36,12 @@ pnpm-debug.log*
 # Testing
 coverage/
 
+# E2E (Playwright)
+.playwright-cli/
+playwright-report/
+test-results/
+.last-run.json
+
 # Misc
 *.tgz
 .cache/
@@ -44,3 +50,4 @@ tsconfig.tsbuildinfo
 docs/blog/
 
 temp  
+.agents
