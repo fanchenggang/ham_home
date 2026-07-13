@@ -320,22 +320,26 @@ manifest: () => ({
 
 工作流文件：`.github/workflows/release-extension.yml`
 
+### 流水线步骤
+
+1. `pnpm install --frozen-lockfile`
+2. `pnpm build:extension`（构建 Chrome / Firefox / Edge）
+3. 将 `.output/{chrome-mv3,firefox-mv2,edge-mv3}` 打成 ZIP 作为构建产物
+4. 上传 Artifact，并在 tag / 手动触发时创建 GitHub Release
+
 ### 触发方式
 
 | 触发 | 行为 |
 |------|------|
-| 推送 tag `v*`（如 `v1.3.4`） | 校验 tag 与 `wxt.config.ts` 的 `version` 一致 → `pnpm zip:extension` → 创建 GitHub Release 并上传 ZIP |
+| 推送 tag `v*`（如 `v1.3.4`） | 校验 tag 与 `wxt.config.ts` 的 `version` 一致 → 构建 → 发布 Release |
 | Actions 页手动 `workflow_dispatch` | 读取 `wxt.config.ts` 版本，构建后创建 `v{version}` Release（可勾选 draft / prerelease） |
 
 ### 发布产物
-
-Release 资源与本地打包一致：
 
 ```
 hamhome-{version}-chrome.zip
 hamhome-{version}-firefox.zip
 hamhome-{version}-edge.zip
-hamhome-{version}-sources.zip   # 若 zip:all 生成
 ```
 
 同时会上传同名 Artifact，保留 30 天，便于排查。
