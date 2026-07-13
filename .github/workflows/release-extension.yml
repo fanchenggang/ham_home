@@ -1,0 +1,137 @@
+# Build browser extension zips and publish a GitHub Release.
+#
+# Triggers:
+# - Push of a version tag (vX.Y.Z) — primary release path
+# - Manual workflow_dispatch — build + create release from wxt.config version
+name: Release Extension
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Create as draft release"
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-extension-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve extension version
+        id: version
+        run: |
+          VERSION="$(node -e '
+            const fs = require("fs");
+            const text = fs.readFileSync("apps/extension/wxt.config.ts", "utf8");
+            const match = text.match(/^\s*version:\s*["'\'']([\d.]+)["'\'']/m);
+            if (!match) {
+              console.error("Unable to read version from apps/extension/wxt.config.ts");
+              process.exit(1);
+            }
+            process.stdout.write(match[1]);
+          ')"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved extension version: ${VERSION}"
+
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "${TAG_VERSION}" != "${VERSION}" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match wxt.config.ts version ${VERSION}"
+              exit 1
+            fi
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and zip extension
+        run: pnpm zip:extension
+
+      - name: List release artifacts
+        run: |
+          ls -lh apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-*.zip
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamhome-${{ steps.version.outputs.version }}
+          path: apps/extension/.output/hamhome-${{ steps.version.outputs.version }}-*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          ASSETS=(apps/extension/.output/hamhome-"${VERSION}"-*.zip)
+          if [[ ${#ASSETS[@]} -eq 0 ]]; then
+            echo "::error::No zip artifacts found for version ${VERSION}"
+            exit 1
+          fi
+
+          ARGS=(--title "${TAG}" --generate-notes)
+          if [[ "${DRAFT}" == "true" ]]; then
+            ARGS+=(--draft)
+          fi
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            ARGS+=(--prerelease)
+          fi
+
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            ARGS+=(--verify-tag)
+          else
+            ARGS+=(--target "${{ github.sha }}")
+          fi
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists — uploading assets"
+            gh release upload "${TAG}" "${ASSETS[@]}" --clobber
+          else
+            gh release create "${TAG}" "${ASSETS[@]}" "${ARGS[@]}"
+          fi
+
+          echo "Published release ${TAG}"
+          gh release view "${TAG}" --json url,tagName,assets --jq '{url,tagName,assets:[.assets[].name]}'

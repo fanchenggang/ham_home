@@ -18,7 +18,8 @@
 8. [发布到商店](#8-发布到商店)
 9. [包体积分析](#9-包体积分析)
 10. [版本管理](#10-版本管理)
-11. [常见问题](#11-常见问题)
+11. [GitHub Actions 自动 Release](#11-github-actions-自动-release)
+12. [常见问题](#12-常见问题)
 
 ---
 
@@ -309,12 +310,51 @@ manifest: () => ({
 
 1. 修改 `apps/extension/wxt.config.ts` 中的 `version`
 2. 同步修改 `apps/extension/package.json` 中的 `version`（保持一致，便于维护）
-3. 执行 `pnpm zip:extension` 生成新版 ZIP
-4. 执行 `pnpm submit:extension` 发布
+3. 提交并推送后打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`
+4. GitHub Actions 会自动打包并创建 GitHub Release（见下一节）
+5. （可选）本地执行 `pnpm submit:extension` 发布到各浏览器商店
 
 ---
 
-## 11. 常见问题
+## 11. GitHub Actions 自动 Release
+
+工作流文件：`.github/workflows/release-extension.yml`
+
+### 触发方式
+
+| 触发 | 行为 |
+|------|------|
+| 推送 tag `v*`（如 `v1.3.4`） | 校验 tag 与 `wxt.config.ts` 的 `version` 一致 → `pnpm zip:extension` → 创建 GitHub Release 并上传 ZIP |
+| Actions 页手动 `workflow_dispatch` | 读取 `wxt.config.ts` 版本，构建后创建 `v{version}` Release（可勾选 draft / prerelease） |
+
+### 发布产物
+
+Release 资源与本地打包一致：
+
+```
+hamhome-{version}-chrome.zip
+hamhome-{version}-firefox.zip
+hamhome-{version}-edge.zip
+hamhome-{version}-sources.zip   # 若 zip:all 生成
+```
+
+同时会上传同名 Artifact，保留 30 天，便于排查。
+
+### 推荐发布流程
+
+```bash
+# 1. 更新 apps/extension/wxt.config.ts 中的 version
+# 2. 提交到 main
+git tag v1.3.5
+git push origin v1.3.5
+# 3. 在 GitHub Actions / Releases 查看自动产物
+```
+
+> **注意：** tag 版本号必须与 `wxt.config.ts` 的 `version` 完全一致（不含 `v` 前缀），否则流水线会失败。
+
+---
+
+## 12. 常见问题
 
 ### Q：构建失败，提示找不到共享包
 
