@@ -135,6 +135,17 @@ pnpm --filter hamhome build:edge      # Edge
 - 生产构建会自动 **移除所有 `console.log` 和 `debugger`**（`wxt.config.ts` 中 esbuild `drop` 配置）
 - 共享包（`packages/*`）由 Turborepo `dependsOn: ["^build"]` 保证先于扩展完成构建
 - 构建产物输出至 `apps/extension/.output/`
+- 产物会经过 `scripts/escape-unicode-noncharacters.ts` 插件处理，把 Unicode 非字符
+  （U+FDD0–U+FDEF、各平面的 U+xFFFE / U+xFFFF、落单代理项）转义成 `\uXXXX`
+
+> **为什么需要转义非字符**
+>
+> Chrome 安装扩展时用 `base::IsStringUTF8()` 校验内容脚本与 CSS，它比标准 UTF-8 更严格，
+> 会拒绝 Unicode 非字符。第三方库（例如数学公式解析）常在正则里直接写 U+FFFF，
+> 一旦这样的字符进入内容脚本产物，**整个扩展都会加载失败**，报错为：
+> 「无法为内容脚本加载 xxx.js 文件。该文件采用的不是 UTF-8 编码。」
+> 这类失败在浏览器里只体现为扩展没加载，e2e 里则表现为等不到 Service Worker，排查成本很高。
+> 插件同时会在构建期校验 CSS/JSON/HTML 产物，发现非字符直接让构建失败。
 
 ### 构建产物目录
 

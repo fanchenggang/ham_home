@@ -122,10 +122,139 @@ test.describe("POPUP 当前页保存流程", () => {
     ]);
 
     popup = await openControlledPopupPage(context, extensionId, CURRENT_PAGE);
-    popup.on("dialog", (dialog) => dialog.accept());
     await attachStepScreenshot(popup, testInfo, "POPUP-002-删除前更新态");
     await popup.getByRole("button", { name: t("删除", "Delete"), exact: true }).click();
 
+    // 删除确认改为组件内弹窗，需在弹窗中再次确认
+    const deleteDialog = popup.getByRole("alertdialog");
+    await expect(deleteDialog).toBeVisible();
+    await attachStepScreenshot(popup, testInfo, "POPUP-002-删除确认弹窗");
+    await deleteDialog
+      .getByRole("button", { name: t("删除", "Delete"), exact: true })
+      .click();
+
     await expect.poll(async () => getBookmarks(extensionWorker)).toEqual([]);
+  });
+
+  test("POPUP-003 分类下拉展开并定位当前层级分类", async ({
+    context,
+    extensionId,
+    extensionWorker,
+  }, testInfo) => {
+    await seedCategories(extensionWorker, [
+      createCategoryFixture({
+        id: "cat-technology",
+        name: "技术与开发",
+        order: 0,
+      }),
+      createCategoryFixture({
+        id: "cat-development",
+        name: "开发工具",
+        parentId: "cat-technology",
+        order: 0,
+      }),
+      createCategoryFixture({
+        id: "cat-open-source",
+        name: "开源项目",
+        parentId: "cat-development",
+        order: 0,
+      }),
+      createCategoryFixture({
+        id: "cat-reading",
+        name: "资讯与阅读",
+        order: 1,
+      }),
+    ]);
+    await seedBookmarks(extensionWorker, [
+      createBookmarkFixture({
+        id: "bm-popup-category",
+        url: CURRENT_PAGE.url,
+        title: CURRENT_PAGE.title,
+        categoryId: "cat-open-source",
+      }),
+    ]);
+
+    const popup = await openControlledPopupPage(context, extensionId, CURRENT_PAGE);
+    await popup.getByRole("combobox").click();
+
+    const selectedCategory = popup.getByRole("option", {
+      name: "开源项目",
+      exact: true,
+    });
+    await expect(selectedCategory).toBeVisible();
+    await expect(selectedCategory).toBeInViewport();
+    await expect(selectedCategory).toHaveAttribute("aria-selected", "true");
+    await expect(
+      popup.getByRole("option", { name: "资讯与阅读", exact: true }),
+    ).toHaveAttribute("aria-selected", "false");
+    await attachStepScreenshot(popup, testInfo, "POPUP-003-分类下拉层级");
+  });
+
+  test("POPUP-004 快捷面板展示最近保存并可回退到保存表单", async ({
+    context,
+    extensionId,
+    extensionWorker,
+    e2eVariant,
+  }, testInfo) => {
+    const t = e2eVariant.text;
+    await seedBookmarks(extensionWorker, [
+      createBookmarkFixture({
+        id: "bm-recent",
+        url: "https://recent.example.com/post",
+        title: "最近保存的书签",
+      }),
+    ]);
+
+    // 快捷面板：保存表单已移到页面内，这里只提供入口与最近保存
+    const popup = await openControlledPopupPage(
+      context,
+      extensionId,
+      CURRENT_PAGE,
+      { view: "quick" },
+    );
+    await expect(popup.getByText("最近保存的书签")).toBeVisible();
+    await expect(
+      popup.getByRole("button", { name: /保存当前页面|Save current page/ }),
+    ).toBeEnabled();
+    await attachStepScreenshot(popup, testInfo, "POPUP-004-快捷面板");
+
+    // 页面无法接管保存流程时回退到 Popup 内的保存表单
+    await popup
+      .getByRole("button", { name: /保存当前页面|Save current page/ })
+      .click();
+    await expect(popup.getByLabel(t("标题", "Title"))).toHaveValue(
+      "Popup Source Page",
+    );
+    await attachStepScreenshot(popup, testInfo, "POPUP-004-回退保存表单");
+  });
+
+  test("POPUP-005 开启弹窗保存后直接展示保存表单", async ({
+    context,
+    extensionId,
+    extensionWorker,
+    e2eVariant,
+  }, testInfo) => {
+    const t = e2eVariant.text;
+    await resetExtensionData(extensionWorker, {
+      settings: { ...e2eVariant.settings, usePopupSavePanel: true },
+    });
+
+    // 无需点击「保存当前页面」，Popup 打开即进入保存表单
+    const popup = await openControlledPopupPage(
+      context,
+      extensionId,
+      CURRENT_PAGE,
+      { view: "quick" },
+    );
+    await expect(popup.getByLabel(t("标题", "Title"))).toHaveValue(
+      "Popup Source Page",
+    );
+    await attachStepScreenshot(popup, testInfo, "POPUP-005-弹窗保存表单");
+
+    // 返回后仍可回到快捷面板
+    await popup.getByRole("button", { name: t("返回", "Back") }).click();
+    await expect(
+      popup.getByRole("button", { name: /保存当前页面|Save current page/ }),
+    ).toBeVisible();
   });
 });

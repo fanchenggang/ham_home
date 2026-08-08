@@ -18,7 +18,6 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  ScrollArea,
   cn,
 } from "@hamhome/ui";
 
@@ -96,6 +95,8 @@ export interface TreeSelectProps<T extends BaseTreeNode> {
   maxHeight?: number;
   /** 触发器类名 */
   triggerClassName?: string;
+  /** Popover portal 容器（在 shadow root 中渲染时必须传入） */
+  portalContainer?: HTMLElement;
 
   // === 状态 ===
   /** 是否禁用 */
@@ -200,6 +201,23 @@ function composeEventHandlers<E extends { defaultPrevented: boolean }>(
   };
 }
 
+function getAncestorIds<T extends BaseTreeNode>(
+  node: T,
+  flatNodes: T[]
+): string[] {
+  const ancestorIds: string[] = [];
+  const visitedIds = new Set<string>();
+  let parentId = node.parentId;
+
+  while (parentId && !visitedIds.has(parentId)) {
+    visitedIds.add(parentId);
+    ancestorIds.push(parentId);
+    parentId = flatNodes.find((item) => item.id === parentId)?.parentId;
+  }
+
+  return ancestorIds;
+}
+
 // ============ 内部组件 ============
 
 interface TreeNodeItemProps<T extends BaseTreeNode> {
@@ -245,17 +263,20 @@ function TreeNodeItem<T extends BaseTreeNode>({
         role="option"
         aria-selected={isSelected}
         className={cn(
-          "flex items-center gap-2 w-full py-1.5 rounded-md text-sm text-left hover:bg-muted",
-          isActive && "bg-accent",
-          isSelected && "bg-muted",
-          isActive && isSelected && "bg-accent"
+          "group flex min-h-8 w-full items-center gap-2 rounded-lg py-1.5 pr-2 text-left text-sm outline-none transition-colors",
+          "hover:bg-muted/70 focus-visible:bg-muted/70",
+          isActive && "bg-muted/70",
+          isSelected && "bg-primary/10 text-foreground dark:bg-primary/15",
+          isActive &&
+            isSelected &&
+            "bg-primary/15 ring-1 ring-primary/25 ring-inset dark:bg-primary/20"
         )}
-        style={{ paddingLeft: `${node.level * 16 + 8}px` }}
+        style={{ paddingLeft: `${node.level * 14 + 8}px` }}
       >
         {hasChildren ? (
           <div
             onClick={(e) => onToggleExpand(node.id, e)}
-            className="p-0.5 hover:bg-accent rounded shrink-0 cursor-pointer"
+            className="-ml-0.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
           >
             {isExpanded ? (
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -272,7 +293,7 @@ function TreeNodeItem<T extends BaseTreeNode>({
           <span className="h-4 w-4 shrink-0" />
         )}
         <span className="flex-1 truncate">{node.name}</span>
-        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+        {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
       </button>
       {hasChildren && isExpanded && (
         <div>
@@ -316,6 +337,7 @@ export function TreeSelect<T extends BaseTreeNode>({
   collisionPadding = 8,
   maxHeight = 256,
   triggerClassName,
+  portalContainer,
   disabled = false,
 }: TreeSelectProps<T>) {
   const [open, setOpen] = useState(false);
@@ -461,10 +483,34 @@ export function TreeSelect<T extends BaseTreeNode>({
   const openPopover = useCallback(
     (nextHighlightedId?: string | null) => {
       if (disabled) return;
+
+      if (!isSearching && selectedNode) {
+        const ancestorIds = getAncestorIds(selectedNode, flatNodes);
+        if (ancestorIds.length > 0) {
+          setExpandedIds((prev) => {
+            const next = new Set(prev);
+            ancestorIds.forEach((id) => next.add(id));
+            return next;
+          });
+        }
+      }
+
       setOpen(true);
-      setHighlightedId(nextHighlightedId ?? getInitialHighlightedId());
+      setHighlightedId(
+        nextHighlightedId ??
+          selectedNode?.id ??
+          selectedOption?.id ??
+          getInitialHighlightedId()
+      );
     },
-    [disabled, getInitialHighlightedId]
+    [
+      disabled,
+      isSearching,
+      selectedNode,
+      selectedOption,
+      flatNodes,
+      getInitialHighlightedId,
+    ]
   );
 
   const highlightedItem = useMemo(
@@ -648,15 +694,20 @@ export function TreeSelect<T extends BaseTreeNode>({
       variant="outline"
       disabled={disabled}
       className={cn(
-        "w-full justify-between hover:text-card-foreground",
-        open && "border-ring ring-ring/50 ring-[3px]",
+        "w-full justify-between hover:bg-muted/50 hover:text-foreground",
+        open && "border-primary/60 bg-muted/40",
         triggerClassName
       )}
     >
       <span className="truncate">
         {selectedOption?.label || selectedNode?.name || searchPlaceholder}
       </span>
-      <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+      <ChevronDown
+        className={cn(
+          "h-4 w-4 shrink-0 ml-2 opacity-50 transition-transform duration-200",
+          open && "rotate-180"
+        )}
+      />
     </Button>
   );
 
@@ -696,23 +747,32 @@ export function TreeSelect<T extends BaseTreeNode>({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
-        className="p-0"
+        className={cn(
+          "overflow-hidden rounded-xl border-border/70 bg-popover/95 p-1 shadow-xl backdrop-blur-md",
+          // content UI 的 portal 容器自身 pointer-events: none，且浮窗层级很高，
+          // 这里需要显式恢复交互并置于浮窗之上
+          portalContainer && "pointer-events-auto z-[100002]",
+        )}
         align={popoverAlign}
         style={popoverStyle}
-        sideOffset={4}
+        sideOffset={6}
         collisionPadding={collisionPadding}
+        container={portalContainer}
       >
-        <ScrollArea style={{ maxHeight: maxHeight, overflow: "auto" }}>
+        <div
+          className="scrollbar-slim overscroll-contain overflow-y-auto"
+          style={{ maxHeight }}
+        >
           {/* 搜索框 */}
-          <div className="flex items-center border-b px-3">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="sticky top-0 z-10 mb-1.5 flex items-center rounded-lg bg-muted/60 px-2.5 ring-1 ring-border/60 ring-inset backdrop-blur-sm transition-colors focus-within:bg-background/80 focus-within:ring-primary/35">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               ref={searchInputRef}
               value={search}
               onChange={(e) => updateSearch(e.target.value)}
               onKeyDown={handleInputKeyDown}
               placeholder={searchPlaceholder}
-              className="flex h-9 w-full bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
+              className="flex h-9 w-full bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground/80"
             />
           </div>
           {/* 列表 */}
@@ -720,7 +780,7 @@ export function TreeSelect<T extends BaseTreeNode>({
             id={listboxId}
             role="listbox"
             aria-labelledby={triggerId}
-            className="p-1"
+            className="space-y-0.5"
           >
             {/* 前置选项 */}
             {prependOptions.map((option) => {
@@ -738,10 +798,13 @@ export function TreeSelect<T extends BaseTreeNode>({
                   role="option"
                   aria-selected={isSelected}
                   className={cn(
-                    "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left hover:bg-muted",
-                    isActive && "bg-accent",
-                    isSelected && "bg-muted",
-                    isActive && isSelected && "bg-accent"
+                    "flex min-h-8 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm outline-none transition-colors",
+                    "hover:bg-muted/70 focus-visible:bg-muted/70",
+                    isActive && "bg-muted/70",
+                    isSelected && "bg-primary/10 text-foreground dark:bg-primary/15",
+                    isActive &&
+                      isSelected &&
+                      "bg-primary/15 ring-1 ring-primary/25 ring-inset dark:bg-primary/20"
                   )}
                 >
                   <span className="w-4 shrink-0" />
@@ -750,7 +813,7 @@ export function TreeSelect<T extends BaseTreeNode>({
                     : option.icon || <span className="h-4 w-4 shrink-0" />}
                   <span className="flex-1">{option.label}</span>
                   {isSelected && (
-                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                   )}
                 </button>
               );
@@ -779,7 +842,7 @@ export function TreeSelect<T extends BaseTreeNode>({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

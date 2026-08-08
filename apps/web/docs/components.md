@@ -133,7 +133,7 @@ app/components/
 
 ### 行为说明
 
-- `popupSave` 使用竖向 popup 比例，其余截图使用桌面 3:2 比例。
+- `popupSave`（页内保存浮窗）和 `popupQuickPanel`（扩展快捷面板）使用竖向 popup 比例，其余截图使用桌面 3:2 比例。
 - 只负责展示截图，不包含业务交互。
 
 ---

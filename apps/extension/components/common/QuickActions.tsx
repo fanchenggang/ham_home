@@ -8,6 +8,7 @@ import { Sun, Moon, Languages, MoreHorizontal, List, Keyboard, Settings, Briefca
 import { useTranslation } from 'react-i18next';
 import {
   Button,
+  ConfirmDialog,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -52,6 +53,7 @@ export function QuickActions({
   const { t } = useTranslation(['common', 'bookmark']);
   const { shortcuts } = useShortcuts();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [shortcutsGuideOpen, setShortcutsGuideOpen] = useState(false);
 
   // 尝试从 context 获取 portalContainer（如果没有通过 props 传入）
   let contextContainer: HTMLElement | undefined;
@@ -116,13 +118,9 @@ export function QuickActions({
     const backgroundService = getBackgroundService();
     const shortcutsUrl = getBrowserSpecificURL('shortcuts');
     
-    // Firefox 不允许通过 tabs.create 打开 about: URLs（安全限制）
+    // Firefox 不允许通过 tabs.create 打开 about: URLs（安全限制），改为展示操作指引
     if (shortcutsUrl.startsWith('about:')) {
-      // 显示 Firefox 用户的操作指引
-      const message = language === 'zh'
-        ? '请手动打开 Firefox 扩展管理页面：\n\n1. 在地址栏输入 about:addons\n2. 点击右上角齿轮图标\n3. 选择"管理扩展快捷键"'
-        : 'Please open Firefox extension settings manually:\n\n1. Type about:addons in address bar\n2. Click the gear icon in top-right\n3. Select "Manage Extension Shortcuts"';
-      alert(message);
+      setShortcutsGuideOpen(true);
       return;
     }
     
@@ -221,6 +219,19 @@ export function QuickActions({
     </DropdownMenu>
   );
 
+  // Firefox 快捷键设置指引（about: 链接无法直接打开）
+  const ShortcutsGuideDialog = (
+    <ConfirmDialog
+      open={shortcutsGuideOpen}
+      onOpenChange={setShortcutsGuideOpen}
+      title={t('common:common.viewShortcuts')}
+      description={t('common:common.firefoxShortcutsGuide')}
+      confirmText={t('common:common.confirm')}
+      hideCancel
+      container={container}
+    />
+  );
+
   if (showTooltip) {
     return (
       <TooltipProvider delayDuration={300}>
@@ -238,6 +249,7 @@ export function QuickActions({
             </TooltipContent>
           </Tooltip>
           {MoreMenu}
+          {ShortcutsGuideDialog}
         </div>
       </TooltipProvider>
     );
@@ -248,6 +260,7 @@ export function QuickActions({
       {ThemeButton}
       {LanguageButton}
       {MoreMenu}
+      {ShortcutsGuideDialog}
     </div>
   );
 }

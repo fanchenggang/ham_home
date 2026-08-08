@@ -94,6 +94,22 @@ export function GeneralTab({
           />
         </div>
 
+        {/* 保存方式：页内浮窗 / 扩展弹窗 */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>{t("settings:settings.general.usePopupSavePanel")}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t("settings:settings.general.usePopupSavePanelDesc")}
+            </p>
+          </div>
+          <Switch
+            checked={appSettings.usePopupSavePanel}
+            onCheckedChange={(checked) =>
+              updateAppSettings({ usePopupSavePanel: checked })
+            }
+          />
+        </div>
+
         {/* Omnibox 搜索 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -197,6 +213,22 @@ export function GeneralTab({
           )}
         </div>
 
+        {/* 侧边栏开关 */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>{t("settings:settings.general.enableSidePanel")}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t("settings:settings.general.enableSidePanelDesc")}
+            </p>
+          </div>
+          <Switch
+            checked={appSettings.enableSidePanel}
+            onCheckedChange={(checked) =>
+              updateAppSettings({ enableSidePanel: checked })
+            }
+          />
+        </div>
+
         {/* 面板位置 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -207,6 +239,7 @@ export function GeneralTab({
           </div>
           <Select
             value={appSettings.panelPosition}
+            disabled={!appSettings.enableSidePanel}
             onValueChange={(value: "left" | "right") =>
               updateAppSettings({ panelPosition: value })
             }

@@ -10,6 +10,7 @@
     "deleteTitle": "Confirm Delete",
     "deleteConfirm": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "deleteSuccess": "Bookmark deleted successfully",
+    "deleteFailed": "Failed to delete bookmark",
     "saveSuccess": "Bookmark saved successfully",
     "saveFailed": "Failed to save bookmark",
     "placeholders": {
@@ -220,6 +221,7 @@
     "deleteConfirm": "Delete workspace \"{{name}}\"? This action cannot be undone.",
     "deleteSuccess": "Workspace deleted",
     "confirmRestoreMany": "You are about to restore {{count}} pages. Continue?",
+    "restoreTitle": "Restore workspace",
     "allDomains": "All Domains",
     "allBookmarkStatus": "All Bookmark Statuses",
     "allAiCategories": "All AI Categories",
@@ -264,7 +266,32 @@
     "loadingPage": "Loading page content",
     "pleaseWait": "Please wait...",
     "cannotGetPage": "Cannot get page content",
-    "viewBookmarkList": "View Bookmark List"
+    "viewBookmarkList": "View Bookmark List",
+    "saveCurrentPage": "Save current page",
+    "saveCurrentPageHint": "Analyzed and saved right on the page, without interrupting you",
+    "saveCurrentPageHintPopup": "Analyzed and saved inside the extension popup",
+    "cannotSavePage": "This page cannot be saved",
+    "openPanel": "Bookmark panel",
+    "recentSaves": "Recently saved",
+    "noRecentSaves": "No bookmarks saved yet",
+    "quickSettings": "Quick settings",
+    "quickActions": "Quick actions",
+    "noRecentSavesHint": "Saved bookmarks will show up here",
+    "autoSaveSnapshotDesc": "Capture a snapshot when saving a page",
+    "omniboxSearchDesc": "Show bookmark suggestions in the address bar",
+    "viewShortcutsDesc": "See all shortcuts and how to use them"
+  },
+  "inPageSave": {
+    "title": "Save to HamHome",
+    "updateTitle": "Update bookmark",
+    "preparing": "Reading page content…",
+    "analyzing": "AI is analyzing this page…",
+    "editNow": "Edit now",
+    "saved": "Saved to HamHome",
+    "errors": {
+      "cannotBookmarkPage": "Browser internal pages cannot be bookmarked",
+      "extractFailed": "Failed to read page content, please refresh and retry"
+    }
   },
   "savePanel": {
     "alreadyBookmarked": "This page is already bookmarked, you can update the information",
@@ -285,6 +312,9 @@
     "loading": "Loading...",
     "tagsLabel": "Tags",
     "tagPlaceholder": "Enter tag and press Enter",
+    "maxTags": "Up to {{count}} tags",
+    "tagCount": "{{count}}/{{max}} tags",
+    "removeTag": "Remove tag {{tag}}",
     "aiRecommendedCategory": "AI Recommended Category:",
     "apply": "Apply",
     "cancel": "Cancel",

@@ -147,6 +147,8 @@ export async function createGlobalAgentTools(
               autoSaveSnapshot: { type: "boolean" },
               enableOmniboxSearch: { type: "boolean" },
               defaultCategory: { type: "string", nullable: true },
+              enableSidePanel: { type: "boolean" },
+              usePopupSavePanel: { type: "boolean" },
               panelPosition: { type: "string", enum: ["left", "right"] },
             },
             additionalProperties: false,

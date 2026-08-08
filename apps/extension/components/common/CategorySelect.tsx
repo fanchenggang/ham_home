@@ -28,6 +28,8 @@ interface CategorySelectProps {
   onApplyAICategory?: () => void;
   placeholder?: string;
   className?: string;
+  /** Popover portal 容器（在 shadow root 中渲染时必须传入） */
+  portalContainer?: HTMLElement;
 }
 
 /** 未分类的特殊 ID */
@@ -41,6 +43,7 @@ export function CategorySelect({
   onApplyAICategory,
   placeholder,
   className,
+  portalContainer,
 }: CategorySelectProps) {
   const { t } = useTranslation();
 
@@ -97,8 +100,8 @@ export function CategorySelect({
             variant="outline"
             role="combobox"
             className={cn(
-              "w-full h-10 justify-between font-normal hover:text-card-foreground",
-              open && "border-ring ring-ring/50 ring-[3px]"
+              "w-full h-10 justify-between font-normal transition-colors hover:bg-muted/50 hover:text-foreground",
+              open && "border-primary/60 bg-muted/40"
             )}
           >
             {selectedNode ? (
@@ -118,7 +121,12 @@ export function CategorySelect({
                 {placeholder || t('bookmark:savePanel.selectCategory')}
               </span>
             )}
-            <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 opacity-50 shrink-0 ml-2 transition-transform duration-200",
+                open && "rotate-180"
+              )}
+            />
           </Button>
         )}
         renderNodeIcon={() => (
@@ -127,6 +135,7 @@ export function CategorySelect({
         popoverWidth="var(--radix-popover-trigger-width)"
         popoverAlign="start"
         maxHeight={240}
+        portalContainer={portalContainer}
       />
 
       {/* AI 推荐分类（不在已有分类中时显示） */}

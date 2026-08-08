@@ -10,7 +10,14 @@ export interface UseEdgeTriggerOptions {
   position?: PanelPosition;
   triggerZoneWidth?: number; // 触发区宽度
   hoverDelay?: number; // 悬停延迟（毫秒）
+  /** 侧边栏功能总开关，关闭时重置所有状态 */
   enabled?: boolean;
+  /**
+   * 是否响应鼠标边缘悬停探测。
+   * 页面失焦（如打开扩展 Popup）时应暂停被动探测，
+   * 但不能连带屏蔽 Popup / 快捷键这类显式的开关面板指令。
+   */
+  hoverEnabled?: boolean;
 }
 
 export interface UseEdgeTriggerResult {
@@ -31,7 +38,10 @@ export function useEdgeTrigger({
   triggerZoneWidth = DEFAULT_TRIGGER_ZONE_WIDTH,
   hoverDelay = DEFAULT_HOVER_DELAY,
   enabled = true,
+  hoverEnabled = true,
 }: UseEdgeTriggerOptions = {}): UseEdgeTriggerResult {
+  const hoverActive = enabled && hoverEnabled;
+
   const [isNearEdge, setIsNearEdge] = useState(false);
   const [isTriggerVisible, setIsTriggerVisible] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -54,7 +64,7 @@ export function useEdgeTrigger({
   // 检测鼠标是否在边缘区域
   const checkEdgeProximity = useCallback(
     (mouseX: number) => {
-      if (!enabled) return false;
+      if (!hoverActive) return false;
 
       const windowWidth = window.innerWidth;
       // 当触发器显示时，扩大判定区域，避免鼠标移到触发器上时消失（触发器宽度为 40px，预留 20px 缓冲）
@@ -66,16 +76,22 @@ export function useEdgeTrigger({
         return mouseX >= windowWidth - effectiveZoneWidth;
       }
     },
-    [position, triggerZoneWidth, enabled, isTriggerVisible]
+    [position, triggerZoneWidth, hoverActive, isTriggerVisible]
   );
+
+  // 侧边栏功能被关闭时重置面板状态
+  useEffect(() => {
+    if (!enabled) {
+      setIsPanelOpen(false);
+    }
+  }, [enabled]);
 
   // 鼠标移动处理
   useEffect(() => {
-    if (!enabled) {
+    if (!hoverActive) {
       clearTimers();
       setIsNearEdge(false);
       setIsTriggerVisible(false);
-      setIsPanelOpen(false);
       return;
     }
 
@@ -119,7 +135,7 @@ export function useEdgeTrigger({
       document.removeEventListener('mousemove', handleMouseMove);
       clearTimers();
     };
-  }, [enabled, checkEdgeProximity, isPanelOpen, isTriggerVisible, hoverDelay, clearTimers]);
+  }, [hoverActive, checkEdgeProximity, isPanelOpen, isTriggerVisible, hoverDelay, clearTimers]);
 
   // 打开面板
   const openPanel = useCallback(() => {

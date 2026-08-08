@@ -3,11 +3,7 @@
  * 保存面板的业务逻辑层
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import {
-  bookmarkStorage,
-  configStorage,
-  aiCacheStorage,
-} from "@/lib/storage";
+import { bookmarkStorage, configStorage } from "@/lib/storage";
 import {
   matchCategoryByName,
 } from "@/lib/agent";
@@ -32,6 +28,13 @@ export type SavePanelSnapshotStatus =
   | "saved"
   | "failed";
 
+/** 保存/删除失败信息，展示在面板内而不是使用浏览器原生弹窗 */
+export interface SavePanelActionError {
+  type: "save" | "delete";
+  /** 原始错误信息，缺失时由展示层回退到通用文案 */
+  message?: string;
+}
+
 export type SavePanelObsidianStatus =
   | "idle"
   | "syncing"
@@ -44,6 +47,11 @@ interface UseSavePanelProps {
   existingBookmark: LocalBookmark | null;
   onSaved?: () => void;
   initialSaveSnapshot?: boolean;
+  /**
+   * 首次加载（含自动 AI 分析）结束时触发，无论是否真的执行了 AI 分析。
+   * 页内保存流程用它决定何时把「分析中」浮窗切换成保存表单。
+   */
+  onInitialLoadSettled?: () => void;
 }
 
 interface UseSavePanelResult {
@@ -71,6 +79,7 @@ interface UseSavePanelResult {
   syncToObsidian: boolean;
   obsidianStatus: SavePanelObsidianStatus;
   obsidianError: string | null;
+  actionError: SavePanelActionError | null;
 
   // 表单操作
   setUrl: (value: string) => void;
@@ -86,7 +95,9 @@ interface UseSavePanelResult {
   retryAnalysis: () => Promise<void>;
   applyAIRecommendedCategory: () => Promise<void>;
   save: () => Promise<void>;
-  deleteBookmark: () => Promise<void>;
+  /** 删除书签，返回是否删除成功（确认交互由展示层负责） */
+  deleteBookmark: () => Promise<boolean>;
+  clearActionError: () => void;
 }
 
 interface SavePanelFormState {
@@ -125,7 +136,13 @@ export function useSavePanel({
   existingBookmark,
   onSaved,
   initialSaveSnapshot,
+  onInitialLoadSettled,
 }: UseSavePanelProps): UseSavePanelResult {
+  // 用 ref 持有回调，避免回调身份变化触发重复的初始化 effect
+  const onInitialLoadSettledRef = useRef(onInitialLoadSettled);
+  onInitialLoadSettledRef.current = onInitialLoadSettled;
+  const initialLoadSettledRef = useRef(false);
+
   // 将 content.ts 传来的 HTML 正文转为 Markdown
   // 提升性能，仅在 UI 层按需处理
   const markdown = useMemo(() => {
@@ -170,6 +187,9 @@ export function useSavePanel({
   const [obsidianStatus, setObsidianStatus] =
     useState<SavePanelObsidianStatus>("idle");
   const [obsidianError, setObsidianError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<SavePanelActionError | null>(
+    null,
+  );
 
   const setSaveSnapshot = useCallback((value: boolean) => {
     setSaveSnapshotState(value);
@@ -204,46 +224,18 @@ export function useSavePanel({
       setAIError(null);
 
       try {
-        // 1. 检查缓存（如果未跳过）
-        if (!skipCache) {
-          const cachedResult = await aiCacheStorage.getCachedAnalysis(
-            pageContent.url,
-          );
-          if (cachedResult) {
-            console.log("[useSavePanel] Using cached AI analysis result");
-            await applyAnalysisResultWithSetters(
-              cachedResult,
-              config,
-              categoriesRef.current,
-              setTitle,
-              setDescription,
-              setTags,
-              setCategoryId,
-              setAiRecommendedCategory,
-              existingBookmark,
-              settings.language,
-            );
-            setAIStatus("success");
-            return;
-          }
-        }
-
-        // 2. 执行分析（传递已有标签避免生成语义相近的重复标签）
+        // 执行分析（传递已有标签避免生成语义相近的重复标签）
+        // 缓存读写由 background 统一处理，保证 popup / content script 共用同一份缓存
         const backgroundService = getBackgroundService();
         const existingTags = await bookmarkStorage.getAllTags();
         const result = await backgroundService.analyzeBookmark({
           pageContent: { ...pageContent, content: markdown },
           userCategories: categoriesRef.current,
           existingTags,
+          skipCache,
         });
 
-        // 4. 将结果保存到缓存
-        await aiCacheStorage.cacheAnalysis(
-          { ...pageContent, content: markdown },
-          result,
-        );
-
-        // 5. 应用分析结果
+        // 应用分析结果
         await applyAnalysisResultWithSetters(
           result,
           config,
@@ -292,6 +284,10 @@ export function useSavePanel({
       if (!existingBookmark && (markdown || pageContent.textContent)) {
         await performAIAnalysis(false);
       }
+
+      if (cancelled || initialLoadSettledRef.current) return;
+      initialLoadSettledRef.current = true;
+      onInitialLoadSettledRef.current?.();
     };
 
     loadData();
@@ -399,6 +395,7 @@ export function useSavePanel({
     setSaving(true);
     setSnapshotStatus("savingBookmark");
     setSnapshotError(null);
+    setActionError(null);
     setObsidianStatus("idle");
     setObsidianError(null);
 
@@ -501,7 +498,10 @@ export function useSavePanel({
     } catch (err: unknown) {
       console.error("[useSavePanel] Save failed:", err);
       setSnapshotStatus("failed");
-      alert(err instanceof Error ? err.message : "保存失败");
+      setActionError({
+        type: "save",
+        message: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setSaving(false);
     }
@@ -522,15 +522,11 @@ export function useSavePanel({
   /**
    * 删除书签
    */
-  const deleteBookmark = useCallback(async () => {
-    if (!existingBookmark) return;
-
-    // 确认删除
-    if (!confirm(`确定要删除书签《${existingBookmark.title}》吗？`)) {
-      return;
-    }
+  const deleteBookmark = useCallback(async (): Promise<boolean> => {
+    if (!existingBookmark) return false;
 
     setSaving(true);
+    setActionError(null);
 
     try {
       // 软删除书签
@@ -538,13 +534,20 @@ export function useSavePanel({
 
       // 通知外层组件已删除
       onSaved?.();
+      return true;
     } catch (err: unknown) {
       console.error("[useSavePanel] Delete failed:", err);
-      alert(err instanceof Error ? err.message : "删除失败");
+      setActionError({
+        type: "delete",
+        message: err instanceof Error ? err.message : undefined,
+      });
+      return false;
     } finally {
       setSaving(false);
     }
   }, [existingBookmark, onSaved]);
+
+  const clearActionError = useCallback(() => setActionError(null), []);
 
   return {
     url,
@@ -563,6 +566,7 @@ export function useSavePanel({
     syncToObsidian,
     obsidianStatus,
     obsidianError,
+    actionError,
     setUrl,
     setTitle,
     setDescription,
@@ -576,6 +580,7 @@ export function useSavePanel({
     aiRecommendedCategory,
     save,
     deleteBookmark,
+    clearActionError,
   };
 }
 

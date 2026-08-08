@@ -186,4 +186,37 @@ test.describe("WORKSPACE 工作区核心流程", () => {
     await expect(page.getByText("排序二")).toBeVisible();
     await attachStepScreenshot(page, testInfo, "DND-001-排序后");
   });
+
+  test("WORKSPACE-004 通过确认弹窗删除工作空间", async ({
+    context,
+    extensionId,
+    extensionWorker,
+    e2eVariant,
+  }, testInfo) => {
+    const t = e2eVariant.text;
+    await seedWorkspaces(extensionWorker, [
+      createWorkspaceFixture({ id: "ws-confirm", name: "待删工作空间" }),
+    ]);
+
+    const page = await openAppPage(context, extensionId, "workspaces");
+    await expect(page.getByText("待删工作空间", { exact: true })).toBeVisible();
+
+    // 删除确认为组件内弹窗（不再使用浏览器原生 confirm）
+    await page
+      .getByRole("button", { name: t("删除工作空间", "Delete workspace") })
+      .first()
+      .click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await attachStepScreenshot(page, testInfo, "WORKSPACE-004-删除确认弹窗");
+
+    await dialog
+      .getByRole("button", { name: t("删除", "Delete"), exact: true })
+      .click();
+
+    // 用 exact 匹配卡片标题，避免匹配到确认弹窗描述里的同名文案
+    await expect(page.getByText("待删工作空间", { exact: true })).toBeHidden();
+    const state = await getStorageState(extensionWorker);
+    expect(state.local.workspaces ?? []).toEqual([]);
+  });
 });

@@ -27,6 +27,7 @@
 | syncToObsidian | `boolean` | ✓ | - | 本次保存快照后是否将书签笔记发送到 Obsidian |
 | obsidianStatus | `SavePanelObsidianStatus` | ✓ | - | Obsidian 同步状态 |
 | obsidianError | `string \| null` | ✓ | - | Obsidian 同步错误信息 |
+| actionError | `SavePanelActionError \| null` | ✓ | - | 保存/删除失败信息，展示在面板内 |
 | onTitleChange | `(value: string) => void` | ✓ | - | 标题变更回调 |
 | onDescriptionChange | `(value: string) => void` | ✓ | - | 摘要变更回调 |
 | onCategoryChange | `(value: string \| null) => void` | ✓ | - | 分类变更回调 |
@@ -40,6 +41,7 @@
 | onSave | `() => void` | ✓ | - | 保存书签 |
 | onCancel | `() => void` | - | - | 取消保存 |
 | onDelete | `() => void` | - | - | 删除现有书签 |
+| portalContainer | `HTMLElement` | - | - | Popover portal 容器，在 shadow root（页内浮窗）中渲染时必传 |
 
 **用法示例：**
 
@@ -84,6 +86,50 @@
 - Obsidian 保存与本地快照格式解耦，使用书签正文生成 Markdown 笔记；本地快照可自动保存为 Markdown 或 HTML。
 - Obsidian 保存使用 `obsidian://new` 协议，优先通过剪贴板传递笔记内容，剪贴板失败时回退到 URI 内容参数。
 - 快照保存失败不会回滚已保存书签，面板会保留错误状态，用户可稍后通过书签管理页重试。
+- 删除书签走面板内的 `ConfirmDialog` 确认，保存/删除失败在按钮上方以内联错误提示展示，不再使用浏览器原生 `confirm` / `alert`（页面可重写这两个方法，且在页内浮窗中体验割裂）。
+- 在 shadow root 中渲染时，确认弹窗同样通过 `portalContainer` 指定 portal 容器。
+
+### InPageSaveFlow
+
+页内保存浮窗。触发保存后先在页面右下角展示分析中的轻量浮窗，AI 分析完成后原地展开保存表单，整个过程不依赖 Popup，用户可以继续操作页面。
+
+只在 content script 中使用，无 props，状态由 `useInPageSave` 管理。
+
+**行为说明：**
+
+- 触发来源：快捷键 `save-bookmark`、右键菜单「收藏到 HamHome」、Popup 的「保存当前页面」，统一通过 `START_SAVE_FLOW` 消息进入。
+- 设置 `settings.usePopupSavePanel` 打开时不再挂载浮窗，content script 对 `START_SAVE_FLOW` 回执 `{ ok: false }`，保存流程回退到 `PopupSaveView`。
+- 分析阶段保存表单已挂载但隐藏，分析完成后直接展示结果，避免二次等待；分析较慢时可点「直接编辑」立即展开表单。
+- 浏览器内部页、隐私页面等无法保存时展示提示浮窗并自动消失。
+- 保存成功后展示成功提示并自动关闭；Esc 可随时关闭浮窗。
+- 面板渲染在 shadow root 内，分类下拉等 Popover 需通过 `portalContainer` 指定 portal 容器。
+
+### PopupSaveView
+
+Popup 内的保存表单。两种情况下使用：用户在设置中打开「在扩展弹窗中保存」（`settings.usePopupSavePanel`），或当前页面无法注入 content script（浏览器内部页、应用商店、PDF 阅读器等）。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| onBack | `() => void` | ✓ | - | 返回快捷面板 |
+
+**行为说明：**
+
+- `settings.usePopupSavePanel` 打开时，点击扩展图标的 Popup 直接进入保存表单，点返回仍可回到 `QuickPanel`。
+
+## QuickPanel
+
+Popup 快捷面板，扩展图标点击后的默认视图。保存书签的 AI 分析与表单已移到页面内，Popup 只保留快捷开关与入口。
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| onFallbackToSaveView | `() => void` | ✓ | - | 页内保存不可用时切换到 Popup 内保存表单 |
+
+**行为说明：**
+
+- 「保存当前页面」向当前 tab 发送 `START_SAVE_FLOW`，收到回执后关闭 Popup；没有回执则回退到 `PopupSaveView`。
+- `settings.usePopupSavePanel` 打开时跳过消息发送，直接切换到 `PopupSaveView`，按钮下方的说明文案同步切换。
+- 提供打开书签面板、保存当前窗口为工作空间、管理书签、设置四个快捷入口，并展示最近保存的 5 条书签。
+- 常用设置区可直接切换「默认保存快照」「地址栏搜索增强」，改动实时写入设置。
 
 ## WorkspacesPage
 
@@ -660,8 +706,12 @@ Tab 分组规则列表组件，按规则名称、目标分组、颜色和折叠�
 **行为说明：**
 
 - 面板始终按当前视口左右边缘定位，不依赖挂载容器宽度
+- 监听 `settings.enableSidePanel` 变化，关闭后内容页不再渲染触发器与面板
 - 监听 `settings.panelPosition` 变化，内容页无需刷新即可在左/右侧间切换
-- 面板关闭时禁用 pointer events，避免隐藏态遮挡页面交互
+- 面板关闭时同时禁用 pointer events 和 `visibility`，避免隐藏态遮挡页面交互
+- 收起位移使用内联 `transform`，不使用 Tailwind 的 `translate-*` 工具类：这些工具类依赖
+  `@property` 注册的 `--tw-translate-*`，而该注册只能存在于 document 级样式表中
+  （见 `utils/shadow-root-style-guard.ts`），被页面移除后整条 `translate` 声明会失效
 - 当前页面不可见或失去活跃状态时，content UI 不响应打开指令并自动收起面板
 - 侧边栏头部下方展示 `PinnedSection`，用于快速访问置顶分类和置顶书签
 
@@ -815,7 +865,9 @@ const { container: portalContainer } = useContentUI();
 - 触发器支持 `Enter`、`Space`、`ArrowUp`、`ArrowDown` 打开下拉
 - 下拉打开后支持 `↑/↓` 高亮切换、`Enter` 选择、`Esc` 关闭、`Home/End` 跳转到首尾项
 - 树节点在非搜索态下支持 `←/→` 收起或展开子分类
+- 打开下拉时会自动展开当前分类的父级，并将当前分类滚动到可见区域
 - 打开下拉后会自动聚焦搜索框，输入字符可直接过滤分类结果
+- 已选中项使用低饱和主色提示，悬停和键盘高亮使用中性底色，避免深色主题下出现大面积高亮色
 - 组件只展示 AI 推荐分类状态；已有分类的自动匹配与选中由上层业务 hook 在 AI 结果处理阶段完成
 
 ---
@@ -2102,6 +2154,31 @@ formatDate(
 #### CATEGORY_COLOR
 
 分类徽章颜色常量：`'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'`
+
+---
+
+### shadow-root-style-guard
+
+保护 WXT 注入到 `document.head` 的 shadow root 文档级样式。
+
+```ts
+import { keepShadowRootDocumentStyles } from "@/utils/shadow-root-style-guard";
+
+// content.ts，在 ui.mount() 之后调用
+keepShadowRootDocumentStyles(ctx);
+```
+
+**原理说明：**
+
+- `@property` 与 `@font-face` 在 shadow tree 内会被忽略，因此 `createShadowRootUi` 会把它们
+  抽出来，作为 `<style wxt-shadow-root-document-styles="...">` 追加到 `document.head`
+- 部分站点在软导航时会对 `<head>` 做 diff 重写，把「新文档里不存在」的节点整体删掉
+  （Material for MkDocs 的 instant loading 即如此，见 issue #13）
+- 该样式一旦被删除，所有 `--tw-*` 自定义属性都会失去注册，
+  `translate: var(--tw-translate-x) var(--tw-translate-y)` 这类声明在计算值阶段整体失效并回退为 `none`，
+  收起的侧边栏就会紧贴视口边缘显形，且仍是 `pointer-events: none`、没有蒙层，无法点击关闭
+- 通过 MutationObserver 监听 `document.head`（以及 `documentElement`，应对整个 `<head>` 被替换的情况），
+  发现样式被移除后立即重新挂回；`ctx.onInvalidated` 时停止监听
 
 ---
 

@@ -72,6 +72,8 @@ const baseSettings = {
   theme: "system" as const,
   language: "zh" as const,
   shortcut: "Ctrl+Shift+E",
+  enableSidePanel: true,
+  usePopupSavePanel: false,
   panelPosition: "left" as const,
   panelShortcut: "Ctrl+Shift+B",
 };

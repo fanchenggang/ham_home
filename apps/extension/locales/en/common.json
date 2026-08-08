@@ -32,6 +32,7 @@
     "loadMore": "Load More",
     "manageBookmarks": "Manage Bookmarks",
     "viewShortcuts": "View Shortcuts",
+    "firefoxShortcutsGuide": "Open Firefox settings manually: type about:addons in the address bar → click the gear icon in the top right → select \"Manage Extension Shortcuts\".",
     "languages": {
       "en": "English",
       "zh": "中文",
@@ -46,6 +47,7 @@
     },
     "contextMenu": {
       "saveToHamHome": "Save to HamHome"
-    }
+    },
+    "viewAll": "View all"
   }
 }

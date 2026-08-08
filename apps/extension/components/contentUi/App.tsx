@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { browser } from 'wxt/browser';
 import { EdgeTrigger } from '@/components/trigger';
 import { BookmarkPanel } from '@/components/bookmarkPanel';
+import { InPageSaveFlow } from '@/components/SavePanel';
 import { useEdgeTrigger } from '@/hooks/useEdgeTrigger';
 import { useContentUI } from '@/utils/ContentUIContext';
 import { getBackgroundService } from '@/lib/services';
@@ -47,6 +48,9 @@ export function App() {
   const [bookmarks, setBookmarks] = useState<LocalBookmark[]>([]);
   const [categories, setCategories] = useState<LocalCategory[]>([]);
   const [panelPosition, setPanelPosition] = useState<PanelPosition>(DEFAULT_PANEL_POSITION);
+  const [isSidePanelEnabled, setIsSidePanelEnabled] = useState(true);
+  // 用户可在设置中改为在扩展弹窗中保存，此时页面内不再挂载保存浮窗
+  const [usePopupSavePanel, setUsePopupSavePanel] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('system');
   const [isPageInteractive, setIsPageInteractive] = useState<boolean>(getIsPageInteractive);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -63,7 +67,8 @@ export function App() {
     position: panelPosition,
     triggerZoneWidth: 15,
     hoverDelay: 150,
-    enabled: isPageInteractive,
+    enabled: isSidePanelEnabled,
+    hoverEnabled: isPageInteractive,
   });
 
   // 从 background 获取数据（使用 proxy-service）
@@ -87,6 +92,8 @@ export function App() {
         if (settingsData.theme) {
           setTheme(settingsData.theme);
         }
+        setIsSidePanelEnabled(settingsData.enableSidePanel !== false);
+        setUsePopupSavePanel(settingsData.usePopupSavePanel === true);
       }
     } catch (error) {
       console.error('[HamHome] Failed to fetch data:', error);
@@ -136,15 +143,19 @@ export function App() {
       if (settings.theme) {
         setTheme(settings.theme);
       }
+
+      setIsSidePanelEnabled(settings.enableSidePanel !== false);
+      setUsePopupSavePanel(settings.usePopupSavePanel === true);
     });
 
     return unwatch;
   }, []);
 
   const updatePageInteractiveState = useCallback(() => {
-    const nextIsPageInteractive = getIsPageInteractive();
-    setIsPageInteractive(nextIsPageInteractive);
-    if (!nextIsPageInteractive) {
+    setIsPageInteractive(getIsPageInteractive());
+    // 仅在页面真正不可见（切走标签页）时收起面板；
+    // 打开扩展 Popup 只是让页面失焦，此时面板应保持原状
+    if (document.visibilityState !== 'visible') {
       closePanel();
     }
   }, [closePanel]);
@@ -168,15 +179,28 @@ export function App() {
 
   // 监听来自 background 的消息（如快捷键触发）
   useEffect(() => {
-    const handleMessage = (message: { type: string }) => {
-      if (message.type === 'TOGGLE_BOOKMARK_PANEL' && isPageInteractive) {
-        togglePanel();
+    const handleMessage = (
+      message: { type: string },
+      _sender: unknown,
+      sendResponse: (response?: unknown) => void,
+    ) => {
+      // Popup 按钮与快捷键都是显式指令，不能因为页面失焦（Popup 抢走焦点）被丢弃
+      if (message.type !== 'TOGGLE_BOOKMARK_PANEL') return false;
+
+      if (!isSidePanelEnabled) {
+        sendResponse({ ok: false });
+        return true;
       }
+
+      togglePanel();
+      // 回执让 Popup 知道页面已接管，否则它无法区分「已切换」和「消息被丢弃」
+      sendResponse({ ok: true });
+      return true;
     };
 
     browser.runtime.onMessage.addListener(handleMessage);
     return () => browser.runtime.onMessage.removeListener(handleMessage);
-  }, [isPageInteractive, togglePanel]);
+  }, [isSidePanelEnabled, togglePanel]);
 
   // 打开书签
   const handleOpenBookmark = useCallback((url: string) => {
@@ -192,7 +216,11 @@ export function App() {
 
   return (
     <div className="hamhome-content-root relative h-full w-full antialiased">
-      {isInitialized && (
+      {/* 页内保存浮窗：不依赖面板数据初始化，触发后立即响应；选择在扩展弹窗中保存时不挂载 */}
+      {!usePopupSavePanel && <InPageSaveFlow />}
+
+      {/* 侧边栏可在设置中关闭，关闭后完全不注入触发器与面板 */}
+      {isInitialized && isSidePanelEnabled && (
         <>
           {/* 边缘触发器 */}
           <EdgeTrigger

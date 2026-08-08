@@ -2,6 +2,7 @@ import { expect, test } from "../fixtures";
 import { openControlledPopupPage } from "../helpers/pages";
 import {
   POPUP_CURRENT_PAGE,
+  SAVE_DEMO_PAGE_HTML,
 } from "./screenshot-data";
 import {
   APP_VIEWPORT,
@@ -26,22 +27,57 @@ test.describe("marketing screenshots", () => {
     await prepareScreenshotState(extensionWorker, e2eVariant);
     await assertScreenshotData(extensionWorker);
 
+    // 保存流程已移到页面内：在示例文章页触发保存浮窗后截取浮窗本身
+    await context.route("https://react.dev/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: SAVE_DEMO_PAGE_HTML,
+      });
+    });
+    const savePage = await context.newPage();
+    await savePage.setViewportSize(CONTENT_VIEWPORT);
+    await savePage.goto(POPUP_CURRENT_PAGE.url);
+    await stabilizeForScreenshot(savePage);
+    await extensionWorker.evaluate(async (url) => {
+      const [tab] = await chrome.tabs.query({ url });
+      if (!tab?.id) throw new Error("示例页面未找到");
+      await chrome.tabs.sendMessage(tab.id, {
+        type: "START_SAVE_FLOW",
+        source: "shortcut",
+      });
+    }, `${POPUP_CURRENT_PAGE.url}*`);
+
+    const savePanel = savePage.locator('[data-hamhome-save-flow="panel"]');
+    await expect(savePage.getByLabel(/标题|Title/)).toHaveValue(
+      /AI-assisted React Workflows/,
+    );
+    await expect(savePage.getByText(/react/i).first()).toBeVisible();
+    await captureElementScreenshot(
+      savePage,
+      savePanel,
+      testInfo,
+      e2eVariant,
+      "01-popup-save",
+    );
+
+    // Popup 现在是快捷面板，单独出一张图（用受控当前页，保证"保存当前页面"可用）
     const popup = await openControlledPopupPage(
       context,
       extensionId,
       POPUP_CURRENT_PAGE,
+      { view: "quick" },
     );
     await popup.setViewportSize(POPUP_VIEWPORT);
-    await expect(popup.getByLabel(/标题|Title/)).toHaveValue(
-      /AI-assisted React Workflows/,
-    );
-    await expect(popup.getByText(/react/i).first()).toBeVisible();
+    await expect(
+      popup.getByRole("button", { name: /保存当前页面|Save current page/ }),
+    ).toBeVisible();
     await captureElementScreenshot(
       popup,
-      popup.locator("#root > div"),
+      popup.locator("#root > div").first(),
       testInfo,
       e2eVariant,
-      "01-popup-save",
+      "09-popup-quick-panel",
     );
 
     const library = await openExtensionAppPage(context, extensionId, "all");

@@ -3,6 +3,7 @@
  * 可复用的保存面板展示层，可通过 props 注入 demo 数据。
  */
 import {
+  AlertCircle,
   Loader2,
   Bookmark,
   FileText,
@@ -24,6 +25,7 @@ import { CategorySelect } from "@/components/common/CategorySelect";
 import { AIStatus, type AIStatusType } from "./AIStatus";
 import type { LocalBookmark, LocalCategory } from "@/types";
 import type {
+  SavePanelActionError,
   SavePanelObsidianStatus,
   SavePanelSnapshotStatus,
 } from "./useSavePanel";
@@ -46,6 +48,8 @@ export interface SavePanelViewProps {
   syncToObsidian: boolean;
   obsidianStatus: SavePanelObsidianStatus;
   obsidianError: string | null;
+  /** 保存/删除失败信息，展示在面板内 */
+  actionError: SavePanelActionError | null;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCategoryChange: (value: string | null) => void;
@@ -60,6 +64,8 @@ export interface SavePanelViewProps {
   onCancel?: () => void;
   onDelete?: () => void;
   hideSnapshotOptions?: boolean;
+  /** Popover portal 容器（在 shadow root 中渲染时必须传入） */
+  portalContainer?: HTMLElement;
 }
 
 export function SavePanelView({
@@ -80,6 +86,7 @@ export function SavePanelView({
   syncToObsidian,
   obsidianStatus,
   obsidianError,
+  actionError,
   onTitleChange,
   onDescriptionChange,
   onCategoryChange,
@@ -94,6 +101,7 @@ export function SavePanelView({
   onCancel,
   onDelete,
   hideSnapshotOptions = false,
+  portalContainer,
 }: SavePanelViewProps) {
   const { t } = useTranslation();
 
@@ -119,6 +127,7 @@ export function SavePanelView({
         onApplyAICategory={onApplyAICategory}
         onRetry={onRetry}
         onConfigureAI={onConfigureAI}
+        portalContainer={portalContainer}
       />
 
       {!hideSnapshotOptions && (
@@ -133,6 +142,20 @@ export function SavePanelView({
           onSaveSnapshotChange={onSaveSnapshotChange}
           onSyncToObsidianChange={onSyncToObsidianChange}
         />
+      )}
+
+      {actionError && (
+        <div className="flex items-start gap-1.5 rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span className="min-w-0 flex-1 break-words">
+            {actionError.message ||
+              t(
+                actionError.type === "save"
+                  ? "bookmark:bookmark.saveFailed"
+                  : "bookmark:bookmark.deleteFailed",
+              )}
+          </span>
+        </div>
       )}
 
       <div className="flex gap-2 pt-2">
@@ -306,6 +329,7 @@ interface BookmarkFormProps {
   onApplyAICategory: () => void;
   onRetry: () => void;
   onConfigureAI?: () => void;
+  portalContainer?: HTMLElement;
 }
 
 function BookmarkForm({
@@ -328,6 +352,7 @@ function BookmarkForm({
   onApplyAICategory,
   onRetry,
   onConfigureAI,
+  portalContainer,
 }: BookmarkFormProps) {
   const { t } = useTranslation();
 
@@ -403,6 +428,7 @@ function BookmarkForm({
           aiRecommendedCategory={aiRecommendedCategory}
           onApplyAICategory={onApplyAICategory}
           className="[&_button]:shadow-none"
+          portalContainer={portalContainer}
         />
       </div>
 

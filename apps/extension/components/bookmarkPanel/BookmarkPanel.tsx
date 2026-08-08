@@ -193,10 +193,10 @@ export function BookmarkPanel({
       <div
         className={cn(
           "absolute inset-0 z-1 bg-black/20 backdrop-blur-[2px] w-screen",
-          "transition-opacity duration-300",
+          "transition-[opacity,visibility] duration-300",
           isOpen
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0",
+            ? "visible pointer-events-auto opacity-100"
+            : "invisible pointer-events-none opacity-0",
         )}
         onClick={handleOverlayClick}
       />
@@ -204,19 +204,27 @@ export function BookmarkPanel({
       {/* 面板 */}
       <div
         onClick={handlePanelClick}
+        // 内联 transform + visibility：不依赖 Tailwind 的 --tw-translate-* 自定义属性。
+        // 这些属性由 @property 注册在 document 级样式中，一旦被页面移除，
+        // translate 声明会整体失效，收起的面板就会意外显形（issue #13）。
+        style={{
+          transform: isOpen
+            ? "translateX(0)"
+            : position === "left"
+              ? "translateX(-100%)"
+              : "translateX(100%)",
+        }}
         className={cn(
           "absolute top-1 bottom-1 z-2",
           "w-[360px] max-w-[90vw]",
           "bg-background border-border shadow-2xl",
           "flex flex-col overflow-hidden",
-          "transition-transform duration-300 ease-out",
-          "pointer-events-auto rounded-lg",
+          "transition-[transform,visibility] duration-300 ease-out",
+          "rounded-lg",
           position === "left" ? "left-1 border-r" : "right-1 border-l",
           isOpen
-            ? "translate-x-0"
-            : position === "left"
-              ? "pointer-events-none -translate-x-full -left-2"
-              : "pointer-events-none translate-x-full -right-2",
+            ? "visible pointer-events-auto"
+            : "invisible pointer-events-none",
         )}
       >
         {/* 头部 */}

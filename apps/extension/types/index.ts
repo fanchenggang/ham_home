@@ -159,6 +159,8 @@ export interface LocalSettings {
   theme: ThemeMode;
   language: Language;
   shortcut: string; // 快捷键配置
+  enableSidePanel: boolean; // 是否在网页内启用书签侧边栏
+  usePopupSavePanel: boolean; // 保存书签时使用扩展弹窗内的表单（默认在页面内保存）
   panelPosition: PanelPosition; // 书签面板位置
   panelShortcut: string; // 面板快捷键
   updatedAt: number; // 配置更新时间，用于 WebDAV 冲突合并
@@ -906,6 +908,11 @@ export interface EmbeddingJob {
   /** 更新时间 */
   updatedAt: number;
 }
+
+/**
+ * 保存书签流程的触发来源
+ */
+export type SaveFlowSource = "shortcut" | "contextMenu" | "popup" | "unknown";
 
 // ============ WebDAV 同步相关 ============
 export * from "./sync";
