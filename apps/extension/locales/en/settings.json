@@ -45,6 +45,21 @@
       "description": "Customize your experience",
       "autoSaveSnapshot": "Auto Save Snapshots",
       "autoSaveSnapshotDesc": "Automatically save page snapshots when saving bookmarks",
+      "autoSaveScreenshot": "Save Page Screenshots by Default",
+      "autoSaveScreenshotDesc": "Capture the visible area by default; each save can still opt out",
+      "screenshotPrivatePagePolicy": "Private Page Screenshots",
+      "screenshotPrivatePagePolicyDesc": "Choose whether screenshots can be selected on signed-in or private pages",
+      "screenshotPrivatePagePolicyOptions": {
+        "skip": "Always skip",
+        "ask": "Allow choice"
+      },
+      "bookmarkHealthSchedule": "Automatic Bookmark Check",
+      "bookmarkHealthScheduleDesc": "Periodically check link status in the background; off by default with manual scans always available",
+      "bookmarkHealthScheduleOptions": {
+        "off": "Off",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      },
       "usePopupSavePanel": "Save in Extension Popup",
       "usePopupSavePanelDesc": "When on, the bookmark form opens inside the extension popup; when off, a save panel appears right on the page so AI analysis never interrupts your browsing",
       "enableOmniboxSearch": "Omnibox Search Enhancement",
@@ -221,6 +236,12 @@
         "confirmTitle": "Confirm Clear Snapshots",
         "confirmWarning": "This will delete all locally saved web snapshots. Your bookmarks will not be affected. This action cannot be undone!"
       },
+      "screenshotData": {
+        "title": "Page Screenshots",
+        "count": "{{count}} screenshots",
+        "size": "{{size}}",
+        "localOnly": "Stored on this device only; delete individual images from bookmark details"
+      },
       "vectorData": {
         "title": "Semantic Vector Index",
         "count": "{{count}} vectors",
@@ -235,9 +256,9 @@
       "exportHTML": "Export as HTML",
       "dangerZone": "Danger Zone",
       "clearAllData": "Clear All Business Data",
-      "clearAllDesc": "Clear bookmarks, categories, workspaces, snapshots, and vectors (AI config and settings will be kept)",
+      "clearAllDesc": "Clear bookmarks, categories, workspaces, snapshots, page screenshots, and vectors (AI config and settings will be kept)",
       "confirmClearAll": "Confirm Clear All Data",
-      "clearAllWarning": "This will delete all bookmarks, categories, workspaces, snapshots, and vector indexes. AI config, tag settings, and WebDAV config will be kept. This action cannot be undone!",
+      "clearAllWarning": "This will delete all bookmarks, categories, workspaces, snapshots, page screenshots, and vector indexes. AI config, tag settings, and WebDAV config will be kept. This action cannot be undone!",
       "notEnabled": "Not enabled"
     },
     "about": {

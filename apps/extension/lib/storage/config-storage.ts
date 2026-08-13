@@ -30,6 +30,9 @@ const DEFAULT_EMBEDDING_CONFIG: EmbeddingConfig = {
 // 默认设置
 const DEFAULT_SETTINGS: LocalSettings = {
   autoSaveSnapshot: true,
+  autoSaveScreenshot: false,
+  screenshotPrivatePagePolicy: 'skip',
+  bookmarkHealthSchedule: 'off',
   enableOmniboxSearch: true,
   defaultCategory: null,
   theme: 'system',

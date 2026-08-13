@@ -253,7 +253,7 @@ const HAMHOME_FEATURES: HamHomeFeatureDoc[] = [
       "- 浏览器快捷键必须由用户在浏览器扩展快捷键页面手动配置，agent 不能代填。",
       "",
       "agent 可自动修改的安全项：",
-      "- settings: theme、language、autoSaveSnapshot、enableOmniboxSearch、defaultCategory、enableSidePanel、usePopupSavePanel、panelPosition。",
+      "- settings: theme、language、autoSaveSnapshot、autoSaveScreenshot、screenshotPrivatePagePolicy、bookmarkHealthSchedule、enableOmniboxSearch、defaultCategory、enableSidePanel、usePopupSavePanel、panelPosition。",
       "- aiConfig: provider、model、temperature、maxTokens、enableTranslation、enableSmartCategory、enableTagSuggestion、presetTags、autoDetectPrivacy。",
       "- embeddingConfig: enabled、provider、model、dimensions、batchSize。",
       "",

@@ -4,6 +4,7 @@ import { bookmarkStorage } from '../storage/bookmark-storage';
 import { configStorage } from '../storage/config-storage';
 import { workspaceStorage } from '../storage/workspace-storage';
 import { tabGroupRulesStorage } from '../storage/tab-group-rules-storage';
+import { bookmarkClipStorage } from '../storage/bookmark-clip-storage';
 import { z } from 'zod';
 import { 
   SyncSysSchema, 
@@ -14,6 +15,7 @@ import {
   RemoteCategorySchema, 
   RemoteCategory, 
   RemoteBookmarksFileSchema,
+  RemoteBookmarkClipsFileSchema,
   RemoteWorkspacesFileSchema,
   RemoteWorkspace,
   RemoteWorkspaceCategory,
@@ -28,6 +30,7 @@ import type {
   WorkspaceCategory,
   TabGroupRule,
   TabGroupAutoGroupSettings,
+  BookmarkClip,
 } from '@/types';
 import { nanoid } from 'nanoid';
 import pLimit from 'p-limit';
@@ -40,6 +43,7 @@ const CATEGORIES_JSON = `${SYNC_ROOT}/categories.json`;
 const WORKSPACES_JSON = `${SYNC_ROOT}/workspaces.json`;
 const TAB_GROUP_CONFIG_JSON = `${SYNC_ROOT}/tab-group-config.json`;
 const META_JSON = `${SYNC_ROOT}/bookmarks/meta.json`;
+const CLIPS_JSON = `${SYNC_ROOT}/bookmarks/clips.json`;
 const CHUNKS_DIR = `${SYNC_ROOT}/bookmarks/chunks`;
 
 const LOCK_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
@@ -184,6 +188,7 @@ export class SyncEngine {
         await this.syncWorkspaces();
         await this.syncTabGroupConfig();
         await this.syncBookmarks();
+        await this.syncBookmarkClips();
         console.log('WebDAV Sync complete.');
       } finally {
         await this.releaseLock();
@@ -200,6 +205,9 @@ export class SyncEngine {
   private areSettingsEqual(local: LocalSettings, remote: RemoteSettings): boolean {
     return (
       local.autoSaveSnapshot === remote.autoSaveSnapshot &&
+      local.autoSaveScreenshot === remote.autoSaveScreenshot &&
+      local.screenshotPrivatePagePolicy === remote.screenshotPrivatePagePolicy &&
+      local.bookmarkHealthSchedule === remote.bookmarkHealthSchedule &&
       local.enableOmniboxSearch === remote.enableOmniboxSearch &&
       local.defaultCategory === remote.defaultCategory &&
       local.theme === remote.theme &&
@@ -616,6 +624,48 @@ export class SyncEngine {
     if (metaChanged || chunksToUpload.length > 0 || localMap.size !== remoteMap.size || toUploadMeta.length > remoteMeta.length) {
       console.log('Updating remote meta.json...');
       await webdavClientAdapter.putJSON(META_JSON, { bookmarks: toUploadMeta });
+    }
+  }
+
+  private async syncBookmarkClips(): Promise<void> {
+    const localClips = await bookmarkClipStorage.getAllClips();
+    const remoteRaw = await webdavClientAdapter.getJSON<any>(CLIPS_JSON);
+    const parsed = remoteRaw
+      ? RemoteBookmarkClipsFileSchema.safeParse(remoteRaw)
+      : null;
+    const remoteClips = parsed?.success ? parsed.data.clips : [];
+    const localMap = new Map(localClips.map((clip) => [clip.id, clip]));
+    const remoteMap = new Map(remoteClips.map((clip) => [clip.id, clip]));
+    const merged: BookmarkClip[] = [];
+    let changed = !remoteRaw || (parsed !== null && !parsed.success);
+
+    for (const [id, local] of localMap) {
+      const remote = remoteMap.get(id);
+      if (!remote || local.updatedAt >= remote.updatedAt) {
+        merged.push(local);
+        if (
+          !remote ||
+          local.updatedAt > remote.updatedAt ||
+          JSON.stringify(local) !== JSON.stringify(remote)
+        ) {
+          changed = true;
+        }
+      } else {
+        const normalized = remote as BookmarkClip;
+        merged.push(normalized);
+        await bookmarkClipStorage.importRawClip(normalized);
+      }
+    }
+
+    for (const [id, remote] of remoteMap) {
+      if (localMap.has(id)) continue;
+      const normalized = remote as BookmarkClip;
+      merged.push(normalized);
+      await bookmarkClipStorage.importRawClip(normalized);
+    }
+
+    if (changed || localMap.size !== remoteMap.size) {
+      await webdavClientAdapter.putJSON(CLIPS_JSON, { clips: merged });
     }
   }
 

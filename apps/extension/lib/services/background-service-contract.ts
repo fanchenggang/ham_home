@@ -17,6 +17,9 @@ import type {
   LocalCategory,
   LocalSettings,
   PageContent,
+  BookmarkHealthRecord,
+  SaveScreenshotBackgroundOptions,
+  ScreenshotCaptureResult,
   SaveSnapshotBackgroundOptions,
   SnapshotSaveResult,
 } from "@/types";
@@ -36,6 +39,11 @@ export interface IBackgroundService {
     bookmarkId: string,
     options?: SaveSnapshotBackgroundOptions,
   ): Promise<SnapshotSaveResult>;
+  saveScreenshotBackground(
+    bookmarkId: string,
+    options?: SaveScreenshotBackgroundOptions,
+  ): Promise<ScreenshotCaptureResult>;
+  scanBookmarkHealth(bookmarkIds?: string[]): Promise<BookmarkHealthRecord[]>;
   getVectorStats(): Promise<VectorStoreStats>;
   clearVectorStore(): Promise<void>;
   getEmbeddingQueueStatus(): Promise<QueueStatus>;
