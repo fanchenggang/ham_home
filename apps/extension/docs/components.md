@@ -2180,6 +2180,14 @@ keepShadowRootDocumentStyles(ctx);
 - 通过 MutationObserver 监听 `document.head`（以及 `documentElement`，应对整个 `<head>` 被替换的情况），
   发现样式被移除后立即重新挂回；`ctx.onInvalidated` 时停止监听
 
+### content-ui-keyboard-guard
+
+隔离 content UI Shadow DOM 内的键盘事件，避免宿主页面（例如 GitHub）把输入框中的字符识别为页面快捷键。
+
+- `ContentUIProvider` 在 content UI 根节点安装 `keydown`、`keypress` 和 `keyup` 的冒泡拦截器
+- 只停止事件继续冒泡到宿主页面，不调用 `preventDefault`，因此 content UI 自身的输入、Enter、方向键等行为仍由组件处理
+- 组件卸载时移除监听器，避免重复挂载造成监听器累积
+
 ---
 
 ## Storage 存储模块
