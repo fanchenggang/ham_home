@@ -11,7 +11,13 @@ import { bookmarkStorage, configStorage } from "@/lib/storage";
 import { containsPrivateContent, isNonBookmarkableUrl } from "@/lib/privacy";
 import { extractPageContent } from "@/utils/page-extract";
 import { saveFlowBus } from "@/utils/save-flow-bus";
-import type { LocalBookmark, PageContent } from "@/types";
+import { applyClipTargetToPageContent } from "@/utils/clip-context";
+import type {
+  LocalBookmark,
+  PageContent,
+  SaveFlowClipContext,
+  SaveFlowTrigger,
+} from "@/types";
 
 export type InPageSavePhase =
   /** 未触发 */
@@ -31,9 +37,10 @@ export interface UseInPageSaveResult {
   phase: InPageSavePhase;
   pageContent: PageContent | null;
   existingBookmark: LocalBookmark | null;
+  clipContext: SaveFlowClipContext | null;
   error: string | null;
   /** 手动触发保存流程 */
-  start: () => void;
+  start: (trigger?: SaveFlowTrigger) => void;
   /** 跳过等待 AI 分析，立即展示表单 */
   showFormNow: () => void;
   /** AI 分析（或初始化）结束 */
@@ -63,6 +70,7 @@ export function useInPageSave(): UseInPageSaveResult {
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const [existingBookmark, setExistingBookmark] =
     useState<LocalBookmark | null>(null);
+  const [clipContext, setClipContext] = useState<SaveFlowClipContext | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 避免过期的异步流程覆盖新流程的状态
@@ -75,10 +83,11 @@ export function useInPageSave(): UseInPageSaveResult {
     setPhase("idle");
     setPageContent(null);
     setExistingBookmark(null);
+    setClipContext(null);
     setError(null);
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((trigger?: SaveFlowTrigger) => {
     // 流程进行中或表单已展开时忽略重复触发（例如用户连按快捷键）；
     // 保存成功提示 / 无法保存提示期间再次触发则重新开始
     const phase = phaseRef.current;
@@ -92,10 +101,15 @@ export function useInPageSave(): UseInPageSaveResult {
     setError(null);
     setPageContent(null);
     setExistingBookmark(null);
+    setClipContext(trigger?.clip ?? null);
     setPhase("preparing");
 
     void (async () => {
-      const url = window.location.href;
+      const sourcePageUrl = window.location.href;
+      const url =
+        trigger?.clip?.type === "link" && trigger.clip.targetUrl
+          ? trigger.clip.targetUrl
+          : sourcePageUrl;
 
       try {
         if (isNonBookmarkableUrl(url)) {
@@ -106,7 +120,7 @@ export function useInPageSave(): UseInPageSaveResult {
         }
 
         const privacyCheck = await containsPrivateContent(url);
-        const content: PageContent = privacyCheck.isPrivate
+        const sourceContent: PageContent = privacyCheck.isPrivate
           ? {
               url,
               title: document.title,
@@ -119,7 +133,7 @@ export function useInPageSave(): UseInPageSaveResult {
               privacyReason: privacyCheck.reason,
             }
           : ((await extractPageContent()) ?? {
-              url,
+              url: sourcePageUrl,
               title: document.title,
               content: "",
               htmlContent: "",
@@ -128,6 +142,10 @@ export function useInPageSave(): UseInPageSaveResult {
               favicon: getFavicon(url),
               isPrivate: false,
             });
+        const content = applyClipTargetToPageContent(
+          sourceContent,
+          trigger?.clip,
+        );
 
         const [bookmark, aiConfig] = await Promise.all([
           bookmarkStorage.getBookmarkByUrl(content.url),
@@ -169,7 +187,7 @@ export function useInPageSave(): UseInPageSaveResult {
   }, []);
 
   // 订阅来自快捷键/右键菜单/Popup 的触发
-  useEffect(() => saveFlowBus.subscribe(() => start()), [start]);
+  useEffect(() => saveFlowBus.subscribe(start), [start]);
 
   // 保存成功 / 无法保存的提示自动消失
   useEffect(() => {
@@ -186,6 +204,7 @@ export function useInPageSave(): UseInPageSaveResult {
     phase,
     pageContent,
     existingBookmark,
+    clipContext,
     error,
     start,
     showFormNow,

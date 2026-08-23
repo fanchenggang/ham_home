@@ -19,6 +19,7 @@ import {
   Loader2,
   Download,
   Cloud,
+  Images,
 } from "lucide-react";
 import {
   Button,
@@ -45,6 +46,8 @@ import {
   SnapshotViewer,
   BatchTagDialog,
   BatchMoveCategoryDialog,
+  VisualBookmarkGallery,
+  BookmarkDetailSheet,
 } from "@/components/bookmarkListMng";
 import { SearchInputArea } from "@/components/aiSearch";
 import { useSnapshot } from "@/hooks/useSnapshot";
@@ -58,14 +61,16 @@ import { useBatchAITask } from "@/hooks/useBatchAITask";
 import { getCategoryPath, formatDate } from "@/utils/bookmark-utils";
 import { configStorage } from "@/lib/storage/config-storage";
 import { pinStorage } from "@/lib/storage";
+import { bookmarkScreenshotStorage } from "@/lib/storage/bookmark-screenshot-storage";
 import { obsidianSyncService } from "@/lib/services/obsidian-sync-service";
 import type {
   LocalBookmark,
   CustomFilter,
   FilterCondition,
+  BookmarkScreenshotMetadata,
 } from "@/types";
 
-type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list" | "visual";
 
 interface BookmarksPageProps {
   currentView: string;
@@ -86,6 +91,9 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
   const [pinnedBookmarkIds, setPinnedBookmarkIds] = useState<Set<string>>(
     new Set(),
   );
+  const [screenshotIndex, setScreenshotIndex] = useState<
+    Record<string, BookmarkScreenshotMetadata>
+  >({});
 
   // 瀑布流组件引用（用于触发重排）
   const masonryRef = useRef<MasonryRef | null>(null);
@@ -101,6 +109,11 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
       }
     };
     loadCustomFilters();
+  }, []);
+
+  useEffect(() => {
+    void bookmarkScreenshotStorage.getIndex().then(setScreenshotIndex);
+    return bookmarkScreenshotStorage.watchIndex(setScreenshotIndex);
   }, []);
 
   useEffect(() => {
@@ -158,6 +171,10 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
 
   // 当前书签列表由关键词、分类、标签、时间和自定义筛选器共同决定。
   const filteredBookmarks = keywordFilteredBookmarks;
+  const screenshotIds = useMemo(
+    () => new Set(Object.keys(screenshotIndex)),
+    [screenshotIndex],
+  );
 
   // 处理关键词搜索查询变化
   const handleKeywordQueryChange = useCallback(
@@ -227,6 +244,7 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
   const [editingBookmark, setEditingBookmark] = useState<LocalBookmark | null>(
     null,
   );
+  const [detailBookmark, setDetailBookmark] = useState<LocalBookmark | null>(null);
 
   // 快照查看状态
   const [snapshotBookmark, setSnapshotBookmark] =
@@ -606,6 +624,15 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
               >
                 <List className="h-4 w-4" />
               </Button>
+              <Button
+                variant={viewMode === "visual" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode("visual")}
+                title={t("bookmark:bookmark.view.visual")}
+              >
+                <Images className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -789,7 +816,13 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
 
       {/* 书签列表 */}
       <div
-        ref={viewMode === "grid" ? masonryContainerRef : virtualListParentRef}
+        ref={
+          viewMode === "grid"
+            ? masonryContainerRef
+            : viewMode === "list"
+              ? virtualListParentRef
+              : undefined
+        }
         className={cn(
           "flex-1 overflow-auto",
           viewMode === "grid" ? "p-6" : "p-6",
@@ -875,6 +908,7 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
                     onToggleSelect={() => toggleSelect(bm.id)}
                     onOpen={() => openBookmark(bm.url)}
                     onEdit={() => setEditingBookmark(bm)}
+                    onViewDetails={() => setDetailBookmark(bm)}
                     onDelete={() => handleDelete(bm)}
                     onViewSnapshot={
                       bm.hasSnapshot ? () => handleViewSnapshot(bm) : undefined
@@ -890,13 +924,14 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
                     onReanalyzeAI={() => startBatchAITask([bm.id])}
                     isProcessingAI={isBatchAIProcessing}
                     columnSize={masonryConfig.columnSize}
+                    hasScreenshot={!!screenshotIndex[bm.id]}
                     t={t}
                   />
                 </div>
               );
             }}
           />
-        ) : (
+        ) : viewMode === "list" ? (
           <div
             className="relative w-full"
             style={{ height: `${virtualListTotalSize}px` }}
@@ -926,6 +961,7 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
                     onToggleSelect={() => toggleSelect(bookmark.id)}
                     onOpen={() => openBookmark(bookmark.url)}
                     onEdit={() => setEditingBookmark(bookmark)}
+                    onViewDetails={() => setDetailBookmark(bookmark)}
                     onDelete={() => handleDelete(bookmark)}
                     onViewSnapshot={
                       bookmark.hasSnapshot
@@ -942,12 +978,22 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
                     isPinned={pinnedBookmarkIds.has(bookmark.id)}
                     onReanalyzeAI={() => startBatchAITask([bookmark.id])}
                     isProcessingAI={isBatchAIProcessing}
+                    hasScreenshot={!!screenshotIndex[bookmark.id]}
                     t={t}
                   />
                 </div>
               );
             })}
           </div>
+        ) : (
+          <VisualBookmarkGallery
+            bookmarks={filteredBookmarks}
+            screenshotIds={screenshotIds}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onOpenDetails={setDetailBookmark}
+            onOpenBookmark={openBookmark}
+          />
         )}
       </div>
 
@@ -959,6 +1005,14 @@ export function BookmarksPage({ onViewChange }: BookmarksPageProps) {
           onClose={() => setEditingBookmark(null)}
         />
       )}
+
+      <BookmarkDetailSheet
+        bookmark={detailBookmark}
+        open={!!detailBookmark}
+        onOpenChange={(open) => {
+          if (!open) setDetailBookmark(null);
+        }}
+      />
 
       {/* 自定义筛选器弹窗 */}
       <CustomFilterDialog

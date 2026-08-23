@@ -6,6 +6,7 @@ import {
   ExternalLink,
   MoreHorizontal,
   Pin,
+  PanelRightOpen,
   Share2,
   Sparkles,
   Trash2,
@@ -30,6 +31,7 @@ export function BookmarkActionsMenu({
   triggerClassName = "h-8 w-8",
   onOpen,
   onEdit,
+  onViewDetails,
   onDelete,
   onViewSnapshot,
   onSaveSnapshot,
@@ -77,6 +79,12 @@ export function BookmarkActionsMenu({
           <Edit className="h-4 w-4 mr-2" />
           {t("bookmark:bookmark.edit")}
         </DropdownMenuItem>
+        {onViewDetails && (
+          <DropdownMenuItem onClick={onViewDetails}>
+            <PanelRightOpen className="h-4 w-4 mr-2" />
+            {t("bookmark:bookmark.viewDetails")}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleCopyLink}>
           <Copy className="h-4 w-4 mr-2" />
           {t("bookmark:bookmark.copyLink")}

@@ -8,6 +8,10 @@ import {
   Bookmark,
   FileText,
   Camera,
+  Highlighter,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  StickyNote,
   FolderOpen,
   Tag as TagIcon,
   AlignLeft,
@@ -19,13 +23,19 @@ import {
   Textarea,
   Label,
   Switch,
+  cn,
 } from "@hamhome/ui";
 import { TagInput } from "@/components/common/TagInput";
 import { CategorySelect } from "@/components/common/CategorySelect";
 import { AIStatus, type AIStatusType } from "./AIStatus";
-import type { LocalBookmark, LocalCategory } from "@/types";
+import type {
+  LocalBookmark,
+  LocalCategory,
+  SaveFlowClipContext,
+} from "@/types";
 import type {
   SavePanelActionError,
+  SavePanelAssetStatus,
   SavePanelObsidianStatus,
   SavePanelSnapshotStatus,
 } from "./useSavePanel";
@@ -45,6 +55,13 @@ export interface SavePanelViewProps {
   saveSnapshot: boolean;
   snapshotStatus: SavePanelSnapshotStatus;
   snapshotError: string | null;
+  saveScreenshot: boolean;
+  screenshotStatus: SavePanelAssetStatus;
+  screenshotError: string | null;
+  initialClip?: SaveFlowClipContext;
+  clipNote: string;
+  clipStatus: SavePanelAssetStatus;
+  clipError: string | null;
   syncToObsidian: boolean;
   obsidianStatus: SavePanelObsidianStatus;
   obsidianError: string | null;
@@ -55,6 +72,8 @@ export interface SavePanelViewProps {
   onCategoryChange: (value: string | null) => void;
   onTagsChange: (value: string[]) => void;
   onSaveSnapshotChange: (value: boolean) => void;
+  onSaveScreenshotChange: (value: boolean) => void;
+  onClipNoteChange: (value: string) => void;
   onSyncToObsidianChange: (value: boolean) => void;
   onLoadSuggestions: () => void;
   onApplyAICategory: () => void;
@@ -83,6 +102,13 @@ export function SavePanelView({
   saveSnapshot,
   snapshotStatus,
   snapshotError,
+  saveScreenshot,
+  screenshotStatus,
+  screenshotError,
+  initialClip,
+  clipNote,
+  clipStatus,
+  clipError,
   syncToObsidian,
   obsidianStatus,
   obsidianError,
@@ -92,6 +118,8 @@ export function SavePanelView({
   onCategoryChange,
   onTagsChange,
   onSaveSnapshotChange,
+  onSaveScreenshotChange,
+  onClipNoteChange,
   onSyncToObsidianChange,
   onLoadSuggestions,
   onApplyAICategory,
@@ -130,8 +158,28 @@ export function SavePanelView({
         portalContainer={portalContainer}
       />
 
+      {initialClip && (
+        <ClipDraftCard
+          clip={initialClip}
+          note={clipNote}
+          status={clipStatus}
+          error={clipError}
+          disabled={saving}
+          onNoteChange={onClipNoteChange}
+        />
+      )}
+
       {!hideSnapshotOptions && (
-        <SnapshotOptions
+        <div className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-3">
+          <ScreenshotOption
+            enabled={saveScreenshot}
+            status={screenshotStatus}
+            error={screenshotError}
+            disabled={saving}
+            onChange={onSaveScreenshotChange}
+          />
+          <div className="h-px bg-border/70" />
+          <SnapshotOptions
           saveSnapshot={saveSnapshot}
           snapshotStatus={snapshotStatus}
           snapshotError={snapshotError}
@@ -141,7 +189,8 @@ export function SavePanelView({
           disabled={saving}
           onSaveSnapshotChange={onSaveSnapshotChange}
           onSyncToObsidianChange={onSyncToObsidianChange}
-        />
+          />
+        </div>
       )}
 
       {actionError && (
@@ -205,6 +254,136 @@ export function SavePanelView({
   );
 }
 
+interface ClipDraftCardProps {
+  clip: SaveFlowClipContext;
+  note: string;
+  status: SavePanelAssetStatus;
+  error: string | null;
+  disabled: boolean;
+  onNoteChange: (value: string) => void;
+}
+
+function ClipDraftCard({
+  clip,
+  note,
+  status,
+  error,
+  disabled,
+  onNoteChange,
+}: ClipDraftCardProps) {
+  const { t } = useTranslation();
+  const Icon =
+    clip.type === "highlight"
+      ? Highlighter
+      : clip.type === "image"
+        ? ImageIcon
+        : clip.type === "link"
+          ? LinkIcon
+          : StickyNote;
+  const content = clip.text || clip.targetUrl || clip.imageSourceUrl;
+
+  return (
+    <section className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </span>
+        <span>{t(`bookmark:savePanel.clip.types.${clip.type}`)}</span>
+        <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+          {t("bookmark:savePanel.clip.willSave")}
+        </span>
+      </div>
+      {clip.type === "image" && clip.imageSourceUrl ? (
+        <div className="flex items-center gap-3 rounded-lg border bg-background/70 p-2">
+          <img
+            src={clip.imageSourceUrl}
+            alt=""
+            className="h-12 w-16 rounded-md object-cover"
+          />
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {clip.imageSourceUrl}
+          </p>
+        </div>
+      ) : content ? (
+        <blockquote className="line-clamp-3 border-l-2 border-primary/40 pl-3 text-xs leading-5 text-foreground/80">
+          {content}
+        </blockquote>
+      ) : null}
+      <Textarea
+        value={note}
+        disabled={disabled}
+        onChange={(event) => onNoteChange(event.target.value)}
+        placeholder={t("bookmark:savePanel.clip.notePlaceholder")}
+        className="min-h-16 resize-none bg-background/80 text-xs"
+      />
+      {status !== "idle" && (
+        <p
+          className={cn(
+            "text-xs",
+            status === "failed" ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {error || t(`bookmark:savePanel.clip.status.${status}`)}
+        </p>
+      )}
+    </section>
+  );
+}
+
+interface ScreenshotOptionProps {
+  enabled: boolean;
+  status: SavePanelAssetStatus;
+  error: string | null;
+  disabled: boolean;
+  onChange: (value: boolean) => void;
+}
+
+function ScreenshotOption({
+  enabled,
+  status,
+  error,
+  disabled,
+  onChange,
+}: ScreenshotOptionProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <Label
+            htmlFor="save-screenshot"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Camera className="h-4 w-4 text-primary" />
+            {t("bookmark:savePanel.screenshot.title")}
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {enabled
+              ? t("bookmark:savePanel.screenshot.enabledDesc")
+              : t("bookmark:savePanel.screenshot.disabledDesc")}
+          </p>
+        </div>
+        <Switch
+          id="save-screenshot"
+          checked={enabled}
+          disabled={disabled}
+          onCheckedChange={onChange}
+        />
+      </div>
+      {status !== "idle" && (
+        <p
+          className={cn(
+            "text-xs",
+            status === "failed" ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {error || t(`bookmark:savePanel.screenshot.status.${status}`)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface SnapshotOptionsProps {
   saveSnapshot: boolean;
   snapshotStatus: SavePanelSnapshotStatus;
@@ -240,7 +419,7 @@ function SnapshotOptions({
             htmlFor="save-snapshot"
             className="flex items-center gap-2 text-sm font-medium"
           >
-            <Camera className="h-4 w-4 text-indigo-500" />
+            <FileText className="h-4 w-4 text-blue-500" />
             {t("bookmark:savePanel.snapshot.title")}
           </Label>
           <p className="text-xs text-muted-foreground">

@@ -45,6 +45,21 @@
       "description": "自定义你的使用体验",
       "autoSaveSnapshot": "默认保存快照",
       "autoSaveSnapshotDesc": "保存书签时自动保存页面快照",
+      "autoSaveScreenshot": "默认保存页面截图",
+      "autoSaveScreenshotDesc": "保存书签时默认截取当前可见区域；每次保存仍可单独关闭",
+      "screenshotPrivatePagePolicy": "隐私页面截图",
+      "screenshotPrivatePagePolicyDesc": "控制检测到登录态或隐私内容时是否允许手动截图",
+      "screenshotPrivatePagePolicyOptions": {
+        "skip": "自动跳过",
+        "ask": "允许选择"
+      },
+      "bookmarkHealthSchedule": "自动书签体检",
+      "bookmarkHealthScheduleDesc": "后台定期检查链接状态；默认关闭，也可随时手动扫描",
+      "bookmarkHealthScheduleOptions": {
+        "off": "关闭",
+        "weekly": "每周",
+        "monthly": "每月"
+      },
       "usePopupSavePanel": "在扩展弹窗中保存",
       "usePopupSavePanelDesc": "开启后触发保存时在扩展弹窗内填写书签表单；关闭则在当前网页内展示保存浮窗，AI 分析期间不打断浏览",
       "enableOmniboxSearch": "地址栏搜索增强",
@@ -221,6 +236,12 @@
         "confirmTitle": "确认清除快照",
         "confirmWarning": "此操作将删除所有本地保存的网页快照，书签本身不受影响。此操作无法撤销！"
       },
+      "screenshotData": {
+        "title": "页面截图",
+        "count": "{{count}} 张截图",
+        "size": "{{size}}",
+        "localOnly": "仅存储在本机；可在书签详情中逐张删除"
+      },
       "vectorData": {
         "title": "语义向量索引",
         "count": "{{count}} 个向量",
@@ -235,9 +256,9 @@
       "exportHTML": "导出为 HTML",
       "dangerZone": "危险操作",
       "clearAllData": "清除所有业务数据",
-      "clearAllDesc": "清除书签、分类、工作空间、快照及向量数据（AI 配置和应用设置将被保留）",
+      "clearAllDesc": "清除书签、分类、工作空间、快照、页面截图及向量数据（AI 配置和应用设置将被保留）",
       "confirmClearAll": "确认清除所有数据",
-      "clearAllWarning": "此操作将删除所有书签、分类、工作空间、网页快照和向量索引。AI 配置、标签设置、WebDAV 配置等个人设置将被保留。此操作无法撤销！",
+      "clearAllWarning": "此操作将删除所有书签、分类、工作空间、网页快照、页面截图和向量索引。AI 配置、标签设置、WebDAV 配置等个人设置将被保留。此操作无法撤销！",
       "notEnabled": "未启用"
     },
     "about": {

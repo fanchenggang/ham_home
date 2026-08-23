@@ -3,14 +3,23 @@
  * 保存面板的业务逻辑层
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { bookmarkStorage, configStorage } from "@/lib/storage";
+import {
+  bookmarkClipStorage,
+  bookmarkStorage,
+  configStorage,
+} from "@/lib/storage";
 import {
   matchCategoryByName,
 } from "@/lib/agent";
 import { getBackgroundService } from "@/lib/services";
 import { obsidianSyncService } from "@/lib/services/obsidian-sync-service";
 import { createMarkdownContent } from "defuddle/full";
-import type { PageContent, LocalBookmark, LocalCategory } from "@/types";
+import type {
+  PageContent,
+  LocalBookmark,
+  LocalCategory,
+  SaveFlowClipContext,
+} from "@/types";
 import type { AIStatusType } from "./AIStatus";
 import {
   buildCategoryTree,
@@ -42,11 +51,20 @@ export type SavePanelObsidianStatus =
   | "skipped"
   | "failed";
 
+export type SavePanelAssetStatus =
+  | "idle"
+  | "saving"
+  | "skipped"
+  | "saved"
+  | "failed";
+
 interface UseSavePanelProps {
   pageContent: PageContent;
   existingBookmark: LocalBookmark | null;
   onSaved?: () => void;
   initialSaveSnapshot?: boolean;
+  initialSaveScreenshot?: boolean;
+  initialClip?: SaveFlowClipContext;
   /**
    * 首次加载（含自动 AI 分析）结束时触发，无论是否真的执行了 AI 分析。
    * 页内保存流程用它决定何时把「分析中」浮窗切换成保存表单。
@@ -76,6 +94,12 @@ interface UseSavePanelResult {
   saveSnapshot: boolean;
   snapshotStatus: SavePanelSnapshotStatus;
   snapshotError: string | null;
+  saveScreenshot: boolean;
+  screenshotStatus: SavePanelAssetStatus;
+  screenshotError: string | null;
+  clipNote: string;
+  clipStatus: SavePanelAssetStatus;
+  clipError: string | null;
   syncToObsidian: boolean;
   obsidianStatus: SavePanelObsidianStatus;
   obsidianError: string | null;
@@ -88,6 +112,8 @@ interface UseSavePanelResult {
   setCategoryId: (value: string | null) => void;
   setTags: (value: string[]) => void;
   setSaveSnapshot: (value: boolean) => void;
+  setSaveScreenshot: (value: boolean) => void;
+  setClipNote: (value: string) => void;
   setSyncToObsidian: (value: boolean) => void;
 
   // 业务操作
@@ -136,6 +162,8 @@ export function useSavePanel({
   existingBookmark,
   onSaved,
   initialSaveSnapshot,
+  initialSaveScreenshot,
+  initialClip,
   onInitialLoadSettled,
 }: UseSavePanelProps): UseSavePanelResult {
   // 用 ref 持有回调，避免回调身份变化触发重复的初始化 effect
@@ -183,6 +211,13 @@ export function useSavePanel({
   const [snapshotStatus, setSnapshotStatus] =
     useState<SavePanelSnapshotStatus>("idle");
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [saveScreenshot, setSaveScreenshotState] = useState(false);
+  const [screenshotStatus, setScreenshotStatus] =
+    useState<SavePanelAssetStatus>("idle");
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
+  const [clipNote, setClipNote] = useState("");
+  const [clipStatus, setClipStatus] = useState<SavePanelAssetStatus>("idle");
+  const [clipError, setClipError] = useState<string | null>(null);
   const [syncToObsidian, setSyncToObsidian] = useState(false);
   const [obsidianStatus, setObsidianStatus] =
     useState<SavePanelObsidianStatus>("idle");
@@ -200,6 +235,12 @@ export function useSavePanel({
     if (!value) {
       setSyncToObsidian(false);
     }
+  }, []);
+
+  const setSaveScreenshot = useCallback((value: boolean) => {
+    setSaveScreenshotState(value);
+    setScreenshotStatus("idle");
+    setScreenshotError(null);
   }, []);
 
   /**
@@ -281,6 +322,14 @@ export function useSavePanel({
         setSaveSnapshotState(settings.autoSaveSnapshot);
       }
 
+      const screenshotAllowed =
+        !pageContent.isPrivate || settings.screenshotPrivatePagePolicy === "ask";
+      setSaveScreenshotState(
+        screenshotAllowed
+          ? (initialSaveScreenshot ?? settings.autoSaveScreenshot)
+          : false,
+      );
+
       if (!existingBookmark && (markdown || pageContent.textContent)) {
         await performAIAnalysis(false);
       }
@@ -298,6 +347,7 @@ export function useSavePanel({
   }, [
     existingBookmark,
     initialSaveSnapshot,
+    initialSaveScreenshot,
     markdown,
     pageContent.textContent,
     performAIAnalysis,
@@ -395,6 +445,10 @@ export function useSavePanel({
     setSaving(true);
     setSnapshotStatus("savingBookmark");
     setSnapshotError(null);
+    setScreenshotStatus("idle");
+    setScreenshotError(null);
+    setClipStatus("idle");
+    setClipError(null);
     setActionError(null);
     setObsidianStatus("idle");
     setObsidianError(null);
@@ -432,6 +486,63 @@ export function useSavePanel({
       } catch (e) {
         console.warn("[useSavePanel] Failed to queue embedding:", e);
       }
+
+      const independentAssets: Promise<void>[] = [];
+
+      if (saveScreenshot) {
+        setScreenshotStatus("saving");
+        independentAssets.push(
+          (async () => {
+            try {
+              const result = await getBackgroundService().saveScreenshotBackground(
+                bookmark.id,
+                { expectedUrl: pageContent.url },
+              );
+              if (!result.ok) {
+                setScreenshotStatus("failed");
+                setScreenshotError(result.error ?? "页面截图保存失败，可稍后重试");
+                return;
+              }
+              setScreenshotStatus(result.skipped ? "skipped" : "saved");
+            } catch (error) {
+              setScreenshotStatus("failed");
+              setScreenshotError(
+                error instanceof Error ? error.message : "页面截图保存失败，可稍后重试",
+              );
+            }
+          })(),
+        );
+      } else {
+        setScreenshotStatus("skipped");
+      }
+
+      if (initialClip) {
+        setClipStatus("saving");
+        independentAssets.push(
+          (async () => {
+            try {
+              await bookmarkClipStorage.addClip(bookmark.id, {
+                type: initialClip.type,
+                text: initialClip.text,
+                note: clipNote.trim() || undefined,
+                targetUrl: initialClip.targetUrl,
+                imageSourceUrl: initialClip.imageSourceUrl,
+                sourceUrl: initialClip.sourceUrl || pageContent.url,
+                sourceTitle: initialClip.sourceTitle || pageContent.title,
+                selector: initialClip.selector,
+              });
+              setClipStatus("saved");
+            } catch (error) {
+              setClipStatus("failed");
+              setClipError(
+                error instanceof Error ? error.message : "剪藏保存失败，可稍后重试",
+              );
+            }
+          })(),
+        );
+      }
+
+      await Promise.all(independentAssets);
 
       if (saveSnapshot) {
         setSnapshotStatus("savingSnapshot");
@@ -515,7 +626,10 @@ export function useSavePanel({
     markdown,
     existingBookmark,
     saveSnapshot,
+    saveScreenshot,
     syncToObsidian,
+    initialClip,
+    clipNote,
     onSaved,
   ]);
 
@@ -563,6 +677,12 @@ export function useSavePanel({
     saveSnapshot,
     snapshotStatus,
     snapshotError,
+    saveScreenshot,
+    screenshotStatus,
+    screenshotError,
+    clipNote,
+    clipStatus,
+    clipError,
     syncToObsidian,
     obsidianStatus,
     obsidianError,
@@ -573,6 +693,8 @@ export function useSavePanel({
     setCategoryId,
     setTags,
     setSaveSnapshot,
+    setSaveScreenshot,
+    setClipNote,
     setSyncToObsidian,
     runAIAnalysis,
     retryAnalysis,

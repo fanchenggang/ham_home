@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   getAutoGroupSettings: vi.fn(),
   importRawRule: vi.fn(),
   importRawAutoGroupSettings: vi.fn(),
+  getAllClips: vi.fn(),
+  importRawClip: vi.fn(),
 }));
 
 vi.mock("../webdav-client", async () => {
@@ -71,8 +73,18 @@ vi.mock("../../storage/tab-group-rules-storage", () => ({
   },
 }));
 
+vi.mock("../../storage/bookmark-clip-storage", () => ({
+  bookmarkClipStorage: {
+    getAllClips: mocks.getAllClips,
+    importRawClip: mocks.importRawClip,
+  },
+}));
+
 const baseSettings = {
   autoSaveSnapshot: true,
+  autoSaveScreenshot: false,
+  screenshotPrivatePagePolicy: "skip",
+  bookmarkHealthSchedule: "off",
   enableOmniboxSearch: true,
   defaultCategory: null,
   theme: "system" as const,
@@ -88,6 +100,7 @@ describe("SyncEngine settings merge", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getRules.mockResolvedValue([]);
+    mocks.getAllClips.mockResolvedValue([]);
   });
 
   it("uploads newer local settings instead of applying stale remote settings", async () => {

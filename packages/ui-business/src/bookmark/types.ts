@@ -17,6 +17,7 @@ export type BookmarkLabelResolver = (
 export interface BookmarkActionProps {
   onOpen: () => void;
   onEdit: () => void;
+  onViewDetails?: () => void;
   onDelete: () => void;
   onViewSnapshot?: () => void;
   onSaveSnapshot?: () => void;

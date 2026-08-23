@@ -145,6 +145,15 @@ export async function createGlobalAgentTools(
               theme: { type: "string", enum: ["light", "dark", "system"] },
               language: { type: "string", enum: ["zh", "en"] },
               autoSaveSnapshot: { type: "boolean" },
+              autoSaveScreenshot: { type: "boolean" },
+              screenshotPrivatePagePolicy: {
+                type: "string",
+                enum: ["skip", "ask"],
+              },
+              bookmarkHealthSchedule: {
+                type: "string",
+                enum: ["off", "weekly", "monthly"],
+              },
               enableOmniboxSearch: { type: "boolean" },
               defaultCategory: { type: "string", nullable: true },
               enableSidePanel: { type: "boolean" },

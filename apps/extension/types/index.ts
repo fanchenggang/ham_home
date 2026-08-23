@@ -154,6 +154,9 @@ export type PanelPosition = "left" | "right";
  */
 export interface LocalSettings {
   autoSaveSnapshot: boolean; // 自动保存快照
+  autoSaveScreenshot: boolean; // 保存书签时自动截取当前可见页面
+  screenshotPrivatePagePolicy: "skip" | "ask"; // 隐私页面截图策略
+  bookmarkHealthSchedule: "off" | "weekly" | "monthly"; // 自动书签体检周期
   enableOmniboxSearch: boolean; // 是否启用地址栏搜索支持
   defaultCategory: string | null;
   theme: ThemeMode;
@@ -484,6 +487,108 @@ export interface Snapshot {
   type: SnapshotContentType;
   size: number;
   createdAt: number; // 时间戳
+}
+
+// ============ 富剪藏与页面截图 ============
+
+export type BookmarkClipType = "highlight" | "note" | "link" | "image";
+
+/** 文本定位采用 quote selector，DOM 变化后仍可通过上下文回退匹配。 */
+export interface TextQuoteSelector {
+  exact: string;
+  prefix?: string;
+  suffix?: string;
+  domPath?: string;
+}
+
+export interface BookmarkClip {
+  id: string;
+  bookmarkId: string;
+  type: BookmarkClipType;
+  text?: string;
+  note?: string;
+  targetUrl?: string;
+  imageSourceUrl?: string;
+  sourceUrl: string;
+  sourceTitle?: string;
+  selector?: TextQuoteSelector;
+  createdAt: number;
+  updatedAt: number;
+  isDeleted?: boolean;
+}
+
+export type CreateBookmarkClipInput = Omit<
+  BookmarkClip,
+  "id" | "bookmarkId" | "createdAt" | "updatedAt"
+>;
+
+/** 右键菜单传给保存流程的待保存剪藏上下文。 */
+export interface SaveFlowClipContext {
+  type: BookmarkClipType;
+  text?: string;
+  targetUrl?: string;
+  imageSourceUrl?: string;
+  sourceUrl?: string;
+  sourceTitle?: string;
+  selector?: TextQuoteSelector;
+}
+
+export interface BookmarkScreenshotAsset {
+  id: string;
+  bookmarkId: string;
+  sourceUrl: string;
+  image: Blob;
+  thumbnail: Blob;
+  mimeType: string;
+  width: number;
+  height: number;
+  size: number;
+  capturedAt: number;
+  updatedAt: number;
+}
+
+export type BookmarkScreenshotMetadata = Omit<
+  BookmarkScreenshotAsset,
+  "image" | "thumbnail"
+> & {
+  thumbnailSize: number;
+};
+
+export interface SaveScreenshotBackgroundOptions {
+  expectedUrl?: string;
+}
+
+export interface ScreenshotCaptureResult {
+  ok: boolean;
+  skipped?: boolean;
+  metadata?: BookmarkScreenshotMetadata;
+  error?: string;
+}
+
+// ============ 书签健康中心 ============
+
+export type BookmarkHealthStatus =
+  | "unchecked"
+  | "healthy"
+  | "redirected"
+  | "broken"
+  | "auth_required"
+  | "rate_limited"
+  | "server_error"
+  | "network_error"
+  | "unsupported";
+
+export interface BookmarkHealthRecord {
+  bookmarkId: string;
+  sourceUrl: string;
+  checkedAt: number;
+  status: BookmarkHealthStatus;
+  httpStatus?: number;
+  finalUrl?: string;
+  issueCodes: string[];
+  ignoredIssueCodes?: string[];
+  responseTimeMs?: number;
+  error?: string;
 }
 
 // ============ 页面内容提取 ============
@@ -913,6 +1018,11 @@ export interface EmbeddingJob {
  * 保存书签流程的触发来源
  */
 export type SaveFlowSource = "shortcut" | "contextMenu" | "popup" | "unknown";
+
+export interface SaveFlowTrigger {
+  source: SaveFlowSource;
+  clip?: SaveFlowClipContext;
+}
 
 // ============ WebDAV 同步相关 ============
 export * from "./sync";

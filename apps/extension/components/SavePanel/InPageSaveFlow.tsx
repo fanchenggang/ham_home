@@ -22,6 +22,7 @@ export function InPageSaveFlow() {
     phase,
     pageContent,
     existingBookmark,
+    clipContext,
     error,
     showFormNow,
     handleInitialLoadSettled,
@@ -139,6 +140,8 @@ export function InPageSaveFlow() {
               key={`${pageContent.url}:${existingBookmark?.id ?? "new"}`}
               pageContent={pageContent}
               existingBookmark={existingBookmark}
+              initialClip={clipContext ?? undefined}
+              hideSnapshotOptions={clipContext?.type === "link"}
               portalContainer={container}
               onInitialLoadSettled={handleInitialLoadSettled}
               onSaved={handleSaved}

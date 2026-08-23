@@ -13,6 +13,8 @@ import { aiCacheStorage } from "@/lib/storage/ai-cache-storage";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import { configStorage } from "@/lib/storage/config-storage";
 import { snapshotStorage } from "@/lib/storage/snapshot-storage";
+import { bookmarkHealthService } from "@/lib/services/bookmark-health-service";
+import { bookmarkScreenshotService } from "@/lib/services/bookmark-screenshot-service";
 import { vectorStore } from "@/lib/storage/vector-store";
 import { workspaceService } from "@/lib/services/workspace-service";
 import { embeddingClient, embeddingQueue } from "@/lib/embedding";
@@ -32,6 +34,9 @@ import type {
   ConversationalSearchTurnInput,
   LocalCategory,
   PageContent,
+  BookmarkHealthRecord,
+  SaveScreenshotBackgroundOptions,
+  ScreenshotCaptureResult,
   SaveSnapshotBackgroundOptions,
   SnapshotSaveResult,
 } from "@/types";
@@ -218,6 +223,19 @@ class BackgroundServiceImpl implements IBackgroundService {
         error: error instanceof Error ? error.message : "快照保存失败",
       };
     }
+  }
+
+  async saveScreenshotBackground(
+    bookmarkId: string,
+    options?: SaveScreenshotBackgroundOptions,
+  ): Promise<ScreenshotCaptureResult> {
+    return bookmarkScreenshotService.captureVisibleTab(bookmarkId, options);
+  }
+
+  async scanBookmarkHealth(
+    bookmarkIds?: string[],
+  ): Promise<BookmarkHealthRecord[]> {
+    return bookmarkHealthService.scan(bookmarkIds);
   }
 
   async openOptionsPage(view: string = "settings"): Promise<void> {

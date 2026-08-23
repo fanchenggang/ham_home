@@ -7,3 +7,5 @@ export { EditBookmarkDialog } from './EditBookmarkDialog';
 export { SnapshotViewer, type SnapshotViewerProps } from './SnapshotViewer';
 export { BatchTagDialog } from './BatchTagDialog';
 export { BatchMoveCategoryDialog } from './BatchMoveCategoryDialog';
+export { VisualBookmarkGallery } from './VisualBookmarkGallery';
+export { BookmarkDetailSheet } from './BookmarkDetailSheet';
