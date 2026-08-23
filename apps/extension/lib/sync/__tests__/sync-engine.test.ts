@@ -11,15 +11,21 @@ const mocks = vi.hoisted(() => ({
   importRawAutoGroupSettings: vi.fn(),
 }));
 
-vi.mock("../webdav-client", () => ({
-  webdavClientAdapter: {
-    getJSON: mocks.getJSON,
-    putJSON: mocks.putJSON,
-    isInitialized: true,
-    init: vi.fn(),
-    ensureDirectory: vi.fn(),
-  },
-}));
+vi.mock("../webdav-client", async () => {
+  const actual = await vi.importActual<typeof import("../webdav-client")>("../webdav-client");
+  return {
+    ...actual,
+    webdavClientAdapter: {
+      getJSON: mocks.getJSON,
+      putJSON: mocks.putJSON,
+      isInitialized: true,
+      init: vi.fn(),
+      reset: vi.fn(),
+      checkAuth: vi.fn(),
+      ensureDirectory: vi.fn(),
+    },
+  };
+});
 
 vi.mock("../sync-config-storage", () => ({
   syncConfigStorage: {

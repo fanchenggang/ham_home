@@ -1,4 +1,4 @@
-import { webdavClientAdapter } from './webdav-client';
+import { webdavClientAdapter, toSyncError } from './webdav-client';
 import { syncConfigStorage } from './sync-config-storage';
 import { bookmarkStorage } from '../storage/bookmark-storage';
 import { configStorage } from '../storage/config-storage';
@@ -133,10 +133,12 @@ export class SyncEngine {
         sys.last_sync_time = Date.now();
         await webdavClientAdapter.putJSON(SYS_JSON, sys);
         
-        await syncConfigStorage.setStatus({ 
-          status: 'idle', 
-          lastSyncTime: sys.last_sync_time, 
-          syncVersion: sys.sync_version 
+        await syncConfigStorage.setStatus({
+          status: 'idle',
+          lastSyncTime: sys.last_sync_time,
+          syncVersion: sys.sync_version,
+          errorCode: undefined,
+          errorMessage: ''
         });
       }
     } catch (err) {
@@ -160,15 +162,17 @@ export class SyncEngine {
     }
 
     this.isSyncing = true;
-    await syncConfigStorage.setStatus({ status: 'syncing' });
+    await syncConfigStorage.setStatus({ status: 'syncing', errorCode: undefined, errorMessage: '' });
 
     try {
-      if (!webdavClientAdapter.isInitialized) {
-        webdavClientAdapter.init(config);
-      }
+      // Always re-init: the adapter reuses the client unless the credentials changed,
+      // otherwise an updated password would never reach the server.
+      webdavClientAdapter.init(config);
 
-      await webdavClientAdapter.ensureDirectory(SYNC_ROOT);
-      await webdavClientAdapter.ensureDirectory(`${SYNC_ROOT}/bookmarks`);
+      // Verify credentials before writing anything remote
+      await webdavClientAdapter.checkAuth(SYS_JSON);
+
+      // Recursive, so it also creates SYNC_ROOT and SYNC_ROOT/bookmarks
       await webdavClientAdapter.ensureDirectory(CHUNKS_DIR);
 
       const locked = await this.acquireLock();
@@ -190,8 +194,17 @@ export class SyncEngine {
       }
 
     } catch (err: any) {
-      console.error('WebDAV Sync failed:', err);
-      await syncConfigStorage.setStatus({ status: 'error', errorMessage: err.message || String(err) });
+      const error = toSyncError(err);
+      console.error('WebDAV Sync failed:', error);
+      // A failed auth handshake may have been negotiated against stale state, start clean next time
+      if (error.code === 'auth') {
+        webdavClientAdapter.reset();
+      }
+      await syncConfigStorage.setStatus({
+        status: 'error',
+        errorCode: error.code,
+        errorMessage: error.message,
+      });
     } finally {
       this.isSyncing = false;
     }
@@ -704,27 +717,29 @@ export class SyncEngine {
       throw new Error('WebDAV is not configured');
     }
     
-    if (!webdavClientAdapter.isInitialized) {
-      webdavClientAdapter.init(config);
-    }
-    
     try {
       this.isSyncing = true;
-      const success = await webdavClientAdapter.deleteFile(SYNC_ROOT);
-      if (!success) {
-        throw new Error('Failed to delete remote directory');
-      }
-      
+      webdavClientAdapter.init(config);
+      await webdavClientAdapter.checkAuth(SYS_JSON);
+      await webdavClientAdapter.deleteFile(SYNC_ROOT);
+
       // Reset local sync status
-      await syncConfigStorage.setStatus({ 
-        status: 'idle', 
-        lastSyncTime: 0, 
+      await syncConfigStorage.setStatus({
+        status: 'idle',
+        lastSyncTime: 0,
         syncVersion: '',
+        errorCode: undefined,
         errorMessage: ''
       });
     } catch (err: any) {
-      console.error('Failed to clear remote WebDAV data:', err);
-      throw new Error(`Failed to clear remote data: ${err.message || String(err)}`);
+      const error = toSyncError(err);
+      console.error('Failed to clear remote WebDAV data:', error);
+      await syncConfigStorage.setStatus({
+        status: 'error',
+        errorCode: error.code,
+        errorMessage: error.message,
+      });
+      throw error;
     } finally {
       this.isSyncing = false;
     }

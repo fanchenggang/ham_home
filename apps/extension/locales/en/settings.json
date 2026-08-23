@@ -551,7 +551,17 @@
         "neverSynced": "Never Synced",
         "statusError": "Sync Failed",
         "statusSyncing": "Syncing...",
-        "statusIdle": "Idle / Synced"
+        "statusIdle": "Idle / Synced",
+        "errors": {
+          "auth": "Authentication failed (401): double-check the username and password. If two-factor authentication is enabled on the server, use an app password / access token instead; on a NAS (e.g. Synology) also make sure the account may access that WebDAV shared folder.",
+          "forbidden": "Access denied (403): the account cannot read or write this directory. Check the shared folder permissions or use another WebDAV path.",
+          "notFound": "Path not found (404): make sure the server URL contains the correct WebDAV sub path (e.g. /dav or /webdav).",
+          "network": "Cannot reach the server: check that the host and port are reachable, that the HTTPS certificate is valid, and your network / firewall settings.",
+          "server": "The server returned an error (5xx): try again later or check the server logs.",
+          "invalidUrl": "Invalid server URL: the address must start with http:// or https://.",
+          "notInitialized": "Sync is not initialized: please re-enter the server URL and credentials.",
+          "unknown": "Sync failed: see the error details below."
+        }
       }
     }
   }

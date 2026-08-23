@@ -468,10 +468,20 @@ export function StorageTab({
                     {syncStatus.syncVersion || "-"}
                   </span>
                 </div>
-                {syncStatus.errorMessage && (
-                  <div className="mt-2 text-destructive p-2 bg-red-50 dark:bg-red-900/10 rounded-md border border-red-100 dark:border-red-900/30">
-                    <AlertTriangle className="inline-block mr-1 h-3 w-3" />
-                    {syncStatus.errorMessage}
+                {(syncStatus.errorCode || syncStatus.errorMessage) && (
+                  <div className="mt-2 text-destructive p-2 bg-red-50 dark:bg-red-900/10 rounded-md border border-red-100 dark:border-red-900/30 space-y-1">
+                    <div>
+                      <AlertTriangle className="inline-block mr-1 h-3 w-3" />
+                      {t(
+                        `settings:settings.sync.config.errors.${syncStatus.errorCode || "unknown"}`,
+                        syncStatus.errorMessage || "",
+                      )}
+                    </div>
+                    {syncStatus.errorMessage && (
+                      <div className="text-xs font-mono opacity-70 break-all">
+                        {syncStatus.errorMessage}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
