@@ -642,10 +642,10 @@ function AppContent() {
           </div>
         </header>
         <main className="flex-1 min-h-0 overflow-hidden">
-          <ScrollArea id="main-content" className="h-full">
+          <ScrollArea id="main-content" className="h-full scroll-table-fix">
             {/* 增加全局的底部空白间距 (pb-24)，防止右下角的 Agent 入口遮挡页面内容或滚动条 */}
-            <div className="flex flex-col min-h-full pb-24">
-              <div className="flex-1 flex flex-col">
+            <div className="flex h-full min-h-0 flex-col pb-24">
+              <div className="flex min-h-0 flex-1 flex-col">
                 {renderContent()}
               </div>
             </div>

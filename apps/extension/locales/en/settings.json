@@ -22,7 +22,25 @@
     "maxTokens": "Max Tokens",
     "importBookmarks": "Import Data",
     "exportBookmarks": "Export Data",
-    "about": "About",
+    "about": {
+      "title": "About",
+      "description": "About HamHome",
+      "subtitle": "AI-Powered Browser Workspace",
+      "intro": "HamHome is a local-first browser workspace for saving and restoring open tabs, automatically grouping active sessions, and organizing bookmarks and collections with AI so both in-progress browsing and long-term saves stay easier to manage.",
+      "versionLabel": "Version",
+      "versionValue": "HamHome v{{version}}",
+      "versionHint": "Shows the version of the extension currently installed",
+      "websiteLabel": "Official Website",
+      "websiteHint": "Visit the website for product updates, downloads, and privacy details",
+      "websiteButton": "Open Website",
+      "githubLabel": "GitHub Repository",
+      "githubHint": "Browse the source code, releases, issues, and contribution workflow",
+      "githubButton": "View Repository",
+      "starTitle": "Enjoying HamHome? Please give it a Star",
+      "starHint": "If HamHome is helpful to you, a GitHub Star would mean a lot. Your support helps the project keep improving and reach more users.",
+      "starButton": "Star on GitHub",
+      "copyright": "© 2024-2026 HamHome. All rights reserved."
+    },
     "sections": {
       "general": "General",
       "ai": "AI",
@@ -120,7 +138,6 @@
       "maxTokens": "Max Tokens",
       "temperature": "Temperature",
       "apiKey": "API Key",
-      "baseUrl": "Base URL",
       "noApiKeyNeeded": "No API Key Needed",
       "searchModel": "Search model name",
       "noModelFound": "No matching models found",
@@ -206,7 +223,9 @@
           "clearTitle": "Confirm Clear Vector Data",
           "clearWarning": "This will delete all bookmark vectors, semantic search will be temporarily unavailable. Confirm clear?"
         }
-      }
+      },
+      "enableImageAnalysis": "AI analysis for image clips",
+      "enableImageAnalysisHint": "When enabled, saving an image sends it to the AI to generate a description, category and tags. Private pages are never sent."
     },
     "storage": {
       "title": "Storage Management",
@@ -260,25 +279,6 @@
       "confirmClearAll": "Confirm Clear All Data",
       "clearAllWarning": "This will delete all bookmarks, categories, workspaces, snapshots, page screenshots, and vector indexes. AI config, tag settings, and WebDAV config will be kept. This action cannot be undone!",
       "notEnabled": "Not enabled"
-    },
-    "about": {
-      "title": "About",
-      "description": "About HamHome",
-      "subtitle": "AI-Powered Browser Workspace",
-      "intro": "HamHome is a local-first browser workspace for saving and restoring open tabs, automatically grouping active sessions, and organizing bookmarks and collections with AI so both in-progress browsing and long-term saves stay easier to manage.",
-      "versionLabel": "Version",
-      "versionValue": "HamHome v{{version}}",
-      "versionHint": "Shows the version of the extension currently installed",
-      "websiteLabel": "Official Website",
-      "websiteHint": "Visit the website for product updates, downloads, and privacy details",
-      "websiteButton": "Open Website",
-      "githubLabel": "GitHub Repository",
-      "githubHint": "Browse the source code, releases, issues, and contribution workflow",
-      "githubButton": "View Repository",
-      "starTitle": "Enjoying HamHome? Please give it a Star",
-      "starHint": "If HamHome is helpful to you, a GitHub Star would mean a lot. Your support helps the project keep improving and reach more users.",
-      "starButton": "Star on GitHub",
-      "copyright": "© 2024-2026 HamHome. All rights reserved."
     },
     "dialogs": {
       "confirmClear": "Confirm Clear All Data",

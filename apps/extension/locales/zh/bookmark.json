@@ -23,7 +23,7 @@
     "tags": "标签",
     "createdAt": "创建时间",
     "recent": "最近的书签",
-    "all": "所有书签",
+    "all": "我的收藏",
     "privacy": "隐私",
     "search": "搜索书签、标签、网址...",
     "count": "你有 {{count}} 个书签",
@@ -39,7 +39,12 @@
       "allCategories": "全部分类",
       "allTags": "全部标签",
       "selectedTags": "已选 {{count}} 个标签",
-      "clearFilter": "清除筛选"
+      "clearFilter": "清除筛选",
+      "contentType": "内容类型",
+      "typeAll": "所有",
+      "typeBookmark": "书签",
+      "typeImage": "图片",
+      "typeText": "文本"
     },
     "view": {
       "grid": "卡片视图",
@@ -65,7 +70,6 @@
     "noTags": "无标签",
     "open": "打开",
     "edit": "编辑",
-    "viewDetails": "查看详情与剪藏",
     "delete": "删除",
     "pin": "置顶",
     "unpin": "取消置顶",
@@ -75,6 +79,16 @@
     "share": "分享",
     "aiTag": "AI",
     "viewSnapshot": "查看快照",
+    "screenshot": {
+      "view": "界面截图",
+      "notFound": "这条书签没有界面截图",
+      "openInNewTab": "在新标签页中打开",
+      "download": "下载截图",
+      "delete": "删除截图",
+      "deleteTitle": "删除界面截图",
+      "deleteDesc": "仅删除本地图片，不会删除书签或网页快照。",
+      "deleted": "界面截图已删除"
+    },
     "snapshot": {
       "title": "网页快照",
       "loading": "正在加载快照...",
@@ -106,21 +120,20 @@
     "empty": "还没有可展示的页面截图",
     "emptyDesc": "保存书签时勾选“保存页面截图”，这里会逐渐成为你的产品界面与视觉灵感库。"
   },
-  "detail": {
-    "screenshot": "页面截图",
-    "noScreenshot": "这条书签没有页面截图",
-    "noScreenshotDesc": "打开原网页后再次保存，即可按需截取当前可见区域。",
-    "screenshotDeleteTitle": "删除页面截图",
-    "screenshotDeleteDesc": "仅删除本地图片，不会删除书签或网页快照。",
-    "screenshotDeleted": "页面截图已删除",
-    "clips": "剪藏与备注（{{count}}）",
-    "notePlaceholder": "记录这个页面值得参考的交互、布局或想法…",
-    "addNote": "添加备注",
-    "noClips": "暂无剪藏。从网页右键保存选中文本、链接或图片，也可以在这里添加备注。",
-    "clipDeleteTitle": "删除剪藏",
-    "clipDeleteDesc": "删除后会在下次 WebDAV 同步时同步到其他设备。",
-    "health": "链接健康",
-    "healthUnchecked": "尚未检查。可前往书签健康中心进行单条或批量体检。"
+  "subject": {
+    "imageTitle": "图片剪藏",
+    "textTitle": "选中内容",
+    "source": "来源",
+    "note": "备注",
+    "imageInfo": "图片信息",
+    "dimensions": "尺寸",
+    "fileSize": "文件大小",
+    "format": "格式",
+    "unknown": "未知",
+    "copyText": "复制文字",
+    "copied": "已复制到剪贴板",
+    "openImage": "打开原图",
+    "openSource": "打开来源页"
   },
   "modal": {
     "title": "添加新书签",
@@ -359,6 +372,8 @@
     },
     "clip": {
       "willSave": "随书签保存",
+      "imageUrlLabel": "图片链接",
+      "sourceLabel": "来源",
       "notePlaceholder": "为这条剪藏补充备注（可选）",
       "types": {
         "highlight": "文本高亮",
@@ -397,7 +412,7 @@
   "healthCenter": {
     "title": "书签健康中心",
     "navTitle": "书签体检",
-    "description": "检查失效链接、跳转、访问异常与重复书签。登录限制、限流和网络故障会单独标记，不会误判为失效。",
+    "description": "仅检查书签收藏的失效链接、跳转、访问异常与重复项，不检查图片或文字剪藏。登录限制、限流和网络故障会单独标记，不会误判为失效。",
     "scanAll": "开始全面体检",
     "scanning": "正在体检",
     "scanComplete": "书签体检完成",
@@ -409,7 +424,7 @@
     "redirectApplied": "已更新为跳转后的地址",
     "checkedAt": "检查于 {{date}}",
     "stats": {
-      "total": "全部书签",
+      "total": "书签收藏",
       "healthy": "状态健康",
       "attention": "需要关注",
       "unchecked": "尚未检查"

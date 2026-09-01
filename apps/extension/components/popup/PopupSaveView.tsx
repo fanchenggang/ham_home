@@ -12,7 +12,10 @@ import { SavePanel } from "@/components/SavePanel";
 import { useCurrentPage } from "@/hooks/useCurrentPage";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import type { LocalBookmark, SaveFlowClipContext } from "@/types";
-import { applyClipTargetToPageContent } from "@/utils/clip-context";
+import {
+  applyClipTargetToPageContent,
+  isSubjectClip,
+} from "@/utils/clip-context";
 
 interface PopupSaveViewProps {
   /** 返回快捷面板 */
@@ -64,7 +67,7 @@ export function PopupSaveView({ onBack, initialClip }: PopupSaveViewProps) {
             pageContent={effectivePageContent}
             existingBookmark={existingBookmark}
             initialClip={initialClip}
-            hideSnapshotOptions={initialClip?.type === "link"}
+            hideSnapshotOptions={isSubjectClip(initialClip)}
             onSaved={() => window.close()}
             onClose={() => window.close()}
             onDelete={() => window.close()}

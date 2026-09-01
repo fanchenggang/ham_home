@@ -2,7 +2,7 @@ import {
   createUsageGuideSkill,
   type AgentSkill,
   type AgentTool,
-} from "@browser-agent-sdk/agent";
+} from "@hamhome/agent";
 
 export type HamHomeFeatureId =
   | "bookmarks"
@@ -254,7 +254,7 @@ const HAMHOME_FEATURES: HamHomeFeatureDoc[] = [
       "",
       "agent 可自动修改的安全项：",
       "- settings: theme、language、autoSaveSnapshot、autoSaveScreenshot、screenshotPrivatePagePolicy、bookmarkHealthSchedule、enableOmniboxSearch、defaultCategory、enableSidePanel、usePopupSavePanel、panelPosition。",
-      "- aiConfig: provider、model、temperature、maxTokens、enableTranslation、enableSmartCategory、enableTagSuggestion、presetTags、autoDetectPrivacy。",
+      "- aiConfig: provider、model、temperature、maxTokens、enableTranslation、enableSmartCategory、enableTagSuggestion、presetTags、autoDetectPrivacy、enableImageAnalysis（图片剪藏是否发送给 AI 分析）。",
       "- embeddingConfig: enabled、provider、model、dimensions、batchSize。",
       "",
       "必须手动填写的敏感项：apiKey、baseUrl、privacyDomains、同步 URL、用户名、密码、浏览器快捷键。",

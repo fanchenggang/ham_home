@@ -244,6 +244,7 @@ export function sanitizeSafeSettingsUpdate(
       "enableTagSuggestion",
       "presetTags",
       "autoDetectPrivacy",
+      "enableImageAnalysis",
       "apiMode",
       "language",
     ]),
@@ -298,6 +299,7 @@ export function sanitizeSafeSettingsUpdate(
     "enableSmartCategory",
     "enableTagSuggestion",
     "autoDetectPrivacy",
+    "enableImageAnalysis",
   ] as const) {
     if (isBoolean(rawAIConfig[key])) {
       aiConfig[key] = rawAIConfig[key];

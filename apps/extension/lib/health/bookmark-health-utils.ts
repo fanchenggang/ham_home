@@ -15,6 +15,20 @@ const TRACKING_PARAMS = new Set([
   "utm_term",
 ]);
 
+/**
+ * 健康中心只处理普通书签收藏。
+ * 图片 / 选中文字剪藏会以 LocalBookmark 承载，但它们是内容收藏，
+ * 不应进入链接健康、重复项、统计或定期扫描。
+ */
+export function filterBookmarkHealthTargets(
+  bookmarks: LocalBookmark[],
+  subjectIndex: Readonly<Record<string, unknown>>,
+): LocalBookmark[] {
+  return bookmarks.filter((bookmark) =>
+    !Object.prototype.hasOwnProperty.call(subjectIndex, bookmark.id),
+  );
+}
+
 export function normalizeHealthUrl(value: string): string | null {
   try {
     const url = new URL(value);

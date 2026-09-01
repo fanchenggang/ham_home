@@ -106,29 +106,25 @@ export function useInPageSave(): UseInPageSaveResult {
 
     void (async () => {
       const sourcePageUrl = window.location.href;
-      const url =
-        trigger?.clip?.type === "link" && trigger.clip.targetUrl
-          ? trigger.clip.targetUrl
-          : sourcePageUrl;
 
       try {
-        if (isNonBookmarkableUrl(url)) {
+        if (isNonBookmarkableUrl(sourcePageUrl)) {
           if (!isCurrent()) return;
           setError("cannotBookmarkPage");
           setPhase("error");
           return;
         }
 
-        const privacyCheck = await containsPrivateContent(url);
+        const privacyCheck = await containsPrivateContent(sourcePageUrl);
         const sourceContent: PageContent = privacyCheck.isPrivate
           ? {
-              url,
+              url: sourcePageUrl,
               title: document.title,
               content: "",
               htmlContent: "",
               textContent: "",
               excerpt: "",
-              favicon: getFavicon(url),
+              favicon: getFavicon(sourcePageUrl),
               isPrivate: true,
               privacyReason: privacyCheck.reason,
             }
@@ -139,7 +135,7 @@ export function useInPageSave(): UseInPageSaveResult {
               htmlContent: "",
               textContent: "",
               excerpt: "",
-              favicon: getFavicon(url),
+              favicon: getFavicon(sourcePageUrl),
               isPrivate: false,
             });
         const content = applyClipTargetToPageContent(
@@ -158,11 +154,24 @@ export function useInPageSave(): UseInPageSaveResult {
         setExistingBookmark(bookmark);
 
         // 预判是否会执行 AI 分析：不会分析时直接展示表单，避免空等
+        // 剪藏以图片 / 选中文字本身为分析主体，与来源页是否有正文无关
+        const clip = trigger?.clip;
+        const isImageClip = clip?.type === "image" && !!clip.imageSourceUrl;
+        const isHighlightClip = clip?.type === "highlight" && !!clip.text?.trim();
+        const hasAnalyzableSubject =
+          isImageClip ||
+          isHighlightClip ||
+          !!(content.content || content.textContent);
+        // 图片剪藏会把原图发送给模型，受独立开关控制
+        const imageAnalysisAllowed =
+          !isImageClip || aiConfig.enableImageAnalysis !== false;
+
         const willAnalyze =
           !bookmark &&
           !content.isPrivate &&
           isAIConfigured(aiConfig) &&
-          !!(content.content || content.textContent);
+          hasAnalyzableSubject &&
+          imageAnalysisAllowed;
 
         setPhase(willAnalyze ? "analyzing" : "ready");
       } catch (err) {

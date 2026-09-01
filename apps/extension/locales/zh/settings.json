@@ -22,7 +22,25 @@
     "maxTokens": "最大 Token 数",
     "importBookmarks": "导入数据",
     "exportBookmarks": "导出数据",
-    "about": "关于",
+    "about": {
+      "title": "关于",
+      "description": "关于 HamHome",
+      "subtitle": "AI 驱动的浏览器工作空间",
+      "intro": "HamHome 是一款AI驱动的浏览器工作空间管理器，支持保存和恢复已打开的 Tab、自动分组，并通过 AI 管理书签与收藏内容，让进行中的浏览和长期沉淀都更容易整理。",
+      "versionLabel": "当前版本",
+      "versionValue": "HamHome v{{version}}",
+      "versionHint": "显示当前已安装的扩展版本号",
+      "websiteLabel": "官网",
+      "websiteHint": "访问官网查看产品介绍、下载方式与隐私说明",
+      "websiteButton": "访问官网",
+      "githubLabel": "GitHub 仓库",
+      "githubHint": "查看源码、发布版本、提交 Issue 或参与贡献",
+      "githubButton": "查看仓库",
+      "starTitle": "喜欢 HamHome？欢迎点个 Star",
+      "starHint": "如果 HamHome 对你有帮助，欢迎到 GitHub 点个 Star。你的支持会帮助项目持续迭代，也让更多用户发现它。",
+      "starButton": "前往 GitHub 点 Star",
+      "copyright": "© 2024-2026 HamHome. 保留所有权利。"
+    },
     "sections": {
       "general": "通用",
       "ai": "AI",
@@ -120,7 +138,6 @@
       "maxTokens": "最大 Token 数",
       "temperature": "Temperature (随机性)",
       "apiKey": "API 密钥",
-      "baseUrl": "Base URL",
       "noApiKeyNeeded": "不需要 API Key",
       "searchModel": "搜索模型名称",
       "noModelFound": "没有找到匹配的模型",
@@ -206,7 +223,9 @@
           "clearTitle": "确认清除向量数据",
           "clearWarning": "这将删除所有书签的向量索引，语义搜索功能将暂时不可用。确认清除？"
         }
-      }
+      },
+      "enableImageAnalysis": "图片剪藏 AI 分析",
+      "enableImageAnalysisHint": "开启后，保存图片时会将图片发送给 AI 以生成描述、分类和标签。隐私页面始终不会发送。"
     },
     "storage": {
       "title": "存储管理",
@@ -260,25 +279,6 @@
       "confirmClearAll": "确认清除所有数据",
       "clearAllWarning": "此操作将删除所有书签、分类、工作空间、网页快照、页面截图和向量索引。AI 配置、标签设置、WebDAV 配置等个人设置将被保留。此操作无法撤销！",
       "notEnabled": "未启用"
-    },
-    "about": {
-      "title": "关于",
-      "description": "关于 HamHome",
-      "subtitle": "AI 驱动的浏览器工作空间",
-      "intro": "HamHome 是一款AI驱动的浏览器工作空间管理器，支持保存和恢复已打开的 Tab、自动分组，并通过 AI 管理书签与收藏内容，让进行中的浏览和长期沉淀都更容易整理。",
-      "versionLabel": "当前版本",
-      "versionValue": "HamHome v{{version}}",
-      "versionHint": "显示当前已安装的扩展版本号",
-      "websiteLabel": "官网",
-      "websiteHint": "访问官网查看产品介绍、下载方式与隐私说明",
-      "websiteButton": "访问官网",
-      "githubLabel": "GitHub 仓库",
-      "githubHint": "查看源码、发布版本、提交 Issue 或参与贡献",
-      "githubButton": "查看仓库",
-      "starTitle": "喜欢 HamHome？欢迎点个 Star",
-      "starHint": "如果 HamHome 对你有帮助，欢迎到 GitHub 点个 Star。你的支持会帮助项目持续迭代，也让更多用户发现它。",
-      "starButton": "前往 GitHub 点 Star",
-      "copyright": "© 2024-2026 HamHome. 保留所有权利。"
     },
     "dialogs": {
       "confirmClear": "确认清除所有数据",

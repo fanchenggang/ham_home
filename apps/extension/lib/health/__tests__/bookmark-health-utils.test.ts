@@ -3,6 +3,7 @@ import {
   appendLocalIssueCodes,
   buildDuplicateIssueMap,
   classifyHttpStatus,
+  filterBookmarkHealthTargets,
   normalizeHealthUrl,
 } from "../bookmark-health-utils";
 import type { BookmarkHealthRecord, LocalBookmark } from "@/types";
@@ -38,6 +39,23 @@ describe("bookmark health URL normalization", () => {
   it("rejects non-http protocols", () => {
     expect(normalizeHealthUrl("chrome://extensions")).toBeNull();
     expect(normalizeHealthUrl("file:///tmp/demo.html")).toBeNull();
+  });
+});
+
+describe("bookmark health scan scope", () => {
+  it("keeps ordinary bookmarks and excludes image and text clip subjects", () => {
+    const bookmarks = [
+      bookmark("bookmark", "https://example.com/page"),
+      bookmark("image", "https://example.com/image.png"),
+      bookmark("text", "https://example.com/page#:~:text=selection"),
+    ];
+
+    const targets = filterBookmarkHealthTargets(bookmarks, {
+      image: { type: "image" },
+      text: { type: "text" },
+    });
+
+    expect(targets.map((item) => item.id)).toEqual(["bookmark"]);
   });
 });
 

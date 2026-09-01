@@ -10,7 +10,8 @@ interface VisualBookmarkGalleryProps {
   screenshotIds: Set<string>;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
-  onOpenDetails: (bookmark: LocalBookmark) => void;
+  /** 画廊里的每张卡片都有界面截图，点击卡片直接看大图 */
+  onViewScreenshot: (bookmark: LocalBookmark) => void;
   onOpenBookmark: (url: string) => void;
 }
 
@@ -27,7 +28,7 @@ export function VisualBookmarkGallery({
   screenshotIds,
   selectedIds,
   onToggleSelect,
-  onOpenDetails,
+  onViewScreenshot,
   onOpenBookmark,
 }: VisualBookmarkGalleryProps) {
   const { t } = useTranslation("bookmark");
@@ -55,7 +56,7 @@ export function VisualBookmarkGallery({
           bookmark={bookmark}
           selected={selectedIds.has(bookmark.id)}
           onToggleSelect={() => onToggleSelect(bookmark.id)}
-          onOpenDetails={() => onOpenDetails(bookmark)}
+          onViewScreenshot={() => onViewScreenshot(bookmark)}
           onOpenBookmark={() => onOpenBookmark(bookmark.url)}
         />
       ))}
@@ -67,7 +68,7 @@ interface VisualCardProps {
   bookmark: LocalBookmark;
   selected: boolean;
   onToggleSelect: () => void;
-  onOpenDetails: () => void;
+  onViewScreenshot: () => void;
   onOpenBookmark: () => void;
 }
 
@@ -75,7 +76,7 @@ function VisualCard({
   bookmark,
   selected,
   onToggleSelect,
-  onOpenDetails,
+  onViewScreenshot,
   onOpenBookmark,
 }: VisualCardProps) {
   const ref = useRef<HTMLElement | null>(null);
@@ -113,7 +114,7 @@ function VisualCard({
       <button
         type="button"
         className="block aspect-[16/10] w-full overflow-hidden bg-muted text-left"
-        onClick={onOpenDetails}
+        onClick={onViewScreenshot}
       >
         {url ? (
           <img
@@ -147,7 +148,7 @@ function VisualCard({
       >
         <ExternalLink className="h-4 w-4" />
       </Button>
-      <button type="button" className="w-full p-4 text-left" onClick={onOpenDetails}>
+      <button type="button" className="w-full p-4 text-left" onClick={onViewScreenshot}>
         <h3 className="truncate text-sm font-semibold">{bookmark.title}</h3>
         <p className="mt-1 truncate text-xs text-muted-foreground">
           {getHostname(bookmark.url)}

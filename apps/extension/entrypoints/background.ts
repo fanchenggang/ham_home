@@ -31,7 +31,6 @@ import { applyDevConfigPreset } from "@/lib/dev/dev-config-preset";
 // 右键菜单 ID
 const PAGE_CONTEXT_MENU_ID = "save-page-to-hamhome";
 const HIGHLIGHT_CONTEXT_MENU_ID = "save-highlight-to-hamhome";
-const LINK_CONTEXT_MENU_ID = "save-link-to-hamhome";
 const IMAGE_CONTEXT_MENU_ID = "save-image-to-hamhome";
 const WORKSPACE_CONTEXT_MENU_ID = "save-window-workspace";
 const MANAGE_HAMHOME_CONTEXT_MENU_ID = "manage-hamhome";
@@ -96,19 +95,17 @@ async function fetchResourceForSingleFile(
 // 菜单标题映射
 const MENU_TITLES: Record<
   Language,
-  { page: string; highlight: string; link: string; image: string }
+  { page: string; highlight: string; image: string }
 > = {
   en: {
-    page: "Save current page to HamHome",
-    highlight: "Save highlight to HamHome",
-    link: "Save this link to HamHome",
-    image: "Save image clipping to HamHome",
+    page: "Save current page",
+    highlight: "Save selection",
+    image: "Save image",
   },
   zh: {
-    page: "保存当前页面到 HamHome",
-    highlight: "保存高亮到 HamHome",
-    link: "保存此链接到 HamHome",
-    image: "保存图片剪藏到 HamHome",
+    page: "保存当前页面",
+    highlight: "保存选中内容",
+    image: "保存图片",
   },
 };
 
@@ -185,7 +182,6 @@ async function createContextMenu() {
     const menuConfigs = [
       { id: PAGE_CONTEXT_MENU_ID, title: titles.bookmark.page, contexts: ["page"] as const },
       { id: HIGHLIGHT_CONTEXT_MENU_ID, title: titles.bookmark.highlight, contexts: ["selection"] as const },
-      { id: LINK_CONTEXT_MENU_ID, title: titles.bookmark.link, contexts: ["link"] as const },
       { id: IMAGE_CONTEXT_MENU_ID, title: titles.bookmark.image, contexts: ["image"] as const },
       {
         id: WORKSPACE_CONTEXT_MENU_ID,
@@ -227,7 +223,6 @@ async function updateContextMenuTitle() {
     await Promise.all([
       browser.contextMenus.update(PAGE_CONTEXT_MENU_ID, { title: titles.bookmark.page }),
       browser.contextMenus.update(HIGHLIGHT_CONTEXT_MENU_ID, { title: titles.bookmark.highlight }),
-      browser.contextMenus.update(LINK_CONTEXT_MENU_ID, { title: titles.bookmark.link }),
       browser.contextMenus.update(IMAGE_CONTEXT_MENU_ID, { title: titles.bookmark.image }),
     ]);
     await browser.contextMenus.update(WORKSPACE_CONTEXT_MENU_ID, {
@@ -527,28 +522,20 @@ export default defineBackground(() => {
     if (
       info.menuItemId === PAGE_CONTEXT_MENU_ID ||
       info.menuItemId === HIGHLIGHT_CONTEXT_MENU_ID ||
-      info.menuItemId === LINK_CONTEXT_MENU_ID ||
       info.menuItemId === IMAGE_CONTEXT_MENU_ID
     ) {
       const clip: SaveFlowClipContext | undefined =
         info.menuItemId === IMAGE_CONTEXT_MENU_ID && info.srcUrl
-        ? {
-            type: "image",
-            imageSourceUrl: info.srcUrl,
-            sourceUrl: tab?.url,
-            sourceTitle: tab?.title,
-          }
-        : info.menuItemId === HIGHLIGHT_CONTEXT_MENU_ID && info.selectionText
           ? {
-              type: "highlight",
-              text: info.selectionText,
+              type: "image",
+              imageSourceUrl: info.srcUrl,
               sourceUrl: tab?.url,
               sourceTitle: tab?.title,
             }
-          : info.menuItemId === LINK_CONTEXT_MENU_ID && info.linkUrl
+          : info.menuItemId === HIGHLIGHT_CONTEXT_MENU_ID && info.selectionText
             ? {
-                type: "link",
-                targetUrl: info.linkUrl,
+                type: "highlight",
+                text: info.selectionText,
                 sourceUrl: tab?.url,
                 sourceTitle: tab?.title,
               }

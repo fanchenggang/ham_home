@@ -3,6 +3,7 @@
  * 保存面板的业务逻辑层
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   bookmarkClipStorage,
   bookmarkStorage,
@@ -11,11 +12,19 @@ import {
 import {
   matchCategoryByName,
 } from "@/lib/agent";
+// 直接引用错误码模块，避免把 background 专用的剪藏分析服务打进 content script
+import { resolveClipAnalysisErrorCode } from "@/lib/agent/clip-analysis-errors";
 import { getBackgroundService } from "@/lib/services";
 import { obsidianSyncService } from "@/lib/services/obsidian-sync-service";
 import { createMarkdownContent } from "defuddle/full";
+import {
+  deriveHighlightTitle,
+  getClipImageBookmarkUrl,
+  isSubjectClip,
+} from "@/utils/clip-context";
 import type {
   PageContent,
+  ImageClipMetadata,
   LocalBookmark,
   LocalCategory,
   SaveFlowClipContext,
@@ -137,6 +146,7 @@ interface SavePanelFormState {
 function createInitialFormState(
   pageContent: PageContent,
   existingBookmark: LocalBookmark | null,
+  initialClip?: SaveFlowClipContext,
 ): SavePanelFormState {
   if (existingBookmark) {
     return {
@@ -150,11 +160,63 @@ function createInitialFormState(
 
   return {
     url: pageContent.url,
-    title: pageContent.title,
+    // 文字剪藏在面板上没有标题输入，用选中内容首句兜底，保证书签可检索
+    title: isTextClip(initialClip)
+      ? deriveHighlightTitle(initialClip?.text) || pageContent.title
+      : pageContent.title,
     description: "",
     categoryId: null,
     tags: [],
   };
+}
+
+/** 文字剪藏的展示主体就是选中内容，标题与摘要都不参与保存面板 */
+function isTextClip(clip?: SaveFlowClipContext): boolean {
+  return clip?.type === "highlight" && !!clip.text?.trim();
+}
+
+/**
+ * 需要按剪藏主体（而非整页）分析的类型。
+ * 返回 null 表示走普通的整页书签分析。
+ */
+function getClipAnalysisKind(
+  clip?: SaveFlowClipContext,
+): "image" | "highlight" | null {
+  if (clip?.type === "image" && clip.imageSourceUrl) return "image";
+  if (isTextClip(clip)) return "highlight";
+  return null;
+}
+
+function createInitialImageMetadata(
+  clip?: SaveFlowClipContext,
+): ImageClipMetadata | undefined {
+  if (clip?.type !== "image") return undefined;
+  const metadata = {
+    width: clip.imageWidth,
+    height: clip.imageHeight,
+  };
+  return metadata.width || metadata.height ? metadata : undefined;
+}
+
+function mergeImageMetadata(
+  current?: ImageClipMetadata,
+  inspected?: ImageClipMetadata,
+): ImageClipMetadata | undefined {
+  if (!current && !inspected) return undefined;
+  return {
+    ...inspected,
+    ...current,
+    colors: current?.colors,
+  };
+}
+
+function hasTechnicalImageMetadata(metadata?: ImageClipMetadata): boolean {
+  return !!(
+    metadata?.width &&
+    metadata.height &&
+    metadata.size != null &&
+    metadata.format
+  );
 }
 
 export function useSavePanel({
@@ -166,22 +228,33 @@ export function useSavePanel({
   initialClip,
   onInitialLoadSettled,
 }: UseSavePanelProps): UseSavePanelResult {
+  const { t } = useTranslation();
+
   // 用 ref 持有回调，避免回调身份变化触发重复的初始化 effect
   const onInitialLoadSettledRef = useRef(onInitialLoadSettled);
   onInitialLoadSettledRef.current = onInitialLoadSettled;
   const initialLoadSettledRef = useRef(false);
 
+  // 剪藏按其主体（图片 / 选中文字）分析，与整页书签走不同的提示词
+  const clipAnalysisKind = getClipAnalysisKind(initialClip);
+
+  // 图片书签的地址是图片本身，正文仍属于来源页，按来源页地址解析相对链接
+  const imageBookmarkUrl = getClipImageBookmarkUrl(initialClip);
+  const contentBaseUrl = imageBookmarkUrl
+    ? (initialClip?.sourceUrl ?? pageContent.url)
+    : pageContent.url;
+
   // 将 content.ts 传来的 HTML 正文转为 Markdown
   // 提升性能，仅在 UI 层按需处理
   const markdown = useMemo(() => {
     if (!pageContent.content) return "";
-    return createMarkdownContent(pageContent.htmlContent, pageContent.url);
-  }, [pageContent.content, pageContent.htmlContent, pageContent.url]);
+    return createMarkdownContent(pageContent.htmlContent, contentBaseUrl);
+  }, [pageContent.content, pageContent.htmlContent, contentBaseUrl]);
 
   // 表单状态
   const initialFormState = useMemo(
-    () => createInitialFormState(pageContent, existingBookmark),
-    [pageContent, existingBookmark],
+    () => createInitialFormState(pageContent, existingBookmark, initialClip),
+    [pageContent, existingBookmark, initialClip],
   );
   const [url, setUrl] = useState(initialFormState.url);
   const [title, setTitle] = useState(initialFormState.title);
@@ -199,6 +272,9 @@ export function useSavePanel({
   // AI 状态
   const [aiStatus, setAIStatus] = useState<AIStatusType>("idle");
   const [aiError, setAIError] = useState<string | null>(null);
+  const [imageClipMetadata, setImageClipMetadata] = useState<
+    ImageClipMetadata | undefined
+  >(() => createInitialImageMetadata(initialClip));
 
   // AI 推荐的新分类（不在用户已有分类中）
   const [aiRecommendedCategory, setAiRecommendedCategory] = useState<
@@ -261,6 +337,12 @@ export function useSavePanel({
         return;
       }
 
+      // 图片剪藏会把原图发送给模型，用户关闭该开关时不做分析
+      if (clipAnalysisKind === "image" && config.enableImageAnalysis === false) {
+        setAIStatus("disabled");
+        return;
+      }
+
       setAIStatus("loading");
       setAIError(null);
 
@@ -269,14 +351,36 @@ export function useSavePanel({
         // 缓存读写由 background 统一处理，保证 popup / content script 共用同一份缓存
         const backgroundService = getBackgroundService();
         const existingTags = await bookmarkStorage.getAllTags();
-        const result = await backgroundService.analyzeBookmark({
-          pageContent: { ...pageContent, content: markdown },
-          userCategories: categoriesRef.current,
-          existingTags,
-          skipCache,
-        });
+        const result =
+          clipAnalysisKind && initialClip
+            ? await backgroundService.analyzeClip({
+                clip: initialClip,
+                // 剪藏书签地址（图片地址 / 带 Text Fragment 的来源页地址）天然唯一，直接作缓存键
+                cacheKey: pageContent.url,
+                source: {
+                  url: initialClip.sourceUrl ?? contentBaseUrl,
+                  title: initialClip.sourceTitle ?? pageContent.title,
+                  excerpt: pageContent.excerpt,
+                },
+                userCategories: categoriesRef.current,
+                existingTags,
+                skipCache,
+              })
+            : await backgroundService.analyzeBookmark({
+                pageContent: { ...pageContent, content: markdown },
+                userCategories: categoriesRef.current,
+                existingTags,
+                skipCache,
+              });
+
+        if (result.imageMetadata) {
+          setImageClipMetadata((current) =>
+            mergeImageMetadata(result.imageMetadata, current),
+          );
+        }
 
         // 应用分析结果
+        // 文字剪藏的分析结果不含标题与摘要，这里会自动跳过对应字段
         await applyAnalysisResultWithSetters(
           result,
           config,
@@ -293,10 +397,18 @@ export function useSavePanel({
         setAIStatus("success");
       } catch (err: unknown) {
         setAIStatus("error");
-        setAIError(err instanceof Error ? err.message : "分析失败");
+        setAIError(resolveAnalysisErrorMessage(err, t));
       }
     },
-    [pageContent, existingBookmark, markdown],
+    [
+      pageContent,
+      existingBookmark,
+      markdown,
+      initialClip,
+      clipAnalysisKind,
+      contentBaseUrl,
+      t,
+    ],
   );
 
   // 加载分类和标签列表，并在数据可用后直接触发新书签 AI 分析
@@ -316,21 +428,34 @@ export function useSavePanel({
       setCategories(cats);
       setAllTags(existingTags);
 
-      if (initialSaveSnapshot !== undefined) {
-        setSaveSnapshotState(initialSaveSnapshot);
+      // 主体型剪藏（图片 / 选中文字）保存的不是整页，不需要截图与快照
+      if (isSubjectClip(initialClip)) {
+        setSaveSnapshotState(false);
+        setSaveScreenshotState(false);
       } else {
-        setSaveSnapshotState(settings.autoSaveSnapshot);
+        if (initialSaveSnapshot !== undefined) {
+          setSaveSnapshotState(initialSaveSnapshot);
+        } else {
+          setSaveSnapshotState(settings.autoSaveSnapshot);
+        }
+
+        const screenshotAllowed =
+          !pageContent.isPrivate ||
+          settings.screenshotPrivatePagePolicy === "ask";
+        setSaveScreenshotState(
+          screenshotAllowed
+            ? (initialSaveScreenshot ?? settings.autoSaveScreenshot)
+            : false,
+        );
       }
 
-      const screenshotAllowed =
-        !pageContent.isPrivate || settings.screenshotPrivatePagePolicy === "ask";
-      setSaveScreenshotState(
-        screenshotAllowed
-          ? (initialSaveScreenshot ?? settings.autoSaveScreenshot)
-          : false,
-      );
+      // 剪藏的分析主体是图片或选中文字，与来源页是否有正文无关；
+      // 隐私页面上的内容一律不发送给 AI
+      const hasAnalyzableSubject = clipAnalysisKind
+        ? true
+        : !!(markdown || pageContent.textContent);
 
-      if (!existingBookmark && (markdown || pageContent.textContent)) {
+      if (!existingBookmark && !pageContent.isPrivate && hasAnalyzableSubject) {
         await performAIAnalysis(false);
       }
 
@@ -345,10 +470,13 @@ export function useSavePanel({
       cancelled = true;
     };
   }, [
+    clipAnalysisKind,
     existingBookmark,
+    initialClip,
     initialSaveSnapshot,
     initialSaveScreenshot,
     markdown,
+    pageContent.isPrivate,
     pageContent.textContent,
     performAIAnalysis,
   ]);
@@ -458,7 +586,13 @@ export function useSavePanel({
         url: url.trim(),
         title: title.trim(),
         description: description.trim(),
-        content: markdown,
+        // 主体型剪藏不重复保存来源页正文（同页多条剪藏会各存一份）：
+        // 图片书签的主体是图片本身，文字书签的主体是选中片段
+        content: imageBookmarkUrl
+          ? ""
+          : isTextClip(initialClip)
+            ? (initialClip?.text?.trim() ?? "")
+            : markdown,
         categoryId,
         tags,
         favicon: pageContent.favicon,
@@ -521,6 +655,29 @@ export function useSavePanel({
         independentAssets.push(
           (async () => {
             try {
+              let persistedImageMetadata = imageClipMetadata;
+              if (
+                initialClip.type === "image" &&
+                initialClip.imageSourceUrl &&
+                !hasTechnicalImageMetadata(persistedImageMetadata)
+              ) {
+                try {
+                  const inspected = await getBackgroundService().inspectClipImage(
+                    initialClip.imageSourceUrl,
+                  );
+                  persistedImageMetadata = mergeImageMetadata(
+                    persistedImageMetadata,
+                    inspected,
+                  );
+                } catch (error) {
+                  // 技术信息采集失败不回滚书签与剪藏；保留 DOM / AI 已取得的字段。
+                  console.warn(
+                    "[useSavePanel] Failed to inspect clipped image:",
+                    error,
+                  );
+                }
+              }
+
               await bookmarkClipStorage.addClip(bookmark.id, {
                 type: initialClip.type,
                 text: initialClip.text,
@@ -530,6 +687,7 @@ export function useSavePanel({
                 sourceUrl: initialClip.sourceUrl || pageContent.url,
                 sourceTitle: initialClip.sourceTitle || pageContent.title,
                 selector: initialClip.selector,
+                imageMetadata: persistedImageMetadata,
               });
               setClipStatus("saved");
             } catch (error) {
@@ -624,11 +782,13 @@ export function useSavePanel({
     tags,
     pageContent,
     markdown,
+    imageBookmarkUrl,
     existingBookmark,
     saveSnapshot,
     saveScreenshot,
     syncToObsidian,
     initialClip,
+    imageClipMetadata,
     clipNote,
     onSaved,
   ]);
@@ -704,6 +864,22 @@ export function useSavePanel({
     deleteBookmark,
     clearActionError,
   };
+}
+
+/**
+ * 剪藏分析的失败原因需要给出可操作的提示（例如模型不支持图片），
+ * 其余错误沿用模型返回的原始信息。
+ */
+function resolveAnalysisErrorMessage(
+  error: unknown,
+  t: (key: string) => string,
+): string {
+  const code = resolveClipAnalysisErrorCode(error);
+  if (code) {
+    return t(`ai:clipAnalysis.errors.${code}`);
+  }
+
+  return error instanceof Error ? error.message : "分析失败";
 }
 
 function shouldUseMarkdownSnapshot(

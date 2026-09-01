@@ -11,6 +11,7 @@ import { Button, cn } from "@hamhome/ui";
 import { SavePanel } from "./SavePanel";
 import { useInPageSave } from "@/hooks/useInPageSave";
 import { useContentUI } from "@/utils/ContentUIContext";
+import { isSubjectClip } from "@/utils/clip-context";
 
 /** 浮窗统一定位在右下角 */
 const FLOATING_POSITION = "fixed bottom-4 right-4 z-[100000] pointer-events-auto";
@@ -141,7 +142,7 @@ export function InPageSaveFlow() {
               pageContent={pageContent}
               existingBookmark={existingBookmark}
               initialClip={clipContext ?? undefined}
-              hideSnapshotOptions={clipContext?.type === "link"}
+              hideSnapshotOptions={isSubjectClip(clipContext ?? undefined)}
               portalContainer={container}
               onInitialLoadSettled={handleInitialLoadSettled}
               onSaved={handleSaved}

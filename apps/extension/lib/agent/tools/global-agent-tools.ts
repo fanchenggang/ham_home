@@ -1,4 +1,4 @@
-import type { AgentTool } from "@browser-agent-sdk/agent";
+import type { AgentTool } from "@hamhome/agent";
 import { browser } from "wxt/browser";
 import { bookmarkStorage, configStorage } from "@/lib/storage";
 import { syncConfigStorage } from "@/lib/sync/sync-config-storage";
@@ -57,6 +57,7 @@ async function getSafeSettingsSnapshot() {
       enableTagSuggestion: aiConfig.enableTagSuggestion,
       presetTags: aiConfig.presetTags || [],
       autoDetectPrivacy: aiConfig.autoDetectPrivacy,
+      enableImageAnalysis: aiConfig.enableImageAnalysis,
       hasApiKey: !!aiConfig.apiKey?.trim(),
       hasBaseUrl: !!aiConfig.baseUrl?.trim(),
       privacyDomainCount: aiConfig.privacyDomains?.length || 0,
@@ -176,6 +177,7 @@ export async function createGlobalAgentTools(
               enableTagSuggestion: { type: "boolean" },
               presetTags: { type: "array", items: { type: "string" } },
               autoDetectPrivacy: { type: "boolean" },
+              enableImageAnalysis: { type: "boolean" },
             },
             additionalProperties: false,
           },
@@ -245,6 +247,7 @@ export async function createGlobalAgentTools(
               enableSmartCategory: aiConfig.enableSmartCategory,
               enableTagSuggestion: aiConfig.enableTagSuggestion,
               autoDetectPrivacy: aiConfig.autoDetectPrivacy,
+              enableImageAnalysis: aiConfig.enableImageAnalysis,
             },
             embeddingConfig: {
               enabled: embeddingConfig.enabled,

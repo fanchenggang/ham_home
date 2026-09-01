@@ -1,10 +1,12 @@
 import pLimit from "p-limit";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
+import { bookmarkClipStorage } from "@/lib/storage/bookmark-clip-storage";
 import { bookmarkHealthStorage } from "@/lib/storage/bookmark-health-storage";
 import {
   appendLocalIssueCodes,
   buildDuplicateIssueMap,
   classifyHttpStatus,
+  filterBookmarkHealthTargets,
   normalizeHealthUrl,
 } from "@/lib/health/bookmark-health-utils";
 import type { BookmarkHealthRecord, LocalBookmark } from "@/types";
@@ -86,11 +88,19 @@ export class BookmarkHealthService {
 
   async scan(bookmarkIds?: string[]): Promise<BookmarkHealthRecord[]> {
     const allBookmarks = await bookmarkStorage.getBookmarks();
+    const subjectIndex = await bookmarkClipStorage.getSubjectIndex();
+    const healthBookmarks = filterBookmarkHealthTargets(
+      allBookmarks,
+      subjectIndex,
+    );
+    // 清掉旧版本可能为图片 / 文字内容留下的体检结果。
+    await bookmarkHealthStorage.deleteMany(Object.keys(subjectIndex));
+
     const requestedIds = bookmarkIds ? new Set(bookmarkIds) : null;
     const bookmarks = requestedIds
-      ? allBookmarks.filter((bookmark) => requestedIds.has(bookmark.id))
-      : allBookmarks;
-    const duplicateIssues = buildDuplicateIssueMap(allBookmarks);
+      ? healthBookmarks.filter((bookmark) => requestedIds.has(bookmark.id))
+      : healthBookmarks;
+    const duplicateIssues = buildDuplicateIssueMap(healthBookmarks);
     const limit = pLimit(SCAN_CONCURRENCY);
 
     return Promise.all(

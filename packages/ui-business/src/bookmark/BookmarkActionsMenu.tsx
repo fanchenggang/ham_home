@@ -4,9 +4,9 @@ import {
   Download,
   Edit,
   ExternalLink,
+  Image as ImageIcon,
   MoreHorizontal,
   Pin,
-  PanelRightOpen,
   Share2,
   Sparkles,
   Trash2,
@@ -31,8 +31,8 @@ export function BookmarkActionsMenu({
   triggerClassName = "h-8 w-8",
   onOpen,
   onEdit,
-  onViewDetails,
   onDelete,
+  onViewScreenshot,
   onViewSnapshot,
   onSaveSnapshot,
   onDeleteSnapshot,
@@ -43,8 +43,12 @@ export function BookmarkActionsMenu({
   isProcessingAI,
   t,
 }: BookmarkActionsMenuProps) {
-  const hasSnapshotActions =
-    onViewSnapshot || onSaveSnapshot || onDeleteSnapshot || onSyncToObsidian;
+  const hasAssetActions =
+    onViewScreenshot ||
+    onViewSnapshot ||
+    onSaveSnapshot ||
+    onDeleteSnapshot ||
+    onSyncToObsidian;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookmark.url);
@@ -79,12 +83,6 @@ export function BookmarkActionsMenu({
           <Edit className="h-4 w-4 mr-2" />
           {t("bookmark:bookmark.edit")}
         </DropdownMenuItem>
-        {onViewDetails && (
-          <DropdownMenuItem onClick={onViewDetails}>
-            <PanelRightOpen className="h-4 w-4 mr-2" />
-            {t("bookmark:bookmark.viewDetails")}
-          </DropdownMenuItem>
-        )}
         <DropdownMenuItem onClick={handleCopyLink}>
           <Copy className="h-4 w-4 mr-2" />
           {t("bookmark:bookmark.copyLink")}
@@ -99,9 +97,15 @@ export function BookmarkActionsMenu({
             {isPinned ? t("bookmark:bookmark.unpin") : t("bookmark:bookmark.pin")}
           </DropdownMenuItem>
         )}
-        {hasSnapshotActions && (
+        {hasAssetActions && (
           <>
             <DropdownMenuSeparator />
+            {onViewScreenshot && (
+              <DropdownMenuItem onClick={onViewScreenshot}>
+                <ImageIcon className="h-4 w-4 mr-2" />
+                {t("bookmark:bookmark.screenshot.view")}
+              </DropdownMenuItem>
+            )}
             {bookmark.hasSnapshot && onViewSnapshot && (
               <DropdownMenuItem onClick={onViewSnapshot}>
                 <Camera className="h-4 w-4 mr-2" />

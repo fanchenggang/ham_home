@@ -23,7 +23,7 @@
     "tags": "Tags",
     "createdAt": "Created",
     "recent": "Recent Bookmarks",
-    "all": "All Bookmarks",
+    "all": "My Collection",
     "privacy": "Privacy",
     "search": "Search bookmarks, tags, or URLs...",
     "count": "You have {{count}} bookmark",
@@ -39,7 +39,12 @@
       "allCategories": "All Categories",
       "allTags": "All Tags",
       "selectedTags": "{{count}} tags selected",
-      "clearFilter": "Clear Filters"
+      "clearFilter": "Clear Filters",
+      "contentType": "Content Type",
+      "typeAll": "All",
+      "typeBookmark": "Bookmarks",
+      "typeImage": "Images",
+      "typeText": "Text"
     },
     "view": {
       "grid": "Grid View",
@@ -65,7 +70,6 @@
     "noTags": "No tags",
     "open": "Open",
     "edit": "Edit",
-    "viewDetails": "View Details & Clips",
     "delete": "Delete",
     "pin": "Pin",
     "unpin": "Unpin",
@@ -75,6 +79,16 @@
     "share": "Share",
     "aiTag": "AI",
     "viewSnapshot": "View Snapshot",
+    "screenshot": {
+      "view": "Page screenshot",
+      "notFound": "This bookmark has no page screenshot",
+      "openInNewTab": "Open in new tab",
+      "download": "Download screenshot",
+      "delete": "Delete screenshot",
+      "deleteTitle": "Delete page screenshot",
+      "deleteDesc": "Only the local image is removed; the bookmark and its web snapshot stay.",
+      "deleted": "Page screenshot deleted"
+    },
     "snapshot": {
       "title": "Web Snapshot",
       "loading": "Loading snapshot...",
@@ -105,21 +119,20 @@
     "empty": "No page screenshots yet",
     "emptyDesc": "Enable “Save page screenshot” when bookmarking and this view will grow into your product UI and visual inspiration library."
   },
-  "detail": {
-    "screenshot": "Page Screenshot",
-    "noScreenshot": "This bookmark has no page screenshot",
-    "noScreenshotDesc": "Open the original page and save it again to capture the visible area.",
-    "screenshotDeleteTitle": "Delete Page Screenshot",
-    "screenshotDeleteDesc": "This removes only the local image, not the bookmark or web snapshot.",
-    "screenshotDeleted": "Page screenshot deleted",
-    "clips": "Clips & Notes ({{count}})",
-    "notePlaceholder": "Record an interaction, layout, or idea worth revisiting…",
-    "addNote": "Add Note",
-    "noClips": "No clips yet. Right-click selected text, links, or images on a page, or add a note here.",
-    "clipDeleteTitle": "Delete Clip",
-    "clipDeleteDesc": "The deletion will sync to other devices on the next WebDAV sync.",
-    "health": "Link Health",
-    "healthUnchecked": "Not checked yet. Run a single or batch check from Bookmark Health Center."
+  "subject": {
+    "imageTitle": "Image clip",
+    "textTitle": "Saved selection",
+    "source": "Source",
+    "note": "Note",
+    "imageInfo": "Image information",
+    "dimensions": "Dimensions",
+    "fileSize": "File size",
+    "format": "Format",
+    "unknown": "Unknown",
+    "copyText": "Copy text",
+    "copied": "Copied to clipboard",
+    "openImage": "Open image",
+    "openSource": "Open source page"
   },
   "modal": {
     "title": "Add New Bookmark",
@@ -359,6 +372,8 @@
     },
     "clip": {
       "willSave": "Saved with bookmark",
+      "imageUrlLabel": "Image URL",
+      "sourceLabel": "Source",
       "notePlaceholder": "Add a note to this clip (optional)",
       "types": {
         "highlight": "Text highlight",
@@ -397,7 +412,7 @@
   "healthCenter": {
     "title": "Bookmark Health Center",
     "navTitle": "Bookmark Health",
-    "description": "Check dead links, redirects, access errors, and duplicates. Authentication, rate limits, and network failures are kept distinct from broken links.",
+    "description": "Check dead links, redirects, access errors, and duplicates for bookmark collections only. Image and text clips are excluded. Authentication, rate limits, and network failures are kept distinct from broken links.",
     "scanAll": "Run Full Check",
     "scanning": "Checking",
     "scanComplete": "Bookmark check complete",
@@ -409,7 +424,7 @@
     "redirectApplied": "Updated to the redirected URL",
     "checkedAt": "Checked {{date}}",
     "stats": {
-      "total": "All Bookmarks",
+      "total": "Bookmark Collection",
       "healthy": "Healthy",
       "attention": "Needs Attention",
       "unchecked": "Unchecked"

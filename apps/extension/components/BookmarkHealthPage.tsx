@@ -25,7 +25,12 @@ import {
 } from "@hamhome/ui";
 import { useBookmarks } from "@/contexts/BookmarkContext";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
+import {
+  bookmarkClipStorage,
+  type BookmarkClipSubjectIndex,
+} from "@/lib/storage/bookmark-clip-storage";
 import { bookmarkHealthStorage } from "@/lib/storage/bookmark-health-storage";
+import { filterBookmarkHealthTargets } from "@/lib/health/bookmark-health-utils";
 import { getBackgroundService } from "@/lib/services";
 import type {
   BookmarkHealthRecord,
@@ -59,6 +64,8 @@ export function BookmarkHealthPage() {
   const { t } = useTranslation(["bookmark", "common"]);
   const { bookmarks, deleteBookmark, refreshBookmarks } = useBookmarks();
   const [records, setRecords] = useState<BookmarkHealthRecord[]>([]);
+  const [subjectIndex, setSubjectIndex] =
+    useState<BookmarkClipSubjectIndex>({});
   const [filter, setFilter] = useState<HealthFilter>("all");
   const [query, setQuery] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -68,6 +75,16 @@ export function BookmarkHealthPage() {
     void bookmarkHealthStorage.getAll().then(setRecords);
     return bookmarkHealthStorage.watch(setRecords);
   }, []);
+
+  useEffect(() => {
+    void bookmarkClipStorage.getSubjectIndex().then(setSubjectIndex);
+    return bookmarkClipStorage.watchSubjectIndex(setSubjectIndex);
+  }, []);
+
+  const healthBookmarks = useMemo(
+    () => filterBookmarkHealthTargets(bookmarks, subjectIndex),
+    [bookmarks, subjectIndex],
+  );
 
   const recordMap = useMemo(
     () => new Map(records.map((record) => [record.bookmarkId, record])),
@@ -86,26 +103,26 @@ export function BookmarkHealthPage() {
     let healthy = 0;
     let attention = 0;
     let unchecked = 0;
-    for (const bookmark of bookmarks) {
+    for (const bookmark of healthBookmarks) {
       const record = getCurrentRecord(bookmark);
       if (!record) unchecked += 1;
       else if (record.status === "healthy" && getVisibleIssues(record).length === 0) healthy += 1;
       else attention += 1;
     }
-    return { total: bookmarks.length, healthy, attention, unchecked };
-  }, [bookmarks, getCurrentRecord]);
+    return { total: healthBookmarks.length, healthy, attention, unchecked };
+  }, [getCurrentRecord, healthBookmarks]);
 
   const scannedDuringRun = useMemo(() => {
     if (!scanning) return 0;
-    return bookmarks.filter(
+    return healthBookmarks.filter(
       (bookmark) =>
         (getCurrentRecord(bookmark)?.checkedAt ?? 0) >= scanStartedAtRef.current,
     ).length;
-  }, [bookmarks, getCurrentRecord, records, scanning]);
+  }, [getCurrentRecord, healthBookmarks, records, scanning]);
 
   const filteredBookmarks = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return bookmarks.filter((bookmark) => {
+    return healthBookmarks.filter((bookmark) => {
       if (
         keyword &&
         !`${bookmark.title} ${bookmark.url}`.toLowerCase().includes(keyword)
@@ -123,7 +140,7 @@ export function BookmarkHealthPage() {
       }
       return true;
     });
-  }, [bookmarks, filter, getCurrentRecord, query]);
+  }, [filter, getCurrentRecord, healthBookmarks, query]);
 
   const runScan = useCallback(async (bookmarkIds?: string[]) => {
     scanStartedAtRef.current = Date.now();
@@ -182,7 +199,10 @@ export function BookmarkHealthPage() {
               {t("bookmark:healthCenter.description")}
             </p>
           </div>
-          <Button onClick={() => void runScan()} disabled={scanning || bookmarks.length === 0}>
+          <Button
+            onClick={() => void runScan()}
+            disabled={scanning || healthBookmarks.length === 0}
+          >
             {scanning ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -207,10 +227,14 @@ export function BookmarkHealthPage() {
               <div className="flex justify-between text-sm">
                 <span>{t("bookmark:healthCenter.progress")}</span>
                 <span className="text-muted-foreground">
-                  {scannedDuringRun}/{bookmarks.length}
+                  {scannedDuringRun}/{healthBookmarks.length}
                 </span>
               </div>
-              <Progress value={(scannedDuringRun / Math.max(1, bookmarks.length)) * 100} />
+              <Progress
+                value={
+                  (scannedDuringRun / Math.max(1, healthBookmarks.length)) * 100
+                }
+              />
             </CardContent>
           </Card>
         )}
