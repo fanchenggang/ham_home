@@ -45,6 +45,8 @@
       "description": "自定义你的使用体验",
       "autoSaveSnapshot": "默认保存快照",
       "autoSaveSnapshotDesc": "保存书签时自动保存页面快照",
+      "usePopupSavePanel": "在扩展弹窗中保存",
+      "usePopupSavePanelDesc": "开启后触发保存时在扩展弹窗内填写书签表单；关闭则在当前网页内展示保存浮窗，AI 分析期间不打断浏览",
       "enableOmniboxSearch": "地址栏搜索增强",
       "enableOmniboxSearchDesc": "在浏览器地址栏输入 'ham' 后按空格，即可通过关键词或语义搜索并打开书签",
       "shortcut": "快捷键",
@@ -53,6 +55,8 @@
       "shortcutDescFirefox": "点击齿轮图标 → 管理扩展快捷键",
       "currentShortcuts": "当前快捷键配置",
       "shortcutNotSet": "未设置",
+      "enableSidePanel": "网页内侧边栏",
+      "enableSidePanelDesc": "在网页左右边缘显示书签侧边栏触发器；关闭后网页内不再注入侧边栏",
       "panelPosition": "侧边栏位置",
       "panelPositionDesc": "设置内容页面中侧边栏显示在左侧还是右侧",
       "panelPositionOptions": {

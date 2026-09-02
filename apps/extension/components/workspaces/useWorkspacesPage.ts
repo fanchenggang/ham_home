@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "@hamhome/ui";
+import { confirm, toast } from "@hamhome/ui";
 import { workspaceStorage } from "@/lib/storage/workspace-storage";
 import { workspaceAnalysisService } from "@/lib/services/workspace-analysis-service";
 import {
@@ -257,11 +257,14 @@ export function useWorkspacesPage({ }: UseWorkspacesPageOptions) {
   );
 
   const confirmRestore = useCallback(
-    (pageCount: number) => {
+    async (pageCount: number) => {
       if (pageCount <= MANY_PAGES_THRESHOLD) return true;
-      return window.confirm(
-        t("workspace.confirmRestoreMany", { count: pageCount }),
-      );
+      return confirm({
+        title: t("workspace.restoreTitle"),
+        description: t("workspace.confirmRestoreMany", { count: pageCount }),
+        confirmText: t("common:common.confirm"),
+        cancelText: t("common:common.cancel"),
+      });
     },
     [t],
   );
@@ -275,11 +278,14 @@ export function useWorkspacesPage({ }: UseWorkspacesPageOptions) {
 
   const deleteWorkspace = useCallback(
     async (workspace: Workspace) => {
-      if (
-        !window.confirm(t("workspace.deleteConfirm", { name: workspace.name }))
-      ) {
-        return;
-      }
+      const confirmed = await confirm({
+        title: t("workspace.deleteWorkspace"),
+        description: t("workspace.deleteConfirm", { name: workspace.name }),
+        confirmText: t("common:common.delete"),
+        cancelText: t("common:common.cancel"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
       await workspaceStorage.deleteWorkspace(workspace.id);
       toast.success(t("workspace.deleteSuccess"));
     },
@@ -451,9 +457,14 @@ export function useWorkspacesPage({ }: UseWorkspacesPageOptions) {
       const page = targetWorkspace.pages.find(p => p.id === pageId);
       if (!page) return;
 
-      if (!window.confirm(t("workspace.deletePageConfirm", { title: page.title }))) {
-        return;
-      }
+      const confirmed = await confirm({
+        title: t("workspace.deletePage"),
+        description: t("workspace.deletePageConfirm", { title: page.title }),
+        confirmText: t("common:common.delete"),
+        cancelText: t("common:common.cancel"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
 
       const updatedPages = targetWorkspace.pages.filter((p) => p.id !== pageId);
       await workspaceStorage.updateWorkspace(targetWorkspaceId, { pages: updatedPages });
@@ -574,11 +585,11 @@ async function runRestore(
   workspace: Workspace,
   mode: WorkspaceRestoreMode,
   pageIds: string[] | undefined,
-  confirmRestore: (pageCount: number) => boolean,
+  confirmRestore: (pageCount: number) => boolean | Promise<boolean>,
   t: (key: string, options?: Record<string, unknown>) => string,
 ) {
   const pageCount = pageIds?.length ?? workspace.pages.length;
-  if (!confirmRestore(pageCount)) return;
+  if (!(await confirmRestore(pageCount))) return;
   try {
     const result = await workspaceService.restoreWorkspace(workspace, {
       mode,

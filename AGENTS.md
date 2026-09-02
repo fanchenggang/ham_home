@@ -24,6 +24,8 @@ Use workspace boundaries: app code stays in `apps/*`; reusable logic belongs in 
 ### Development
 - `pnpm dev` - Run all dev tasks through Turbo
 - `pnpm dev:extension` - Run extension dev (Chrome)
+  - Preset AI keys / WebDAV etc. for dev profiles: copy `apps/extension/.env.example` to `.env.local`
+    (see `apps/extension/docs/dev-config-preset.md`)
 - `pnpm dev:ext-firefox` - Run extension dev for Firefox
 - `pnpm dev:ext-edge` - Run extension dev for Edge
 - `pnpm dev:web` - Run Next.js site locally

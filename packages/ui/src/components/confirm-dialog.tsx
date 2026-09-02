@@ -35,6 +35,10 @@ export interface ConfirmDialogProps {
   onCancel?: () => void;
   /** 确认按钮风格 */
   variant?: "default" | "destructive";
+  /** Portal 挂载容器（浏览器扩展 content script 的 shadow root 场景必传） */
+  container?: HTMLElement;
+  /** 隐藏取消按钮，用于纯提示型弹窗 */
+  hideCancel?: boolean;
 }
 
 /**
@@ -51,16 +55,28 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   variant = "default",
+  container,
+  hideCancel = false,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        container={container}
+        // shadow root 容器内的浮层层级很高，且容器自身 pointer-events: none，
+        // 这里需要抬高弹窗层级并恢复交互
+        className={cn(container && "pointer-events-auto z-[100004]")}
+        overlayClassName={cn(container && "pointer-events-auto z-[100003]")}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>{cancelText}</AlertDialogCancel>
+          {!hideCancel && (
+            <AlertDialogCancel onClick={onCancel}>
+              {cancelText}
+            </AlertDialogCancel>
+          )}
           <AlertDialogAction
             onClick={onConfirm}
             className={cn(
@@ -129,6 +145,7 @@ export function confirm(options: ConfirmOptions): Promise<boolean> {
         confirmText: options.confirmText,
         cancelText: options.cancelText,
         variant: options.variant,
+        container: options.container,
         onConfirm: () => safeResolve(true),
         onCancel: () => safeResolve(false),
         onClose: () => safeResolve(false),

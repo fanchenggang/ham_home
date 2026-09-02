@@ -205,6 +205,8 @@ export class SyncEngine {
       local.theme === remote.theme &&
       local.language === remote.language &&
       local.shortcut === remote.shortcut &&
+      local.enableSidePanel === remote.enableSidePanel &&
+      local.usePopupSavePanel === remote.usePopupSavePanel &&
       local.panelPosition === remote.panelPosition &&
       local.panelShortcut === remote.panelShortcut
     );

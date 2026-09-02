@@ -60,6 +60,7 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
+  toast,
   cn,
 } from "@hamhome/ui";
 import { CategoryPreviewTree } from "@hamhome/ui-business/category";
@@ -357,7 +358,9 @@ export function CategoriesPage() {
       setParentCategoryId(null);
       setShowAddDialog(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 
@@ -382,7 +385,9 @@ export function CategoriesPage() {
       setCategoryName("");
       setCategoryIcon("");
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 
@@ -399,7 +404,9 @@ export function CategoriesPage() {
       setShowDeleteDialog(false);
       setSelectedCategory(null);
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 
@@ -419,7 +426,9 @@ export function CategoriesPage() {
       setShowBatchDeleteDialog(false);
       setIsBatchMode(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 
@@ -465,7 +474,9 @@ export function CategoriesPage() {
       }
       setShowPresetDialog(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 
@@ -509,7 +520,9 @@ export function CategoriesPage() {
       setAiGeneratedCategories(null);
       setAiDescription("");
     } catch (error) {
-      alert(error instanceof Error ? error.message : t("common:common.error"));
+      toast.error(
+        error instanceof Error ? error.message : t("common:common.error"),
+      );
     }
   };
 

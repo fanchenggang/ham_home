@@ -30,10 +30,20 @@ export async function openPopupPage(
   return page;
 }
 
+export interface OpenControlledPopupOptions {
+  /**
+   * 打开后停留在哪个视图。
+   * Popup 默认展示快捷面板，保存表单是页内保存不可用时的回退视图；
+   * 测试里点击「保存当前页面」即可进入（注入的 tabs.sendMessage 不会返回 ok 回执）。
+   */
+  view?: "save" | "quick";
+}
+
 export async function openControlledPopupPage(
   context: BrowserContext,
   extensionId: string,
   currentPage: ControlledPopupPage,
+  options: OpenControlledPopupOptions = {},
 ): Promise<Page> {
   const page = await context.newPage();
   await page.addInitScript(({ currentPage: injectedPage }) => {
@@ -75,6 +85,14 @@ export async function openControlledPopupPage(
 
   await page.goto(extPageUrl(extensionId, "popup.html"));
   await expect(page.locator("#root")).toBeVisible();
+
+  if ((options.view ?? "save") === "save") {
+    await page
+      .getByRole("button", { name: /保存当前页面|Save current page/ })
+      .click();
+    await expect(page.getByLabel(/标题|Title/)).toBeVisible();
+  }
+
   return page;
 }
 

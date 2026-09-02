@@ -45,6 +45,8 @@
       "description": "Customize your experience",
       "autoSaveSnapshot": "Auto Save Snapshots",
       "autoSaveSnapshotDesc": "Automatically save page snapshots when saving bookmarks",
+      "usePopupSavePanel": "Save in Extension Popup",
+      "usePopupSavePanelDesc": "When on, the bookmark form opens inside the extension popup; when off, a save panel appears right on the page so AI analysis never interrupts your browsing",
       "enableOmniboxSearch": "Omnibox Search Enhancement",
       "enableOmniboxSearchDesc": "Type 'ham' in browser address bar and press space to search and open bookmarks via keyword or semantic matching",
       "shortcut": "Shortcut Key",
@@ -53,6 +55,8 @@
       "shortcutDescFirefox": "Click gear icon → Manage Extension Shortcuts",
       "currentShortcuts": "Current Shortcuts",
       "shortcutNotSet": "Not Set",
+      "enableSidePanel": "In-page Sidebar",
+      "enableSidePanelDesc": "Show the bookmark sidebar trigger at the edge of web pages; when off, no sidebar is injected into pages",
       "panelPosition": "Sidebar Position",
       "panelPositionDesc": "Set whether the sidebar appears on the left or right side in content pages",
       "panelPositionOptions": {

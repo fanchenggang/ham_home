@@ -1,6 +1,7 @@
 import { browser } from "wxt/browser";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import { obsidianSyncStorage } from "@/lib/storage/obsidian-sync-storage";
+import { isContentScriptContext } from "@/utils/browser-api";
 import type {
   LocalBookmark,
   ObsidianBatchSyncResult,
@@ -206,6 +207,15 @@ function buildObsidianUrl({
 }
 
 async function openObsidianUrl(url: string): Promise<void> {
+  // content script 无法访问 tabs API，交给 background 打开
+  if (isContentScriptContext()) {
+    const { getBackgroundService } = await import(
+      "@/lib/services/background-service-client"
+    );
+    await getBackgroundService().openProtocolUrl(url);
+    return;
+  }
+
   const [activeTab] = await browser.tabs.query({
     active: true,
     currentWindow: true,

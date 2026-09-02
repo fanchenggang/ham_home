@@ -1,6 +1,7 @@
 import { defineConfig } from "wxt";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
+import { escapeUnicodeNonCharacters } from "./scripts/escape-unicode-noncharacters";
 
 // WXT 配置入口，用于管理浏览器扩展的构建、开发服务器以及 Manifest 清单配置
 export default defineConfig({
@@ -21,6 +22,8 @@ export default defineConfig({
       drop: mode === "production" ? ["console", "debugger"] : [],
     },
     plugins: [
+      // 转义产物中的 Unicode 非字符，否则 Chrome 会以“不是 UTF-8 编码”为由拒绝加载扩展
+      escapeUnicodeNonCharacters(),
       process.env.ANALYZE === "true" &&
         visualizer({
           open: true,
@@ -49,7 +52,7 @@ export default defineConfig({
     // 设置扩展的默认语言区域为简体中文
     default_locale: "zh_CN",
     // 扩展的版本号
-    version: "1.3.4",
+    version: "1.3.5",
 
     // 声明扩展所需要的浏览器 API 权限
     // 下面的注释同时对应 Chrome Web Store 提交时可填写的权限用途说明

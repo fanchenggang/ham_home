@@ -1,5 +1,6 @@
 export type ExtensionScreenshotId =
   | "popupSave"
+  | "popupQuickPanel"
   | "bookmarkLibrary"
   | "bookmarkBulkActions"
   | "contentPanel"
@@ -25,12 +26,24 @@ export const EXTENSION_SCREENSHOTS: Record<ExtensionScreenshotId, ExtensionScree
     file: "01-popup-save.png",
     aspect: "popup",
     zh: {
-      title: "快速保存弹窗",
-      alt: "HamHome 快速保存弹窗截图",
+      title: "页内快速保存",
+      alt: "HamHome 页内快速保存浮窗截图",
     },
     en: {
-      title: "Quick Save Popup",
-      alt: "HamHome quick save popup screenshot",
+      title: "In-page Quick Save",
+      alt: "HamHome in-page quick save panel screenshot",
+    },
+  },
+  popupQuickPanel: {
+    file: "09-popup-quick-panel.png",
+    aspect: "popup",
+    zh: {
+      title: "快捷面板",
+      alt: "HamHome 扩展快捷面板截图",
+    },
+    en: {
+      title: "Quick Panel",
+      alt: "HamHome extension quick panel screenshot",
     },
   },
   bookmarkLibrary: {

@@ -36,10 +36,10 @@ function getShowcaseFeatures(isEn: boolean): ShowcaseFeature[] {
         icon: <Brain className="h-5 w-5" />,
         title: "Capture pages with AI, snapshots, and privacy controls",
         description:
-          "The popup reads the active page, extracts content, suggests summaries, categories, and tags, and can save local HTML or Markdown snapshots.",
+          "Saving happens right on the page: HamHome extracts the content, suggests a summary, category, and tags, and can store a local HTML or Markdown snapshot.",
         screenshotIds: ["popupSave", "contentPanel"],
         bullets: [
-          "Popup, context menu, shortcut, and in-page panel entry points",
+          "Shortcut, context menu, and toolbar entry points, all handled in-page",
           "Defuddle, Mozilla Readability, and SingleFile-style capture",
           "Private domains and automatic privacy detection can skip AI analysis",
         ],
@@ -118,10 +118,10 @@ function getShowcaseFeatures(isEn: boolean): ShowcaseFeature[] {
       icon: <Brain className="h-5 w-5" />,
       title: "用 AI、快照和隐私控制保存网页",
       description:
-        "保存弹窗会读取当前页面，提取正文与元信息，推荐摘要、分类和标签，并可保存本地 HTML 或 Markdown 快照。",
+        "保存直接在当前页面完成：提取正文与元信息，推荐摘要、分类和标签，并可保存本地 HTML 或 Markdown 快照。",
       screenshotIds: ["popupSave", "contentPanel"],
       bullets: [
-        "支持弹窗、右键菜单、快捷键和网页内面板入口",
+        "快捷键、右键菜单、工具栏入口都在页面内完成保存",
         "结合 Defuddle、Mozilla Readability 与 SingleFile 风格捕获",
         "隐私域名和自动隐私检测可跳过 AI 分析",
       ],

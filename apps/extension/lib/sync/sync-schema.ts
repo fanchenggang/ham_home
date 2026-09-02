@@ -42,6 +42,8 @@ export const RemoteSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   language: z.enum(['zh', 'en']),
   shortcut: z.string(),
+  enableSidePanel: z.boolean().default(true),
+  usePopupSavePanel: z.boolean().default(false),
   panelPosition: z.enum(['left', 'right']),
   panelShortcut: z.string(),
   updatedAt: z.number().default(0),

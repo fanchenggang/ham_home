@@ -215,6 +215,7 @@ export function GlobalAgentLauncher({ inline = false }: { inline?: boolean }) {
   const { t } = useTranslation("ai");
   const agent = useGlobalAgent();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isBusy = ["thinking", "searching", "writing"].includes(agent.status);
   const activeSessionTitle = useMemo(
@@ -227,6 +228,17 @@ export function GlobalAgentLauncher({ inline = false }: { inline?: boolean }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [agent.messages, agent.currentAnswer, agent.currentSteps, agent.isOpen]);
+
+  // 输入框随内容自动撑开高度（受 CSS max-height 限制，超出后滚动）
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    // border-box + 1px 边框下，scrollHeight 不含边框，需补上上下边框高度，
+    // 否则内容区被挤掉 ~2px 产生假溢出，hover 时冒出滚动条
+    const borderY = el.offsetHeight - el.clientHeight;
+    el.style.height = `${el.scrollHeight + borderY}px`;
+  }, [agent.query, agent.isOpen]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -456,6 +468,7 @@ export function GlobalAgentLauncher({ inline = false }: { inline?: boolean }) {
         <form onSubmit={handleSubmit} className="border-t border-white/10 bg-background/50 p-3 backdrop-blur-md dark:border-white/5">
           <div className="flex items-end gap-2">
             <textarea
+              ref={inputRef}
               value={agent.query}
               onChange={(event) => agent.setQuery(event.target.value)}
               onKeyDown={(event) => {
@@ -465,7 +478,7 @@ export function GlobalAgentLauncher({ inline = false }: { inline?: boolean }) {
                 }
               }}
               rows={1}
-              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-transparent bg-muted/50 px-4 py-3 text-sm leading-relaxed outline-none transition-all placeholder:text-muted-foreground/60 focus:border-indigo-500/30 focus:bg-background focus:ring-2 focus:ring-indigo-500/20"
+              className="scrollbar-slim max-h-32 min-h-[44px] flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-transparent bg-muted/50 px-4 py-3 text-sm leading-relaxed outline-none transition-all placeholder:text-muted-foreground/60 focus:border-indigo-500/30 focus:bg-background focus:ring-2 focus:ring-indigo-500/20"
               placeholder={t("agent.placeholder")}
               disabled={isBusy}
             />

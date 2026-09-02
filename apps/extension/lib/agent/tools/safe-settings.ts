@@ -140,6 +140,8 @@ export function sanitizeSafeSettingsUpdate(
       "autoSaveSnapshot",
       "enableOmniboxSearch",
       "defaultCategory",
+      "enableSidePanel",
+      "usePopupSavePanel",
       "panelPosition",
     ]),
   );
@@ -172,6 +174,18 @@ export function sanitizeSafeSettingsUpdate(
     settings.defaultCategory = rawSettings.defaultCategory;
   } else if ("defaultCategory" in rawSettings) {
     reject(rejected, "settings", "defaultCategory", "value must be category id or null");
+  }
+
+  if (isBoolean(rawSettings.enableSidePanel)) {
+    settings.enableSidePanel = rawSettings.enableSidePanel;
+  } else if ("enableSidePanel" in rawSettings) {
+    reject(rejected, "settings", "enableSidePanel", "value must be boolean");
+  }
+
+  if (isBoolean(rawSettings.usePopupSavePanel)) {
+    settings.usePopupSavePanel = rawSettings.usePopupSavePanel;
+  } else if ("usePopupSavePanel" in rawSettings) {
+    reject(rejected, "settings", "usePopupSavePanel", "value must be boolean");
   }
 
   if (PANEL_POSITIONS.has(rawSettings.panelPosition as PanelPosition)) {

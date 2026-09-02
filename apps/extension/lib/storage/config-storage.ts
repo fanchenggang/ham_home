@@ -35,6 +35,8 @@ const DEFAULT_SETTINGS: LocalSettings = {
   theme: 'system',
   language: 'zh',
   shortcut: 'Ctrl+Shift+E',
+  enableSidePanel: true,
+  usePopupSavePanel: false,
   panelPosition: 'left',
   panelShortcut: 'Ctrl+Shift+B',
   updatedAt: 0,

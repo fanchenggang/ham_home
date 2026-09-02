@@ -81,8 +81,15 @@ export interface IBackgroundService {
     pageContent: PageContent;
     userCategories?: LocalCategory[];
     existingTags?: string[];
+    /** 跳过缓存强制重新分析（重试场景） */
+    skipCache?: boolean;
   }): Promise<AnalysisResult>;
   translate(text: string, targetLang: Language): Promise<string>;
+  /**
+   * 在浏览器中打开外部协议链接（如 obsidian://）
+   * content script 没有 tabs 权限，需要由 background 代为执行
+   */
+  openProtocolUrl(url: string): Promise<void>;
 }
 
 export const BACKGROUND_SERVICE_KEY =

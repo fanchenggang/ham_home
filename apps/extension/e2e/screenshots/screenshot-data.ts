@@ -662,3 +662,92 @@ function slug(value: string): string {
     .replace(/^-|-$/g, "")
     .slice(0, 48);
 }
+
+/**
+ * 保存流程截图使用的示例文章页
+ * URL 与 POPUP_CURRENT_PAGE 保持一致，以便命中预置的 AI 分析缓存
+ */
+export const SAVE_DEMO_PAGE_HTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI-assisted React Workflows</title>
+    <meta
+      name="description"
+      content="A practical guide to using AI-assisted workflows in React product teams."
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #ffffff;
+        color: #16202c;
+      }
+      body { margin: 0; }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 56px;
+        border-bottom: 1px solid #e5e9f0;
+        font-weight: 700;
+      }
+      header span.dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      }
+      main { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+      h1 { font-size: 40px; line-height: 1.2; margin: 0 0 16px; letter-spacing: -0.02em; }
+      .meta { color: #64748b; font-size: 14px; margin-bottom: 36px; }
+      h2 { font-size: 24px; margin: 40px 0 12px; }
+      p { font-size: 17px; line-height: 1.75; color: #33415c; margin: 0 0 18px; }
+      figure {
+        margin: 32px 0;
+        padding: 22px 24px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #eef2ff, #ecfeff);
+        border: 1px solid #dbeafe;
+        color: #1e293b;
+      }
+      code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 15px; }
+    </style>
+  </head>
+  <body>
+    <header><span class="dot"></span>React Blog</header>
+    <main>
+      <article>
+        <h1>AI-assisted React Workflows</h1>
+        <p class="meta">2026-01-18 · Engineering · 9 min read</p>
+        <p>
+          Teams are using agents to organize research, summarize design decisions, and keep
+          release notes connected to implementation tasks. The result is a workflow where the
+          context needed to ship a feature lives next to the code that implements it.
+        </p>
+        <figure>
+          Every saved page becomes structured context: a summary, a category, and a set of tags
+          that make it retrievable months later.
+        </figure>
+        <h2>Keep research close to implementation</h2>
+        <p>
+          Instead of dropping links into a chat thread, product teams capture the page, let the
+          agent summarize it, and file it under the component or feature it belongs to.
+        </p>
+        <p>
+          Reviews get faster because reviewers can trace a decision back to the article, RFC, or
+          benchmark that motivated it, without asking the author to reconstruct the history.
+        </p>
+        <h2>Make retrieval part of the workflow</h2>
+        <p>
+          A bookmark is only useful if it can be found again. Summaries, categories, and tags turn
+          a long list of URLs into a searchable knowledge base that survives team changes.
+        </p>
+        <p>
+          Pair semantic search with plain keyword search so both <code>exact</code> and fuzzy
+          recall work, and the library stays useful as it grows past a few thousand entries.
+        </p>
+      </article>
+    </main>
+  </body>
+</html>`;

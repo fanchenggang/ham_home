@@ -12,7 +12,8 @@ export default defineConfig({
   testDir: ".",
   testMatch: "marketing-screenshots.spec.ts",
   globalSetup: "../global-setup.ts",
-  timeout: 120_000,
+  // 截图用例串行执行 9 张图（含页内保存流程），给足超时时间
+  timeout: 180_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,

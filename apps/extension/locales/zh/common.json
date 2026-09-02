@@ -32,6 +32,7 @@
     "loadMore": "加载更多",
     "manageBookmarks": "管理书签",
     "viewShortcuts": "查看快捷键",
+    "firefoxShortcutsGuide": "请在 Firefox 中手动打开：地址栏输入 about:addons → 点击右上角齿轮图标 → 选择「管理扩展快捷键」。",
     "languages": {
       "en": "English",
       "zh": "中文",
@@ -46,6 +47,7 @@
     },
     "contextMenu": {
       "saveToHamHome": "收藏到 HamHome"
-    }
+    },
+    "viewAll": "查看全部"
   }
 }

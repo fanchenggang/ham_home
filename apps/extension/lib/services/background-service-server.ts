@@ -9,6 +9,7 @@ import {
   type IBackgroundService,
   type QueueProgress,
 } from "./background-service-contract";
+import { aiCacheStorage } from "@/lib/storage/ai-cache-storage";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import { configStorage } from "@/lib/storage/config-storage";
 import { snapshotStorage } from "@/lib/storage/snapshot-storage";
@@ -453,12 +454,45 @@ class BackgroundServiceImpl implements IBackgroundService {
     return globalAgentService.deleteSession(sessionId);
   }
 
+  /**
+   * AI 分析书签
+   * 缓存读写统一在 background 中完成：调用方可能是 content script，
+   * 其 IndexedDB 属于所在站点的 origin，直接读写会导致缓存无法命中且污染站点存储
+   */
   async analyzeBookmark(options: {
     pageContent: PageContent;
     userCategories?: LocalCategory[];
     existingTags?: string[];
+    skipCache?: boolean;
   }): Promise<AnalysisResult> {
-    return bookmarkAnalysisService.analyzeBookmark(options);
+    const { skipCache = false, ...analysisOptions } = options;
+
+    if (!skipCache) {
+      const cached = await aiCacheStorage.getCachedAnalysis(
+        analysisOptions.pageContent.url,
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const result = await bookmarkAnalysisService.analyzeBookmark(analysisOptions);
+    await aiCacheStorage.cacheAnalysis(analysisOptions.pageContent, result);
+    return result;
+  }
+
+  async openProtocolUrl(url: string): Promise<void> {
+    const [activeTab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (activeTab?.id) {
+      await browser.tabs.update(activeTab.id, { url });
+      return;
+    }
+
+    await browser.tabs.create({ url, active: true });
   }
 
   async translate(text: string, targetLang: "zh" | "en"): Promise<string> {

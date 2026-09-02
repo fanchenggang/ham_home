@@ -8,6 +8,7 @@ import { configStorage } from "@/lib/storage";
 import { bookmarkStorage } from "@/lib/storage/bookmark-storage";
 import { workspaceStorage } from "@/lib/storage/workspace-storage";
 import { workspaceRestoreSuppressionStorage } from "@/lib/storage/workspace-restore-suppression-storage";
+import { savePopupFallbackStorage } from "@/lib/storage/save-popup-fallback-storage";
 import { workspaceService } from "@/lib/services/workspace-service";
 import { tabGroupRuleService } from "@/lib/services/tab-group-rule-service";
 import {
@@ -16,8 +17,9 @@ import {
   safeCreateTab,
   getExtensionURL,
 } from "@/utils/browser-api";
-import type { Language, TabGroupPageMetadata } from "@/types";
+import type { Language, SaveFlowSource, TabGroupPageMetadata } from "@/types";
 import { initApiModePersistence } from "@/lib/agent/api-mode-persistence";
+import { applyDevConfigPreset } from "@/lib/dev/dev-config-preset";
 
 // 右键菜单 ID
 const CONTEXT_MENU_ID = "save-to-hamhome";
@@ -316,6 +318,39 @@ function escapeXml(unsafe: string) {
 
 const newlyCreatedTabs = new Set<number>();
 
+/**
+ * 触发保存书签流程
+ * 优先在当前页面内展示保存浮窗（AI 分析期间不阻塞用户操作）；
+ * 用户在设置中开启「在扩展弹窗中保存」，或当前页面无法注入 content script
+ * （浏览器内部页、应用商店等）时，回退到 Popup，并标记让 Popup 直接进入保存模式
+ */
+async function triggerSaveBookmarkFlow(
+  source: SaveFlowSource,
+): Promise<void> {
+  let usePopupSavePanel = false;
+  try {
+    usePopupSavePanel = (await configStorage.getSettings()).usePopupSavePanel;
+  } catch (error) {
+    console.warn("[HamHome Background] 读取保存方式设置失败:", error);
+  }
+
+  if (!usePopupSavePanel) {
+    const response = await safeSendMessageToActiveTab<{ ok?: boolean }>({
+      type: "START_SAVE_FLOW",
+      source,
+    });
+
+    if (response?.ok) return;
+    console.log("[HamHome Background] 页内保存不可用，回退到 Popup");
+  }
+
+  await savePopupFallbackStorage.markPending(source);
+  const opened = await safeOpenPopup();
+  if (!opened) {
+    await savePopupFallbackStorage.clear();
+  }
+}
+
 export default defineBackground(() => {
   console.log("[HamHome Background] Service Worker 启动");
 
@@ -324,6 +359,9 @@ export default defineBackground(() => {
 
   // 初始化 OpenAI API 模式缓存持久化
   initApiModePersistence();
+
+  // 开发态：把 .env.local 里的 AI / Embedding / 同步配置写入存储（生产构建会被移除）
+  void applyDevConfigPreset();
 
   // 1. 初始化并订阅 WebDAV 存储变更自动同步
   Promise.all([
@@ -422,8 +460,7 @@ export default defineBackground(() => {
   browser.commands.onCommand.addListener(async (command) => {
     console.log("[HamHome Background] 快捷键触发:", command);
     if (command === "save-bookmark") {
-      // 打开 Popup（兼容不同浏览器）
-      await safeOpenPopup();
+      await triggerSaveBookmarkFlow("shortcut");
     } else if (command === "save-workspace") {
       await saveCurrentWindowWorkspaceFromBackground();
     } else if (command === "toggle-bookmark-panel") {
@@ -436,8 +473,7 @@ export default defineBackground(() => {
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
     console.log("[HamHome Background] 右键菜单点击:", info.menuItemId);
     if (info.menuItemId === CONTEXT_MENU_ID) {
-      // 打开 Popup（兼容不同浏览器）
-      await safeOpenPopup();
+      await triggerSaveBookmarkFlow("contextMenu");
     } else if (info.menuItemId === WORKSPACE_CONTEXT_MENU_ID) {
       await saveCurrentWindowWorkspaceFromBackground();
     } else if (info.menuItemId === MANAGE_HAMHOME_CONTEXT_MENU_ID) {

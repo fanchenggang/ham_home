@@ -18,15 +18,22 @@ export function EdgeTrigger({ position, visible, onClick }: EdgeTriggerProps) {
   
   return (
     <div
+      // 内联 transform：Tailwind 的 translate 工具类依赖 document 级 @property 注册的
+      // --tw-translate-*，被页面移除后整条声明失效（issue #13）
+      style={{
+        transform: visible
+          ? 'translate(0, -50%)'
+          : position === 'left'
+            ? 'translate(-100%, -50%)'
+            : 'translate(100%, -50%)',
+      }}
       className={cn(
-        'fixed top-1/2 -translate-y-1/2 z-[99998]',
-        'transition-all duration-300 ease-out',
+        'fixed top-1/2 z-[99998]',
+        'transition-[transform,opacity,visibility] duration-300 ease-out',
         position === 'left' ? 'left-0' : 'right-0',
         visible
-          ? 'pointer-events-auto opacity-100 translate-x-0'
-          : position === 'left'
-            ? 'pointer-events-none opacity-0 -translate-x-full'
-            : 'pointer-events-none opacity-0 translate-x-full'
+          ? 'visible pointer-events-auto opacity-100'
+          : 'invisible pointer-events-none opacity-0'
       )}
     >
       <button
