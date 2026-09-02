@@ -9,6 +9,10 @@
  * - 分类 (sync:categories) - 跨设备同步（分类数量较少，不易超限）
  */
 import { nanoid } from 'nanoid';
+import { bookmarkClipStorage } from './bookmark-clip-storage';
+import { bookmarkHealthStorage } from './bookmark-health-storage';
+import { bookmarkScreenshotStorage } from './bookmark-screenshot-storage';
+import { snapshotStorage } from './snapshot-storage';
 import type {
   LocalBookmark,
   LocalCategory,
@@ -257,6 +261,12 @@ class BookmarkStorage {
       const contentsMap = await bookmarkContentsItem.getValue();
       delete contentsMap[id];
       await bookmarkContentsItem.setValue(contentsMap);
+      await Promise.all([
+        bookmarkClipStorage.deleteByBookmark(id),
+        bookmarkHealthStorage.delete(id),
+        bookmarkScreenshotStorage.delete(id),
+        snapshotStorage.deleteSnapshot(id),
+      ]);
     } else {
       // 软删除：只标记元数据
       const index = metaList.findIndex((b: BookmarkMeta) => b.id === id);
@@ -480,6 +490,12 @@ class BookmarkStorage {
       const contentsMap = await bookmarkContentsItem.getValue();
       ids.forEach((id) => delete contentsMap[id]);
       await bookmarkContentsItem.setValue(contentsMap);
+      await Promise.all([
+        bookmarkClipStorage.deleteByBookmarks(ids),
+        bookmarkHealthStorage.deleteMany(ids),
+        bookmarkScreenshotStorage.deleteMany(ids),
+        Promise.all(ids.map((id) => snapshotStorage.deleteSnapshot(id))),
+      ]);
     } else {
       const now = Date.now();
       metaList = metaList.map((b: BookmarkMeta) =>
